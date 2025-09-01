@@ -1,0 +1,1966 @@
+openapi: 3.0.3
+info:
+  title: Tattara DSN AI Data Collection App API
+  description: |
+    API for the Tattara DSN AI Data Collection App - a web-based platform designed to streamline 
+    and enhance data entry, validation, and integration using AI assistance with voice and OCR capabilities.
+
+    ## Features
+    - Voice-based data entry in multiple local languages
+    - Image-based (OCR) capture of handwritten notes
+    - DHIS2 integration and standalone database support
+    - Offline capability with sync
+    - Role-based access control
+  version: 1.0.0
+  contact:
+    name: DSN Team
+    email: support@tattara.app
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: https://api.tattara.app/v1
+    description: Production server
+  - url: https://dev-api.tattara.app/v1
+    description: Development server
+
+security:
+  - BearerAuth: []
+
+paths:
+  # Authentication
+  /auth/admin/login:
+    post:
+      tags:
+        - Authentication
+      summary: Admin login
+      description: Authenticate admin user and return JWT token
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /auth/collector/login:
+    post:
+      tags:
+        - Authentication
+      summary: Data collector login
+      description: Authenticate data collector and return JWT token
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /auth/change-password:
+    put:
+      tags:
+        - Authentication
+      summary: Change password
+      description: Change user password (typically after first login)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangePasswordRequest'
+      responses:
+        '200':
+          description: Password changed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  # User Management (Admin)
+  /admin/users:
+    post:
+      tags:
+        - User Management
+      summary: Create single user
+      description: Create a new user account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUserRequest'
+      responses:
+        '201':
+          description: User created successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+
+    get:
+      tags:
+        - User Management
+      summary: List users
+      description: Get paginated list of users with optional filters
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: role
+          in: query
+          schema:
+            type: string
+            enum: [admin, data_collector]
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, suspended, inactive]
+      responses:
+        '200':
+          description: Users retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedUsersResponse'
+
+  /admin/users/bulk-upload:
+    post:
+      tags:
+        - User Management
+      summary: Bulk upload users
+      description: Upload multiple users from CSV file
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: CSV file with user details
+      responses:
+        '200':
+          description: Bulk upload completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BulkUploadResponse'
+
+  /admin/users/template:
+    get:
+      tags:
+        - User Management
+      summary: Download user template
+      description: Get CSV template for bulk user upload
+      responses:
+        '200':
+          description: CSV template file
+          content:
+            text/csv:
+              schema:
+                type: string
+
+  /admin/users/{userId}:
+    put:
+      tags:
+        - User Management
+      summary: Update user
+      description: Update user details
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserRequest'
+      responses:
+        '200':
+          description: User updated successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/User'
+
+    delete:
+      tags:
+        - User Management
+      summary: Delete user
+      description: Delete user account
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: User deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  # Pipeline Management
+  /admin/pipelines:
+    post:
+      tags:
+        - Pipeline Management
+      summary: Create pipeline
+      description: Create a new data collection pipeline
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePipelineRequest'
+      responses:
+        '201':
+          description: Pipeline created successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Pipeline'
+
+    get:
+      tags:
+        - Pipeline Management
+      summary: List pipelines
+      description: Get paginated list of pipelines
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [dhis2, generic_db]
+      responses:
+        '200':
+          description: Pipelines retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedPipelinesResponse'
+
+  /admin/pipelines/{pipelineId}:
+    get:
+      tags:
+        - Pipeline Management
+      summary: Get pipeline details
+      description: Get detailed information about a specific pipeline
+      parameters:
+        - name: pipelineId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Pipeline details retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Pipeline'
+
+    put:
+      tags:
+        - Pipeline Management
+      summary: Update pipeline
+      description: Update pipeline configuration
+      parameters:
+        - name: pipelineId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePipelineRequest'
+      responses:
+        '200':
+          description: Pipeline updated successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Pipeline'
+
+    delete:
+      tags:
+        - Pipeline Management
+      summary: Delete pipeline
+      description: Delete a pipeline
+      parameters:
+        - name: pipelineId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Pipeline deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /admin/pipelines/{pipelineId}/users:
+    post:
+      tags:
+        - Pipeline Management
+      summary: Assign users to pipeline
+      description: Add or remove users from a pipeline
+      parameters:
+        - name: pipelineId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssignUsersRequest'
+      responses:
+        '200':
+          description: Users assigned successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  # Data Collection (Collector)
+  /collector/pipelines:
+    get:
+      tags:
+        - Data Collection
+      summary: Get assigned pipelines
+      description: Get list of pipelines assigned to the current user
+      responses:
+        '200':
+          description: Assigned pipelines retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/PipelineSummary'
+
+  /collector/pipelines/{pipelineId}/form:
+    get:
+      tags:
+        - Data Collection
+      summary: Get pipeline form schema
+      description: Get the form schema for data collection
+      parameters:
+        - name: pipelineId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Form schema retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/FormSchema'
+
+  /collector/data/voice:
+    post:
+      tags:
+        - Data Collection
+      summary: Process voice input
+      description: Process audio input using speech-to-text
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - audio
+                - pipelineId
+                - language
+              properties:
+                audio:
+                  type: string
+                  format: binary
+                  description: Audio file (WAV, MP3, etc.)
+                pipelineId:
+                  type: string
+                  format: uuid
+                language:
+                  type: string
+                  example: en
+                fieldId:
+                  type: string
+                  description: Optional field ID for field-specific input
+      responses:
+        '200':
+          description: Voice input processed successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/VoiceProcessingResponse'
+
+  /collector/data/ocr:
+    post:
+      tags:
+        - Data Collection
+      summary: Process OCR image
+      description: Extract text from image using OCR
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - image
+                - pipelineId
+              properties:
+                image:
+                  type: string
+                  format: binary
+                  description: Image file (JPG, PNG, etc.)
+                pipelineId:
+                  type: string
+                  format: uuid
+                language:
+                  type: string
+                  example: en
+                  description: Optional language hint
+      responses:
+        '200':
+          description: OCR processing completed successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/OCRProcessingResponse'
+
+  /collector/data/submit:
+    post:
+      tags:
+        - Data Collection
+      summary: Submit data entry
+      description: Submit validated data entry
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubmitDataRequest'
+      responses:
+        '201':
+          description: Data submitted successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Submission'
+
+  /collector/submissions:
+    get:
+      tags:
+        - Data Collection
+      summary: Get submission history
+      description: Get paginated list of user's submissions
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: pipelineId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, submitted, synced, failed]
+      responses:
+        '200':
+          description: Submissions retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedSubmissionsResponse'
+
+  /collector/sync:
+    post:
+      tags:
+        - Data Collection
+      summary: Offline sync
+      description: Sync offline submissions to server
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SyncRequest'
+      responses:
+        '200':
+          description: Sync completed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncResponse'
+
+  # Data Management & Analytics (Admin)
+  /admin/data:
+    get:
+      tags:
+        - Data Management
+      summary: Get collected data
+      description: Get paginated collected data with filters
+      parameters:
+        - name: pipelineId
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+      responses:
+        '200':
+          description: Data retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedDataResponse'
+
+  /admin/data/export:
+    post:
+      tags:
+        - Data Management
+      summary: Export data
+      description: Export collected data in specified format
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExportDataRequest'
+      responses:
+        '200':
+          description: Export initiated successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/ExportResponse'
+
+  /admin/analytics/dashboard:
+    get:
+      tags:
+        - Analytics
+      summary: Get dashboard analytics
+      description: Get analytics data for dashboard
+      parameters:
+        - name: pipelineId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [7d, 30d, 90d, 1y]
+            default: 30d
+      responses:
+        '200':
+          description: Analytics data retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/AnalyticsData'
+
+  # System Configuration
+  /admin/settings:
+    get:
+      tags:
+        - System Configuration
+      summary: Get system settings
+      description: Get current system configuration
+      responses:
+        '200':
+          description: Settings retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/SystemSettings'
+
+    put:
+      tags:
+        - System Configuration
+      summary: Update system settings
+      description: Update system configuration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateSystemSettingsRequest'
+      responses:
+        '200':
+          description: Settings updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /admin/connections/dhis2/test:
+    post:
+      tags:
+        - System Configuration
+      summary: Test DHIS2 connection
+      description: Test connection to DHIS2 instance
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TestDHIS2ConnectionRequest'
+      responses:
+        '200':
+          description: Connection test completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConnectionTestResponse'
+
+  /admin/connections/database/test:
+    post:
+      tags:
+        - System Configuration
+      summary: Test database connection
+      description: Test connection to database
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TestDatabaseConnectionRequest'
+      responses:
+        '200':
+          description: Connection test completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConnectionTestResponse'
+
+  # Health & Monitoring
+  /health:
+    get:
+      tags:
+        - Health & Monitoring
+      summary: Health check
+      description: Check system health status
+      security: []
+      responses:
+        '200':
+          description: System health status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  /admin/metrics:
+    get:
+      tags:
+        - Health & Monitoring
+      summary: Get system metrics
+      description: Get system performance metrics
+      responses:
+        '200':
+          description: Metrics retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MetricsResponse'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    # Common schemas
+    SuccessResponse:
+      type: object
+      required:
+        - success
+      properties:
+        success:
+          type: boolean
+          example: true
+
+    ErrorResponse:
+      type: object
+      required:
+        - success
+        - error
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              example: 'VALIDATION_ERROR'
+            message:
+              type: string
+              example: 'Invalid input data'
+            details:
+              type: object
+
+    PaginationInfo:
+      type: object
+      properties:
+        page:
+          type: integer
+          example: 1
+        limit:
+          type: integer
+          example: 20
+        total:
+          type: integer
+          example: 100
+        totalPages:
+          type: integer
+          example: 5
+
+    # Authentication schemas
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          example: 'admin@example.com'
+        password:
+          type: string
+          example: 'password123'
+
+    LoginResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                token:
+                  type: string
+                  example: 'jwt_token_here'
+                user:
+                  $ref: '#/components/schemas/User'
+
+    ChangePasswordRequest:
+      type: object
+      required:
+        - currentPassword
+        - newPassword
+      properties:
+        currentPassword:
+          type: string
+          example: 'defaultPassword'
+        newPassword:
+          type: string
+          example: 'newSecurePassword'
+
+    # User schemas
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          example: 'John Doe'
+        email:
+          type: string
+          format: email
+          example: 'john@example.com'
+        role:
+          type: string
+          enum: [admin, data_collector]
+        status:
+          type: string
+          enum: [active, suspended, inactive]
+        pipelineIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+        createdAt:
+          type: string
+          format: date-time
+        isFirstLogin:
+          type: boolean
+
+    CreateUserRequest:
+      type: object
+      required:
+        - name
+        - email
+        - role
+      properties:
+        name:
+          type: string
+          example: 'John Doe'
+        email:
+          type: string
+          format: email
+          example: 'john@example.com'
+        role:
+          type: string
+          enum: [admin, data_collector]
+        defaultPassword:
+          type: string
+          example: 'temp123'
+        pipelineIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+
+    UpdateUserRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          example: 'Updated Name'
+        status:
+          type: string
+          enum: [active, suspended, inactive]
+        pipelineIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+
+    PaginatedUsersResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                users:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/User'
+                pagination:
+                  $ref: '#/components/schemas/PaginationInfo'
+
+    BulkUploadResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                processed:
+                  type: integer
+                  example: 50
+                successful:
+                  type: integer
+                  example: 48
+                failed:
+                  type: integer
+                  example: 2
+                errors:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      row:
+                        type: integer
+                      error:
+                        type: string
+
+    # Pipeline schemas
+    Pipeline:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          example: 'Patient Intake Form'
+        description:
+          type: string
+          example: 'Daily patient intake data collection'
+        type:
+          type: string
+          enum: [dhis2, generic_db]
+        configuration:
+          type: object
+        fields:
+          type: array
+          items:
+            $ref: '#/components/schemas/PipelineField'
+        supportedLanguages:
+          type: array
+          items:
+            type: string
+          example: ['en', 'ha', 'ig', 'yo', 'sw']
+        enabledModes:
+          type: array
+          items:
+            type: string
+            enum: [voice, ocr, text]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    PipelineField:
+      type: object
+      properties:
+        id:
+          type: string
+          example: 'patient_name'
+        label:
+          type: string
+          example: 'Patient Name'
+        type:
+          type: string
+          enum: [text, number, date, select, multiselect, boolean]
+        required:
+          type: boolean
+        validation:
+          type: object
+        aiMapping:
+          type: object
+          properties:
+            voiceKeywords:
+              type: array
+              items:
+                type: string
+            ocrPattern:
+              type: string
+
+    PipelineSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          example: 'Patient Intake Form'
+        description:
+          type: string
+          example: 'Daily patient intake'
+        enabledModes:
+          type: array
+          items:
+            type: string
+        supportedLanguages:
+          type: array
+          items:
+            type: string
+
+    CreatePipelineRequest:
+      type: object
+      required:
+        - name
+        - type
+        - fields
+      properties:
+        name:
+          type: string
+          example: 'Patient Intake Form'
+        description:
+          type: string
+          example: 'Daily patient intake data collection'
+        type:
+          type: string
+          enum: [dhis2, generic_db]
+        configuration:
+          type: object
+        fields:
+          type: array
+          items:
+            $ref: '#/components/schemas/PipelineField'
+        supportedLanguages:
+          type: array
+          items:
+            type: string
+          example: ['en', 'ha', 'ig', 'yo', 'sw']
+        enabledModes:
+          type: array
+          items:
+            type: string
+            enum: [voice, ocr, text]
+
+    UpdatePipelineRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        configuration:
+          type: object
+        fields:
+          type: array
+          items:
+            $ref: '#/components/schemas/PipelineField'
+        supportedLanguages:
+          type: array
+          items:
+            type: string
+        enabledModes:
+          type: array
+          items:
+            type: string
+
+    AssignUsersRequest:
+      type: object
+      required:
+        - userIds
+        - action
+      properties:
+        userIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+        action:
+          type: string
+          enum: [add, remove]
+
+    PaginatedPipelinesResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                pipelines:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/Pipeline'
+                pagination:
+                  $ref: '#/components/schemas/PaginationInfo'
+
+    FormSchema:
+      type: object
+      properties:
+        pipelineId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        fields:
+          type: array
+          items:
+            $ref: '#/components/schemas/PipelineField'
+        supportedLanguages:
+          type: array
+          items:
+            type: string
+        enabledModes:
+          type: array
+          items:
+            type: string
+
+    # Data Collection schemas
+    VoiceProcessingResponse:
+      type: object
+      properties:
+        transcription:
+          type: string
+          example: 'John Doe'
+        confidence:
+          type: number
+          format: float
+          example: 0.95
+        suggestedField:
+          type: string
+          example: 'patient_name'
+        suggestedValue:
+          type: string
+          example: 'John Doe'
+        alternatives:
+          type: array
+          items:
+            type: string
+          example: ['Jon Doe', 'John Do']
+
+    OCRProcessingResponse:
+      type: object
+      properties:
+        extractedText:
+          type: string
+          example: "Name: John Doe\nAge: 35\nCondition: Fever"
+        fieldMappings:
+          type: array
+          items:
+            type: object
+            properties:
+              fieldId:
+                type: string
+                example: 'patient_name'
+              extractedValue:
+                type: string
+                example: 'John Doe'
+              confidence:
+                type: number
+                format: float
+                example: 0.92
+              boundingBox:
+                type: object
+                properties:
+                  x:
+                    type: integer
+                  y:
+                    type: integer
+                  width:
+                    type: integer
+                  height:
+                    type: integer
+
+    SubmitDataRequest:
+      type: object
+      required:
+        - pipelineId
+        - data
+      properties:
+        pipelineId:
+          type: string
+          format: uuid
+        data:
+          type: object
+          example:
+            patient_name: 'John Doe'
+            age: 35
+            condition: 'Fever'
+            visit_date: '2025-08-27'
+        metadata:
+          type: object
+          properties:
+            entryMode:
+              type: string
+              enum: [voice, ocr, text, mixed]
+            location:
+              type: object
+              properties:
+                lat:
+                  type: number
+                  format: float
+                lng:
+                  type: number
+                  format: float
+            entryDuration:
+              type: integer
+              description: Entry duration in seconds
+            language:
+              type: string
+
+    Submission:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        pipelineId:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        data:
+          type: object
+        metadata:
+          type: object
+        status:
+          type: string
+          enum: [pending, submitted, synced, failed]
+        createdAt:
+          type: string
+          format: date-time
+        submittedAt:
+          type: string
+          format: date-time
+        syncedAt:
+          type: string
+          format: date-time
+
+    PaginatedSubmissionsResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                submissions:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/Submission'
+                pagination:
+                  $ref: '#/components/schemas/PaginationInfo'
+
+    SyncRequest:
+      type: object
+      required:
+        - submissions
+      properties:
+        submissions:
+          type: array
+          items:
+            type: object
+            properties:
+              localId:
+                type: string
+                format: uuid
+              pipelineId:
+                type: string
+                format: uuid
+              data:
+                type: object
+              metadata:
+                type: object
+              timestamp:
+                type: string
+                format: date-time
+
+    SyncResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                processed:
+                  type: integer
+                  example: 10
+                successful:
+                  type: integer
+                  example: 9
+                failed:
+                  type: integer
+                  example: 1
+                syncResults:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      localId:
+                        type: string
+                        format: uuid
+                      serverId:
+                        type: string
+                        format: uuid
+                      status:
+                        type: string
+                        enum: [success, failed]
+                      error:
+                        type: string
+
+    # Data Management schemas
+    PaginatedDataResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                records:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        format: uuid
+                      data:
+                        type: object
+                      metadata:
+                        type: object
+                      submittedBy:
+                        type: string
+                      submittedAt:
+                        type: string
+                        format: date-time
+                pagination:
+                  $ref: '#/components/schemas/PaginationInfo'
+
+    ExportDataRequest:
+      type: object
+      required:
+        - pipelineId
+        - format
+      properties:
+        pipelineId:
+          type: string
+          format: uuid
+        format:
+          type: string
+          enum: [csv, excel, json]
+        dateRange:
+          type: object
+          properties:
+            start:
+              type: string
+              format: date
+            end:
+              type: string
+              format: date
+        includeMetadata:
+          type: boolean
+          default: true
+
+    ExportResponse:
+      type: object
+      properties:
+        downloadUrl:
+          type: string
+          format: uri
+          example: 'https://api.tattara.app/downloads/export_12345.csv'
+        expiresAt:
+          type: string
+          format: date-time
+
+    # Analytics schemas
+    AnalyticsData:
+      type: object
+      properties:
+        totalSubmissions:
+          type: integer
+          example: 1250
+        submissionsToday:
+          type: integer
+          example: 45
+        avgSubmissionTime:
+          type: integer
+          description: Average submission time in seconds
+          example: 180
+        accuracyRates:
+          type: object
+          properties:
+            voice:
+              type: number
+              format: float
+              example: 0.94
+            ocr:
+              type: number
+              format: float
+              example: 0.87
+        languageDistribution:
+          type: object
+          additionalProperties:
+            type: integer
+          example:
+            en: 60
+            ha: 25
+            ig: 15
+        topContributors:
+          type: array
+          items:
+            type: object
+            properties:
+              userId:
+                type: string
+                format: uuid
+              name:
+                type: string
+              submissions:
+                type: integer
+        submissionTrends:
+          type: array
+          items:
+            type: object
+            properties:
+              date:
+                type: string
+                format: date
+              count:
+                type: integer
+        errorRates:
+          type: object
+          properties:
+            voice:
+              type: number
+              format: float
+            ocr:
+              type: number
+              format: float
+            sync:
+              type: number
+              format: float
+
+    # System Configuration schemas
+    SystemSettings:
+      type: object
+      properties:
+        aiSettings:
+          type: object
+          properties:
+            voiceProvider:
+              type: string
+              enum: [google, azure, vosk]
+              example: 'google'
+            ocrProvider:
+              type: string
+              enum: [google_vision, tesseract, azure]
+              example: 'google_vision'
+            confidenceThreshold:
+              type: number
+              format: float
+              example: 0.85
+        syncSettings:
+          type: object
+          properties:
+            autoSyncInterval:
+              type: integer
+              description: Auto sync interval in seconds
+              example: 300
+            maxOfflineRecords:
+              type: integer
+              example: 500
+        securitySettings:
+          type: object
+          properties:
+            sessionTimeout:
+              type: integer
+              description: Session timeout in seconds
+              example: 3600
+            passwordPolicy:
+              type: object
+              properties:
+                minLength:
+                  type: integer
+                  example: 8
+                requireSpecialChar:
+                  type: boolean
+                  example: true
+                requireUppercase:
+                  type: boolean
+                  example: true
+                requireNumber:
+                  type: boolean
+                  example: true
+
+    UpdateSystemSettingsRequest:
+      type: object
+      properties:
+        aiSettings:
+          type: object
+          properties:
+            voiceProvider:
+              type: string
+              enum: [google, azure, vosk]
+            ocrProvider:
+              type: string
+              enum: [google_vision, tesseract, azure]
+            confidenceThreshold:
+              type: number
+              format: float
+              minimum: 0
+              maximum: 1
+        syncSettings:
+          type: object
+          properties:
+            autoSyncInterval:
+              type: integer
+              minimum: 60
+            maxOfflineRecords:
+              type: integer
+              minimum: 10
+        securitySettings:
+          type: object
+          properties:
+            sessionTimeout:
+              type: integer
+              minimum: 300
+            passwordPolicy:
+              type: object
+
+    TestDHIS2ConnectionRequest:
+      type: object
+      required:
+        - instanceUrl
+        - username
+        - password
+      properties:
+        instanceUrl:
+          type: string
+          format: uri
+          example: 'https://dhis2.example.com'
+        username:
+          type: string
+          example: 'admin'
+        password:
+          type: string
+          example: 'password'
+        apiVersion:
+          type: string
+          example: '2.39'
+
+    TestDatabaseConnectionRequest:
+      type: object
+      required:
+        - type
+        - connectionString
+      properties:
+        type:
+          type: string
+          enum: [postgresql, mysql, mssql, sqlite]
+          example: 'postgresql'
+        connectionString:
+          type: string
+          example: 'postgresql://user:pass@host:5432/db'
+        testQuery:
+          type: string
+          example: 'SELECT 1'
+
+    ConnectionTestResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                connected:
+                  type: boolean
+                  example: true
+                responseTime:
+                  type: integer
+                  description: Response time in milliseconds
+                  example: 250
+                version:
+                  type: string
+                  example: '2.39.1'
+                message:
+                  type: string
+                  example: 'Connection successful'
+                error:
+                  type: string
+                  description: Error message if connection failed
+
+    # Health & Monitoring schemas
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [healthy, degraded, unhealthy]
+          example: 'healthy'
+        timestamp:
+          type: string
+          format: date-time
+        services:
+          type: object
+          properties:
+            database:
+              type: string
+              enum: [healthy, unhealthy]
+              example: 'healthy'
+            ai_services:
+              type: string
+              enum: [healthy, unhealthy]
+              example: 'healthy'
+            dhis2_connector:
+              type: string
+              enum: [healthy, unhealthy]
+              example: 'healthy'
+            file_storage:
+              type: string
+              enum: [healthy, unhealthy]
+              example: 'healthy'
+        uptime:
+          type: integer
+          description: Uptime in seconds
+          example: 86400
+        version:
+          type: string
+          example: '1.0.0'
+
+    MetricsResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                system:
+                  type: object
+                  properties:
+                    cpuUsage:
+                      type: number
+                      format: float
+                      example: 0.45
+                    memoryUsage:
+                      type: number
+                      format: float
+                      example: 0.67
+                    diskUsage:
+                      type: number
+                      format: float
+                      example: 0.23
+                    uptime:
+                      type: integer
+                      example: 86400
+                api:
+                  type: object
+                  properties:
+                    requestCount:
+                      type: integer
+                      example: 12450
+                    avgResponseTime:
+                      type: number
+                      format: float
+                      example: 145.5
+                    errorRate:
+                      type: number
+                      format: float
+                      example: 0.02
+                ai:
+                  type: object
+                  properties:
+                    voiceProcessingCount:
+                      type: integer
+                      example: 856
+                    ocrProcessingCount:
+                      type: integer
+                      example: 342
+                    avgVoiceProcessingTime:
+                      type: number
+                      format: float
+                      example: 2.1
+                    avgOcrProcessingTime:
+                      type: number
+                      format: float
+                      example: 4.3
+                database:
+                  type: object
+                  properties:
+                    connectionCount:
+                      type: integer
+                      example: 25
+                    activeConnections:
+                      type: integer
+                      example: 8
+                    avgQueryTime:
+                      type: number
+                      format: float
+                      example: 15.2
+
+  responses:
+    UnauthorizedError:
+      description: Authentication required or invalid token
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/ErrorResponse'
+              - type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: 'AUTH_REQUIRED'
+                      message:
+                        type: string
+                        example: 'Authentication required'
+
+    ForbiddenError:
+      description: Insufficient permissions
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/ErrorResponse'
+              - type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: 'PERMISSION_DENIED'
+                      message:
+                        type: string
+                        example: 'Insufficient permissions'
+
+    ValidationError:
+      description: Input validation failed
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/ErrorResponse'
+              - type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: 'VALIDATION_ERROR'
+                      message:
+                        type: string
+                        example: 'Invalid input data'
+                      details:
+                        type: object
+                        properties:
+                          field:
+                            type: string
+                            example: 'email'
+                          reason:
+                            type: string
+                            example: 'Invalid email format'
+
+    NotFoundError:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/ErrorResponse'
+              - type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: 'RESOURCE_NOT_FOUND'
+                      message:
+                        type: string
+                        example: 'Requested resource not found'
+
+    RateLimitError:
+      description: Rate limit exceeded
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/ErrorResponse'
+              - type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: 'RATE_LIMIT_EXCEEDED'
+                      message:
+                        type: string
+                        example: 'Too many requests'
+                      details:
+                        type: object
+                        properties:
+                          retryAfter:
+                            type: integer
+                            description: Seconds to wait before retrying
+                            example: 60
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/ErrorResponse'
+              - type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: 'INTERNAL_SERVER_ERROR'
+                      message:
+                        type: string
+                        example: 'An internal error occurred'
+
+tags:
+  - name: Authentication
+    description: User authentication and authorization
+  - name: User Management
+    description: Admin operations for managing users
+  - name: Pipeline Management
+    description: Create and manage data collection pipelines
+  - name: Data Collection
+    description: Data collection operations for field workers
+  - name: Data Management
+    description: Admin operations for managing collected data
+  - name: Analytics
+    description: Analytics and reporting endpoints
+  - name: System Configuration
+    description: System settings and configuration
+  - name: Health & Monitoring
+    description: System health and monitoring endpoints
