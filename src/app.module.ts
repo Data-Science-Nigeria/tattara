@@ -6,6 +6,7 @@ import { UserModule } from './modules/user/user.module';
 import { MailModule } from './modules/mail/mail.module';
 import { DatabaseModule } from './database/database.module';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
+import { FileManagementModule } from './file-management/file-management.module';
 import configuration from './config/configuration';
 
 @Module({
@@ -18,6 +19,7 @@ import configuration from './config/configuration';
     AuthModule,
     UserModule,
     MailModule,
+    FileManagementModule,
   ],
   providers: [
     {

@@ -65,7 +65,7 @@ pnpm install
 
 Create a `.env` file in the root directory:
 
-```env
+````env
 # Database Configuration
 DATABASE_HOST=localhost
 DATABASE_PORT=5432
@@ -90,7 +90,12 @@ PASSWORD_RESET_EXPIRES_IN=1h
 
 # Environment
 NODE_ENV=development
-```
+
+# AWS-S3 Bucket Credentials
+AWS_REGION= your_bucket_region
+AWS_ACCESS_KEY_ID=your_access_key
+AWS_SECRET_ACCESS_KEY=your_secret_key
+AWS_S3_BUCKET=your_bucket_name
 
 ### 4. Database Setup
 
@@ -100,7 +105,7 @@ createdb tattara_db
 
 # Run migrations (if applicable)
 pnpm run migration:run
-```
+````
 
 ### 5. Start the Application
 
