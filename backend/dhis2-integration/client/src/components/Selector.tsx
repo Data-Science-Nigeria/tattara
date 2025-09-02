@@ -13,6 +13,7 @@ export default function Selector({ auth }: Props) {
   const [selected, setSelected] = useState<any | null>(null);
   const [formMeta, setFormMeta] = useState<any | null>(null);
 
+  // Load list of programs or datasets
   useEffect(() => {
     const load = async () => {
       try {
@@ -29,7 +30,7 @@ export default function Selector({ auth }: Props) {
     load();
   }, [mode, auth]);
 
-  // When dataset selected, fetch full metadata (elements + orgUnits + periods)
+  // When dataset selected, fetch full dataset metadata
   useEffect(() => {
     if (!selected || mode !== "dataSets") return;
 
@@ -39,6 +40,25 @@ export default function Selector({ auth }: Props) {
           auth.username,
           auth.password,
           `dataSets/${selected.id}?fields=id,displayName,periodType,organisationUnits[id,displayName],dataSetElements[dataElement[id,displayName,valueType]]`
+        );
+        setFormMeta(meta);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    loadMeta();
+  }, [selected, mode, auth]);
+
+  // When program selected, fetch full program metadata
+  useEffect(() => {
+    if (!selected || mode !== "programs") return;
+
+    const loadMeta = async () => {
+      try {
+        const meta = await fetchDHIS2(
+          auth.username,
+          auth.password,
+          `programs/${selected.id}?fields=id,displayName,organisationUnits[id,displayName],programStages[id,displayName,programStageDataElements[dataElement[id,displayName,valueType]]]`
         );
         setFormMeta(meta);
       } catch (err) {
@@ -99,6 +119,7 @@ export default function Selector({ auth }: Props) {
         <DatasetForm meta={formMeta} auth={auth} />
       )}
 
+      {/* Render program form */}
       {mode === "programs" && formMeta && (
         <ProgramForm meta={formMeta} auth={auth} />
       )}
