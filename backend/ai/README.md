@@ -1,0 +1,46 @@
+==============
+
+Quickstart
+
+---
+
+1) cp .env.example .env and fill keys
+2) pip install -r requirements.txt
+3) uvicorn app.main:app --reload
+4) Test endpoints:
+
+   - POST /process/text    (JSON)
+   - POST /process/audio   (multipart: audio_file + form_schema JSON string)
+   - POST /process/image   (multipart: images[] + form_schema JSON string)
+
+Example form_schema payload (same shape as your Form Registry):
+
+{
+
+  "form_id": "vehicle_reg_v2",
+
+  "version": 2,
+
+  "fields": [
+
+    {"id":"owner_full_name","type":"string","required":true},
+
+    {"id":"owner_phone","type":"string","pattern":"^\\+?[0-9\\- ]{7,15}$"},
+
+    {"id":"vin","type":"string","minLength":11,"maxLength":17}
+
+  ]
+
+}
+
+Notes
+
+---
+
+• Whisper: set WHISPER_MODE=api to use OpenAI Whisper; set to local to use faster-whisper.
+
+• Vision: by default uses OCR text; wire signed image URLs to enable true vision inputs with OpenAI.
+
+• Token & cost: lightweight; replace with your pricing table and provider usage fields in prod.
+
+• Validation: jsonschema enforces types/enums/required; missing fields returned in response.
