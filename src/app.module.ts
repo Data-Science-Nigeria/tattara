@@ -4,9 +4,9 @@ import { APP_GUARD } from '@nestjs/core';
 import { AuthModule } from './modules/auth/auth.module';
 import { UserModule } from './modules/user/user.module';
 import { MailModule } from './modules/mail/mail.module';
+import { FileManagerModule } from './modules/fileManager/fileManager.module';
 import { DatabaseModule } from './database/database.module';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
-import { FileManagementModule } from './file-management/file-management.module';
 import configuration from './config/configuration';
 
 @Module({
@@ -19,7 +19,7 @@ import configuration from './config/configuration';
     AuthModule,
     UserModule,
     MailModule,
-    FileManagementModule,
+    FileManagerModule,
   ],
   providers: [
     {
