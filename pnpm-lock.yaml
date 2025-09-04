@@ -7,7 +7,6 @@ settings:
 importers:
   .:
     dependencies:
-
       '@aws-sdk/client-s3':
         specifier: ^3.879.0
         version: 3.879.0
@@ -62,6 +61,12 @@ importers:
       class-validator:
         specifier: ^0.14.2
         version: 0.14.2
+      csv-parse:
+        specifier: ^6.1.0
+        version: 6.1.0
+      csv-parser:
+        specifier: ^3.2.0
+        version: 3.2.0
       dotenv:
         specifier: ^17.2.1
         version: 17.2.1
@@ -106,7 +111,6 @@ importers:
         version: 7.8.2
       typeorm:
         specifier: ^0.3.26
-
         version: 0.3.26(pg@8.16.3)(reflect-metadata@0.2.2)(ts-node@10.9.2(@types/node@22.18.0)(typescript@5.9.2))
         version: 0.3.26(ioredis@5.7.0)(pg@8.16.3)(reflect-metadata@0.2.2)(ts-node@10.9.2(@types/node@22.18.0)(typescript@5.9.2))
       uuid:
@@ -8067,6 +8071,33 @@ snapshots:
     dependencies:
       '@bull-board/api': 6.12.7(@bull-board/ui@6.12.7)
 
+  '@bull-board/api@6.12.7(@bull-board/ui@6.12.7)':
+    dependencies:
+      '@bull-board/ui': 6.12.7
+      redis-info: 3.1.0
+
+  '@bull-board/express@6.12.7':
+    dependencies:
+      '@bull-board/api': 6.12.7(@bull-board/ui@6.12.7)
+      '@bull-board/ui': 6.12.7
+      ejs: 3.1.10
+      express: 5.1.0
+    transitivePeerDependencies:
+      - supports-color
+
+  '@bull-board/nestjs@6.12.7(@bull-board/api@6.12.7(@bull-board/ui@6.12.7))(@nestjs/bull-shared@11.0.3(@nestjs/common@11.1.6(class-transformer@0.5.1)(class-validator@0.14.2)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.6))(@nestjs/common@11.1.6(class-transformer@0.5.1)(class-validator@0.14.2)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.6)(reflect-metadata@0.2.2)(rxjs@7.8.2)':
+    dependencies:
+      '@bull-board/api': 6.12.7(@bull-board/ui@6.12.7)
+      '@nestjs/bull-shared': 11.0.3(@nestjs/common@11.1.6(class-transformer@0.5.1)(class-validator@0.14.2)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.6)
+      '@nestjs/common': 11.1.6(class-transformer@0.5.1)(class-validator@0.14.2)(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@nestjs/core': 11.1.6(@nestjs/common@11.1.6(class-transformer@0.5.1)(class-validator@0.14.2)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/platform-express@11.1.6)(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      reflect-metadata: 0.2.2
+      rxjs: 7.8.2
+
+  '@bull-board/ui@6.12.7':
+    dependencies:
+      '@bull-board/api': 6.12.7(@bull-board/ui@6.12.7)
+
   '@colors/colors@1.5.0':
     optional: true
 
@@ -12203,6 +12234,8 @@ snapshots:
 
   uuid@11.1.0: {}
   uuid@9.0.1: {}
+
+  uuid@8.3.2: {}
 
   v8-compile-cache-lib@3.0.1: {}
 
