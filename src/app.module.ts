@@ -3,7 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { AuthModule } from './modules/auth/auth.module';
 import { UserModule } from './modules/user/user.module';
-import { FileManagerModule } from './modules/fileManager/fileManager.module';
+import { FileManagerModule } from './modules/file-manager/file-manager.module';
 import { MailModule } from './shared/mail/mail.module';
 import { DatabaseModule } from './database/database.module';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';

@@ -1,2 +1,2 @@
 export * from './auth.interface';
-export * from '../../fileManager/interfaces/fileStorageStrategy.interface';
+export * from '../../file-manager/interfaces/file-storage-strategy.interface';

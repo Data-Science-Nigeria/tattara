@@ -2,13 +2,13 @@ import { Module } from '@nestjs/common';
 import { MulterModule } from '@nestjs/platform-express';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { FileUploads } from 'src/database/entities/fileUploads.entity';
-import { FileManagerService } from './fileManager.service';
-import { FileManagerController } from './fileManager.controller';
+import { FileManagerService } from './file-manager.service';
+import { FileManagerController } from './file-manager.controller';
 
 import multer from 'multer';
 import { S3Strategy } from './strategies/s3.strategy';
-import { AzureBlobStrategy } from './strategies/azureblob.strategy';
-import { LocalStorageStrategy } from './strategies/localstorage.strategy';
+import { AzureBlobStrategy } from './strategies/azure-blob.strategy';
+import { LocalStorageStrategy } from './strategies/local-storage.strategy';
 
 @Module({
   imports: [

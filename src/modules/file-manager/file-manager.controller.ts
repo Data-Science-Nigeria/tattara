@@ -9,7 +9,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { FileManagerService } from './fileManager.service';
+import { FileManagerService } from './file-manager.service';
 import { FileUploads } from 'src/database/entities/fileUploads.entity';
 
 @Controller('file-manager')
