@@ -8,15 +8,6 @@ This repository contains a small FastAPI-based AI extraction backend that accept
 - Endpoints: `/process/text`, `/process/audio`, `/process/image`, and `/health`.
 - Provide a `form_schema` (same shape as your Form Registry) to tell the service what fields to extract and validate.
 
-## Checklist (what this README covers)
-
-- Setup and run
-- Environment variables used by the app
-- API endpoints and payload examples
-- Form schema shape and validation behavior
-- Provider and feature notes (Whisper, Vision, LLM providers)
-- Troubleshooting and testing tips
-
 ## Quickstart
 
 1. Copy or create your environment file and set keys:
@@ -55,7 +46,7 @@ The full set of default fields is declared in `app/config.py` — review it when
 
 ## API Endpoints
 
-1) POST /process/text
+1) **POST /process/text**
 
 - Content-Type: application/json
 - Request body: TextRequest (see `app/models.py` and `app/schemas.py`) — minimal shape:
@@ -69,7 +60,7 @@ The full set of default fields is declared in `app/config.py` — review it when
   }
   ```
 
-2) POST /process/audio
+2) **POST /process/audio**
 
 - multipart/form-data
 - Fields:
@@ -79,7 +70,7 @@ The full set of default fields is declared in `app/config.py` — review it when
   - `provider_preference` (optional)
   - `audio_file` (file) — audio blob to transcribe
 
-3) POST /process/image
+3) **POST /process/image**
 
 - multipart/form-data
 - Fields:
