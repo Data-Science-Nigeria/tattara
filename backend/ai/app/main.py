@@ -57,10 +57,10 @@ async def process_text(req: TextRequest):
     missing = validator.validate_and_report(data)
 
     metrics = ExtractionMetrics(
-        asr_ms=0,
-        vision_ms=0,
-        llm_ms=llm_ms,
-        total_ms=llm_ms,
+        asr_seconds=round(0 / 1000, 2),
+        vision_seconds=round(0 / 1000, 2),
+        llm_seconds=round(llm_ms / 1000, 2) if llm_ms is not None else None,
+        total_seconds=round(llm_ms / 1000, 2) if llm_ms is not None else None,
         tokens_in=tokens_in,
         tokens_out=tokens_out,
         cost_usd=round(cost, 6),
@@ -118,10 +118,10 @@ async def process_audio(
     total_ms = asr_ms + llm_ms
 
     metrics = ExtractionMetrics(
-        asr_ms=asr_ms,
-        vision_ms=0,
-        llm_ms=llm_ms,
-        total_ms=total_ms,
+        asr_seconds=round(asr_ms / 1000, 2) if asr_ms is not None else None,
+        vision_seconds=round(0 / 1000, 2),
+        llm_seconds=round(llm_ms / 1000, 2) if llm_ms is not None else None,
+        total_seconds=round(total_ms / 1000, 2) if total_ms is not None else None,
         tokens_in=tokens_in,
         tokens_out=tokens_out,
         cost_usd=round(cost, 6),
@@ -190,10 +190,10 @@ async def process_image(
     total_ms = vision_ms_total + llm_ms
 
     metrics = ExtractionMetrics(
-        asr_ms=0,
-        vision_ms=vision_ms_total,
-        llm_ms=llm_ms,
-        total_ms=total_ms,
+        asr_seconds=round(0 / 1000, 2),
+        vision_seconds=round(vision_ms_total / 1000, 2) if vision_ms_total is not None else None,
+        llm_seconds=round(llm_ms / 1000, 2) if llm_ms is not None else None,
+        total_seconds=round(total_ms / 1000, 2) if total_ms is not None else None,
         tokens_in=tokens_in,
         tokens_out=tokens_out,
         cost_usd=round(cost, 6),

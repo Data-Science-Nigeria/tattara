@@ -3,10 +3,10 @@ from typing import Any, Dict, List, Optional
 
 
 class ExtractionMetrics(BaseModel):
-    asr_ms: Optional[int] = 0
-    vision_ms: Optional[int] = 0
-    llm_ms: Optional[int] = 0
-    total_ms: Optional[int] = 0
+    asr_seconds: Optional[float] = 0.0
+    vision_seconds: Optional[float] = 0.0
+    llm_seconds: Optional[float] = 0.0
+    total_seconds: Optional[float] = 0.0
     tokens_in: Optional[int] = 0
     tokens_out: Optional[int] = 0
     cost_usd: Optional[float] = 0.0
