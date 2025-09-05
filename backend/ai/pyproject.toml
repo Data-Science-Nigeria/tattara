@@ -1,5 +1,5 @@
 [project]
-name = "tattara-ai-bakend"
+name = "tattara-ai-backend"
 version = "0.1.0"
 description = "AI Backend for tattara"
 
