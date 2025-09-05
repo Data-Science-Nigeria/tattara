@@ -1,0 +1,14 @@
+{
+  "form_id": "demo_form1",
+  "form_schema": {
+    "fields": [
+      { "id": "first_name", "type": "string", "required": true },
+      { "id": "last_name", "type": "string", "required": true },
+      { "id": "email", "type": "string", "pattern": "^\\S+@\\S+\\.\\S+$", "required": false },
+      { "id": "age", "type": "integer", "required": false },
+      { "id": "comments", "type": "string", "required": false }
+    ]
+  },
+  "text": "John Doe is 34 years old. He can be reached at john.doe@example.com. He said: I had a fantastic experience. No further comments.",
+  "provider_preference": null
+}
