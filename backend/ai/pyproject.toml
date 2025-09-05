@@ -6,23 +6,19 @@ description = "AI Backend for tattara"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-    "pillow>=11.3.0",
+    "Pillow>=11.3.0",
+    "fastapi>=0.111",
+    "uvicorn[standard]>=0.29",
+    "pydantic>=2.7",
+    "pydantic-settings>=2.3",
+    "python-multipart>=0.0.9",
+    "jsonschema>=4.22",
+    "pytesseract>=0.3.10",
+    "openai>=1.30",
+    "groq>=0.10",
+    "faster-whisper>=1.0; platform_system!='Windows'", # optional local ASR
 ]
 
 [build-system]
 requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta"
-
-dependencies = [
-"fastapi>=0.111",
-"uvicorn[standard]>=0.29",
-"pydantic>=2.7",
-"pydantic-settings>=2.3",
-"python-multipart>=0.0.9",
-"jsonschema>=4.22",
-"Pillow>=10.3",
-"pytesseract>=0.3.10",
-"openai>=1.30",
-"groq>=0.10",
-"faster-whisper>=1.0; platform_system!='Windows'", # optional local ASR
-]
