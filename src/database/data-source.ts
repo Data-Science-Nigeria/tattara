@@ -1,6 +1,7 @@
+import 'reflect-metadata';
 import { DataSource } from 'typeorm';
 import { config } from 'dotenv';
-import { User, Role, Permission } from './entities';
+import { User, Role, Permission, FileUploads } from './entities';
 import { SnakeNamingStrategy } from 'typeorm-naming-strategies';
 
 config();
@@ -12,7 +13,7 @@ export const AppDataSource = new DataSource({
   username: process.env.DATABASE_USERNAME,
   password: process.env.DATABASE_PASSWORD,
   database: process.env.DATABASE_NAME,
-  entities: [User, Role, Permission],
+  entities: [User, Role, Permission, FileUploads],
   migrations: ['src/migrations/*{.ts,.js}'],
   synchronize: false,
   logging: true,

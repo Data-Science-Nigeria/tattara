@@ -32,4 +32,14 @@ export default () => ({
       10,
     ),
   },
+  aws: {
+    region: process.env.AWS_REGION ?? 'eu-north-1',
+    keyId: process.env.AWS_ACCESS_KEY_ID ?? '',
+    secret: process.env.AWS_SECRET_ACCESS_KEY ?? '',
+    bucket: process.env.AWS_S3_BUCKET ?? 'tattarabucket',
+  },
+  azure: {
+    connectionString: process.env.AZURE_STORAGE_CONNECTION_STRING ?? '',
+    container: process.env.AZURE_BLOB_CONTAINER ?? 'tattara-container',
+  },
 });
