@@ -2,7 +2,7 @@ import { FileStorageStrategy } from '../interfaces/file-storage-strategy.interfa
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { FileUploads } from 'src/database/entities/fileUploads.entity';
+import { FileUploads } from 'src/database/entities';
 import { v4 as uuidv4 } from 'uuid';
 import * as fs from 'fs';
 import { promises as fsPromises } from 'fs';
