@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { SeedService } from './seeds/seed.service';
 import { User, Role, Permission } from './entities';
+import { SnakeNamingStrategy } from 'typeorm-naming-strategies';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { User, Role, Permission } from './entities';
         migrations: ['src/database/migrations/*{.ts,.js}'], // Updated path
         synchronize: false, // Set to false in production
         logging: false,
+        namingStrategy: new SnakeNamingStrategy(),
       }),
       inject: [ConfigService],
     }),

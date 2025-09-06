@@ -249,22 +249,22 @@ paths:
               schema:
                 $ref: '#/components/schemas/SuccessResponse'
 
-  # Pipeline Management
-  /admin/pipelines:
+  # Workflow Management
+  /admin/workflows:
     post:
       tags:
-        - Pipeline Management
-      summary: Create pipeline
-      description: Create a new data collection pipeline
+        - Workflow Management
+      summary: Create workflow
+      description: Create a new data collection workflow
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CreatePipelineRequest'
+              $ref: '#/components/schemas/CreateWorkflowRequest'
       responses:
         '201':
-          description: Pipeline created successfully
+          description: Workflow created successfully
           content:
             application/json:
               schema:
@@ -273,13 +273,13 @@ paths:
                   - type: object
                     properties:
                       data:
-                        $ref: '#/components/schemas/Pipeline'
+                        $ref: '#/components/schemas/Workflow'
 
     get:
       tags:
-        - Pipeline Management
-      summary: List pipelines
-      description: Get paginated list of pipelines
+        - Workflow Management
+      summary: List workflows
+      description: Get paginated list of workflows
       parameters:
         - name: page
           in: query
@@ -298,20 +298,20 @@ paths:
             enum: [dhis2, generic_db]
       responses:
         '200':
-          description: Pipelines retrieved successfully
+          description: Workflows retrieved successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PaginatedPipelinesResponse'
+                $ref: '#/components/schemas/PaginatedWorkflowsResponse'
 
-  /admin/pipelines/{pipelineId}:
+  /admin/workflows/{workflowId}:
     get:
       tags:
-        - Pipeline Management
-      summary: Get pipeline details
-      description: Get detailed information about a specific pipeline
+        - Workflow Management
+      summary: Get workflow details
+      description: Get detailed information about a specific workflow
       parameters:
-        - name: pipelineId
+        - name: workflowId
           in: path
           required: true
           schema:
@@ -319,7 +319,7 @@ paths:
             format: uuid
       responses:
         '200':
-          description: Pipeline details retrieved successfully
+          description: Workflow details retrieved successfully
           content:
             application/json:
               schema:
@@ -328,15 +328,15 @@ paths:
                   - type: object
                     properties:
                       data:
-                        $ref: '#/components/schemas/Pipeline'
+                        $ref: '#/components/schemas/Workflow'
 
     put:
       tags:
-        - Pipeline Management
-      summary: Update pipeline
-      description: Update pipeline configuration
+        - Workflow Management
+      summary: Update workflow
+      description: Update workflow configuration
       parameters:
-        - name: pipelineId
+        - name: workflowId
           in: path
           required: true
           schema:
@@ -347,10 +347,10 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/UpdatePipelineRequest'
+              $ref: '#/components/schemas/UpdateWorkflowRequest'
       responses:
         '200':
-          description: Pipeline updated successfully
+          description: Workflow updated successfully
           content:
             application/json:
               schema:
@@ -359,15 +359,15 @@ paths:
                   - type: object
                     properties:
                       data:
-                        $ref: '#/components/schemas/Pipeline'
+                        $ref: '#/components/schemas/Workflow'
 
     delete:
       tags:
-        - Pipeline Management
-      summary: Delete pipeline
-      description: Delete a pipeline
+        - Workflow Management
+      summary: Delete workflow
+      description: Delete a workflow
       parameters:
-        - name: pipelineId
+        - name: workflowId
           in: path
           required: true
           schema:
@@ -375,20 +375,20 @@ paths:
             format: uuid
       responses:
         '200':
-          description: Pipeline deleted successfully
+          description: Workflow deleted successfully
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/SuccessResponse'
 
-  /admin/pipelines/{pipelineId}/users:
+  /admin/workflows/{workflowId}/users:
     post:
       tags:
-        - Pipeline Management
-      summary: Assign users to pipeline
-      description: Add or remove users from a pipeline
+        - Workflow Management
+      summary: Assign users to workflow
+      description: Add or remove users from a workflow
       parameters:
-        - name: pipelineId
+        - name: workflowId
           in: path
           required: true
           schema:
@@ -409,15 +409,15 @@ paths:
                 $ref: '#/components/schemas/SuccessResponse'
 
   # Data Collection (Collector)
-  /collector/pipelines:
+  /collector/workflows:
     get:
       tags:
         - Data Collection
-      summary: Get assigned pipelines
-      description: Get list of pipelines assigned to the current user
+      summary: Get assigned workflows
+      description: Get list of workflows assigned to the current user
       responses:
         '200':
-          description: Assigned pipelines retrieved successfully
+          description: Assigned workflows retrieved successfully
           content:
             application/json:
               schema:
@@ -428,16 +428,16 @@ paths:
                       data:
                         type: array
                         items:
-                          $ref: '#/components/schemas/PipelineSummary'
+                          $ref: '#/components/schemas/WorkflowSummary'
 
-  /collector/pipelines/{pipelineId}/form:
+  /collector/workflows/{workflowId}/form:
     get:
       tags:
         - Data Collection
-      summary: Get pipeline form schema
+      summary: Get workflow form schema
       description: Get the form schema for data collection
       parameters:
-        - name: pipelineId
+        - name: workflowId
           in: path
           required: true
           schema:
@@ -470,14 +470,14 @@ paths:
               type: object
               required:
                 - audio
-                - pipelineId
+                - workflowId
                 - language
               properties:
                 audio:
                   type: string
                   format: binary
                   description: Audio file (WAV, MP3, etc.)
-                pipelineId:
+                workflowId:
                   type: string
                   format: uuid
                 language:
@@ -513,13 +513,13 @@ paths:
               type: object
               required:
                 - image
-                - pipelineId
+                - workflowId
               properties:
                 image:
                   type: string
                   format: binary
                   description: Image file (JPG, PNG, etc.)
-                pipelineId:
+                workflowId:
                   type: string
                   format: uuid
                 language:
@@ -581,7 +581,7 @@ paths:
           schema:
             type: integer
             default: 20
-        - name: pipelineId
+        - name: workflowId
           in: query
           schema:
             type: string
@@ -627,7 +627,7 @@ paths:
       summary: Get collected data
       description: Get paginated collected data with filters
       parameters:
-        - name: pipelineId
+        - name: workflowId
           in: query
           required: true
           schema:
@@ -693,7 +693,7 @@ paths:
       summary: Get dashboard analytics
       description: Get analytics data for dashboard
       parameters:
-        - name: pipelineId
+        - name: workflowId
           in: query
           schema:
             type: string
@@ -943,7 +943,7 @@ components:
         status:
           type: string
           enum: [active, suspended, inactive]
-        pipelineIds:
+        workflowIds:
           type: array
           items:
             type: string
@@ -974,7 +974,7 @@ components:
         defaultPassword:
           type: string
           example: 'temp123'
-        pipelineIds:
+        workflowIds:
           type: array
           items:
             type: string
@@ -989,7 +989,7 @@ components:
         status:
           type: string
           enum: [active, suspended, inactive]
-        pipelineIds:
+        workflowIds:
           type: array
           items:
             type: string
@@ -1037,8 +1037,8 @@ components:
                       error:
                         type: string
 
-    # Pipeline schemas
-    Pipeline:
+    # Workflow schemas
+    Workflow:
       type: object
       properties:
         id:
@@ -1058,7 +1058,7 @@ components:
         fields:
           type: array
           items:
-            $ref: '#/components/schemas/PipelineField'
+            $ref: '#/components/schemas/WorkflowField'
         supportedLanguages:
           type: array
           items:
@@ -1076,7 +1076,7 @@ components:
           type: string
           format: date-time
 
-    PipelineField:
+    WorkflowField:
       type: object
       properties:
         id:
@@ -1102,7 +1102,7 @@ components:
             ocrPattern:
               type: string
 
-    PipelineSummary:
+    WorkflowSummary:
       type: object
       properties:
         id:
@@ -1123,7 +1123,7 @@ components:
           items:
             type: string
 
-    CreatePipelineRequest:
+    CreateWorkflowRequest:
       type: object
       required:
         - name
@@ -1144,7 +1144,7 @@ components:
         fields:
           type: array
           items:
-            $ref: '#/components/schemas/PipelineField'
+            $ref: '#/components/schemas/WorkflowField'
         supportedLanguages:
           type: array
           items:
@@ -1156,7 +1156,7 @@ components:
             type: string
             enum: [voice, ocr, text]
 
-    UpdatePipelineRequest:
+    UpdateWorkflowRequest:
       type: object
       properties:
         name:
@@ -1168,7 +1168,7 @@ components:
         fields:
           type: array
           items:
-            $ref: '#/components/schemas/PipelineField'
+            $ref: '#/components/schemas/WorkflowField'
         supportedLanguages:
           type: array
           items:
@@ -1193,7 +1193,7 @@ components:
           type: string
           enum: [add, remove]
 
-    PaginatedPipelinesResponse:
+    PaginatedWorkflowsResponse:
       allOf:
         - $ref: '#/components/schemas/SuccessResponse'
         - type: object
@@ -1201,17 +1201,17 @@ components:
             data:
               type: object
               properties:
-                pipelines:
+                workflows:
                   type: array
                   items:
-                    $ref: '#/components/schemas/Pipeline'
+                    $ref: '#/components/schemas/Workflow'
                 pagination:
                   $ref: '#/components/schemas/PaginationInfo'
 
     FormSchema:
       type: object
       properties:
-        pipelineId:
+        workflowId:
           type: string
           format: uuid
         name:
@@ -1219,7 +1219,7 @@ components:
         fields:
           type: array
           items:
-            $ref: '#/components/schemas/PipelineField'
+            $ref: '#/components/schemas/WorkflowField'
         supportedLanguages:
           type: array
           items:
@@ -1288,10 +1288,10 @@ components:
     SubmitDataRequest:
       type: object
       required:
-        - pipelineId
+        - workflowId
         - data
       properties:
-        pipelineId:
+        workflowId:
           type: string
           format: uuid
         data:
@@ -1328,7 +1328,7 @@ components:
         id:
           type: string
           format: uuid
-        pipelineId:
+        workflowId:
           type: string
           format: uuid
         userId:
@@ -1379,7 +1379,7 @@ components:
               localId:
                 type: string
                 format: uuid
-              pipelineId:
+              workflowId:
                 type: string
                 format: uuid
               data:
@@ -1456,10 +1456,10 @@ components:
     ExportDataRequest:
       type: object
       required:
-        - pipelineId
+        - workflowId
         - format
       properties:
-        pipelineId:
+        workflowId:
           type: string
           format: uuid
         format:
@@ -1952,8 +1952,8 @@ tags:
     description: User authentication and authorization
   - name: User Management
     description: Admin operations for managing users
-  - name: Pipeline Management
-    description: Create and manage data collection pipelines
+  - name: Workflow Management
+    description: Create and manage data collection workflows
   - name: Data Collection
     description: Data collection operations for field workers
   - name: Data Management
