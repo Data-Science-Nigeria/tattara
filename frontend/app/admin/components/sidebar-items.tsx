@@ -17,7 +17,7 @@ export const sidebarItems = [
     name: 'Create Workflow',
     href: '/admin/create-workflow',
     icon: PlusSquare,
-    alt: 'Workflow icon',
+    alt: 'Workflow ico',
   },
   {
     name: 'Manage User',
