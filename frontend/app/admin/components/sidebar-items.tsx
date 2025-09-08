@@ -11,7 +11,7 @@ export const sidebarItems = [
     name: 'Profile',
     href: '/admin/profile',
     icon: User,
-    alt: 'Profile icon',
+    alt: 'Profile ion',
   },
   {
     name: 'Create Workflow',
