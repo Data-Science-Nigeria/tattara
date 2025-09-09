@@ -9,9 +9,10 @@ import {
   Program,
   Workflow,
   FieldMapping,
+  FileUploads,
+  WorkflowField,
 } from './entities';
 import { SnakeNamingStrategy } from 'typeorm-naming-strategies';
-import { WorkflowField } from './entities/workflow-field.entity';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { WorkflowField } from './entities/workflow-field.entity';
           Workflow,
           WorkflowField,
           FieldMapping,
+          FileUploads,
         ],
         synchronize: false,
         logging: false,

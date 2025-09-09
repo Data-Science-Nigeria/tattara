@@ -4,3 +4,5 @@ export * from './user.entity';
 export * from './program.entity';
 export * from './workflow.entity';
 export * from './field-mapping.entity';
+export * from './file-uploads.entity';
+export * from './workflow-field.entity';
