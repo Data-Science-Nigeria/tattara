@@ -49,7 +49,7 @@ export class AuthService {
       const frontendUrl = this.configService.get<string>('app.frontendUrl');
       const verificationUrl = `${frontendUrl}/auth/verify-email?token=${emailVerificationToken}`;
 
-      await this.mailQueue.add(
+      this.mailQueue.add(
         'sendEmail',
         {
           to: user.email,
@@ -74,6 +74,7 @@ export class AuthService {
       if (error instanceof ConflictException) {
         throw error;
       }
+      console.log('Error occurred during registration:', error);
       throw new BadRequestException('Registration failed');
     }
   }

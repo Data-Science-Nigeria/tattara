@@ -7,7 +7,6 @@ import {
   Param,
   Delete,
   Query,
-  ParseIntPipe,
 } from '@nestjs/common';
 import { ProgramService } from './program.service';
 import { RequirePermissions, Roles } from 'src/common/decorators';
@@ -18,67 +17,79 @@ import { UpdateProgramDto } from './dto';
 export class ProgramController {
   constructor(private readonly programService: ProgramService) {}
 
-  @Get('programs')
+  @Get()
   @Roles('admin')
   @RequirePermissions('program:read')
-  findAll() {
-    return this.programService.findAll();
+  async findAll(
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10,
+  ) {
+    const { programs, total } = await this.programService.findAllWithPagination(
+      page,
+      limit,
+    );
+
+    return {
+      programs: programs.map(program => ({
+        id: program.id,
+        name: program.name,
+        description: program.description,
+        createdAt: program.createdAt,
+        updatedAt: program.updatedAt,
+      })),
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit),
+      },
+    };
   }
 
-  @Post('programs')
+  @Post()
   @Roles('admin')
   @RequirePermissions('program:create')
   create(@Body() createProgramDto: CreateProgramDto) {
     return this.programService.create(createProgramDto);
   }
 
-  @Get('programs/:id')
+  @Get(':id')
   @Roles('admin')
   @RequirePermissions('program:read')
-  findOne(@Param('id', ParseIntPipe) programId: string) {
+  findOne(@Param('id') programId: string) {
     return this.programService.findOne(programId);
   }
 
-  @Patch('programs/:id')
+  @Patch(':id')
   @Roles('admin')
   @RequirePermissions('program:update')
   update(
-    @Param('id', ParseIntPipe) programId: string,
+    @Param('id') programId: string,
     @Body() updateProgramDto: UpdateProgramDto,
   ) {
     return this.programService.update(programId, updateProgramDto);
   }
 
-  @Delete('programs/:id')
+  @Delete(':id')
   @Roles('admin')
   @RequirePermissions('program:delete')
-  remove(@Param('id', ParseIntPipe) programId: string) {
+  remove(@Param('id') programId: string) {
     return this.programService.remove(programId);
   }
 
-  @Get('programs/paginated')
+  @Get(':id/workflows')
   @Roles('admin')
   @RequirePermissions('program:read')
-  findAllWithPagination(
-    @Query('page', ParseIntPipe) page: number = 1,
-    @Query('limit', ParseIntPipe) limit: number = 10,
-  ) {
-    return this.programService.findAllWithPagination(page, limit);
-  }
-
-  @Get('programs/:id/workflows')
-  @Roles('admin')
-  @RequirePermissions('program:read')
-  findWorkflowsByProgram(@Param('id', ParseIntPipe) programId: string) {
+  findWorkflowsByProgram(@Param('id') programId: string) {
     return this.programService.findAllWorkflows(programId);
   }
 
-  @Post('programs/:id/workflows')
+  @Post(':id/workflows')
   @Roles('admin')
   @RequirePermissions('program:update')
   addWorkflowToProgram(
-    @Param('id', ParseIntPipe) programId: string,
-    @Body('workflowId', ParseIntPipe) workflowIds: string[],
+    @Param('id') programId: string,
+    @Body('workflowId') workflowIds: string[],
   ) {
     return this.programService.addWorkflowToProgram(programId, workflowIds);
   }

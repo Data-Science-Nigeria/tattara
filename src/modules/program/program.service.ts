@@ -1,14 +1,15 @@
 import { ConflictException, Injectable } from '@nestjs/common';
 import { Program } from 'src/database/entities';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm/browser/repository/Repository.js';
 import { Workflow } from 'src/database/entities';
+import { Repository } from 'typeorm';
 
 @Injectable()
 export class ProgramService {
   constructor(
     @InjectRepository(Program)
     private programRepository: Repository<Program>,
+    @InjectRepository(Workflow)
     private workflowRepository: Repository<Workflow>,
   ) {}
 
@@ -37,15 +38,15 @@ export class ProgramService {
   async findAllWithPagination(
     page: number = 1,
     limit: number = 10,
-  ): Promise<{ program: Program[]; total: number }> {
-    const [program, total] = await this.programRepository.findAndCount({
+  ): Promise<{ programs: Program[]; total: number }> {
+    const [programs, total] = await this.programRepository.findAndCount({
       relations: ['workflows'],
       skip: (page - 1) * limit,
       take: limit,
       order: { createdAt: 'DESC' },
     });
 
-    return { program, total };
+    return { programs, total };
   }
 
   async findOne(programId: string): Promise<Program> {

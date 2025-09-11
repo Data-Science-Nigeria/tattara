@@ -41,7 +41,7 @@ import { SnakeNamingStrategy } from 'typeorm-naming-strategies';
       }),
       inject: [ConfigService],
     }),
-    TypeOrmModule.forFeature([User, Role, Permission]),
+    TypeOrmModule.forFeature([User, Role, Permission, FileUploads, Program]),
   ],
   providers: [SeedService],
   exports: [SeedService],
