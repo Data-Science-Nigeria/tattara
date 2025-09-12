@@ -1,10 +1,10 @@
 import {
   Column,
   CreateDateColumn,
+  UpdateDateColumn,
   Entity,
   OneToMany,
   PrimaryGeneratedColumn,
-  UpdateDateColumn,
 } from 'typeorm';
 import { Workflow } from './workflow.entity';
 

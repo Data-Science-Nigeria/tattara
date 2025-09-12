@@ -8,6 +8,7 @@ import { MailModule } from './shared/mail/mail.module';
 import { DatabaseModule } from './database/database.module';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
 import { QueueModule } from './shared/queue/queue.module';
+import { ProgramModule } from './modules/program/program.module';
 import configuration from './config/configuration';
 import { BullBoardModule } from '@bull-board/nestjs';
 import { ExpressAdapter } from '@bull-board/express';
@@ -25,6 +26,7 @@ import { BullModule } from '@nestjs/bull';
     UserModule,
     MailModule,
     FileManagerModule,
+    ProgramModule,
     QueueModule,
     BullModule.forRootAsync({
       imports: [ConfigModule],
