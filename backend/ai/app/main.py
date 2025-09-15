@@ -1,7 +1,5 @@
-from weakref import ref
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 import json, re, unicodedata
-from fastapi import HTTPException
 from typing import Optional, List, Dict, Any
 import tempfile
 from .config import settings
@@ -149,10 +147,8 @@ async def process_image(
     provider_preference: Optional[str] = Form(None),
     images: List[UploadFile] = File(...),
 ):
-    try:
-        schema = json.loads(form_schema)
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Invalid form_schema JSON: {e}")
+    # Single source of truth for schema parsing
+    schema = resolve_form_schema_from_locals(locals())
 
     ocr_texts = []
     all_blocks = []
@@ -173,6 +169,7 @@ async def process_image(
         vision_ms_total += vision_ms
 
     text_blob = "\n".join(ocr_texts)
+    ocr_text = text_blob  # define for heuristic use
 
     provider_name = router.pick(provider_preference, need_vision=use_vision)
     data, confidence, llm_ms, tokens_in, tokens_out, cost, model = (
@@ -203,28 +200,8 @@ async def process_image(
         model=model,
     )
 
-    # ocr_text = ocr_result.get("text") if isinstance(ocr_result, dict) else str(ocr_result or "")
-
-    # Determine where form_schema comes from (supports both param style and old req model)
-    try:
-        schema_src = None
-        if 'form_schema' in locals():
-            schema_src = form_schema
-        elif 'req' in locals():
-            schema_src = getattr(ref, "form_schema", None)
-
-        if isinstance(schema_src, dict):
-            schema_obj = schema_src
-        elif isinstance(schema_src, str) and schema_src.strip():
-            schema_obj = json.loads(schema_src)
-        else:
-            raise HTTPException(status_code=400, detail="form_schema is required (JSON object or string).")
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Invalid form_schema: {e}")
-
-    schema_obj = resolve_form_schema_from_locals(locals())
-
-    extracted = heuristic_extract_from_text(ocr_text or "", schema_obj)
+    # Heuristic extraction from OCR text
+    extracted = heuristic_extract_from_text(ocr_text or "", schema)
 
     return ExtractionResponse(
         form_id=form_id,
@@ -256,7 +233,7 @@ def heuristic_extract_from_text(text: str, form_schema: dict) -> dict:
         elif ("surname" in k or "last name" in k or "lastname" in k or "family name" in k) and "last_name" in fields:
             fields["last_name"] = value.split()[-1]
         elif k.startswith("email") and "email" in fields:
-            m = re.search(r"[A-Za-z0-9._%+-]+@[A-ZaZ0-9.-]+\.[A-Za-z]{2,}", value)
+            m = re.search(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}", value)
             if m:
                 fields["email"] = m.group(0)
         elif k.startswith("age") and "age" in fields:
@@ -272,13 +249,8 @@ def heuristic_extract_from_text(text: str, form_schema: dict) -> dict:
             fields["last_name"] = fields.get("last_name") or m.group(2)
     return fields
 
+# Helper (ensure this exists once near the top of main.py)
 def resolve_form_schema_from_locals(ns: dict) -> dict:
-    """
-    Accepts either:
-      - form_schema as dict or JSON string param in the handler, OR
-      - an older req.form_schema style (if present), OR
-      - raises 400 if missing/invalid.
-    """
     cand = ns.get("form_schema")
     if cand is None and "req" in ns:
         cand = getattr(ns["req"], "form_schema", None)

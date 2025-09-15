@@ -33,11 +33,7 @@ class Settings(BaseSettings):
 settings = Settings()
 
 
-# Uncomment what is below only for OCR test.
-
-# # Choose the LLM model here (no .env needed for model)
-# OPENAI_MODEL = "gpt-4o-mini"  # change here when you want a different model (e.g., "gpt-4o")
-
-# def get_openai_model() -> str:
-#     # Single source of truth for model selection
-#     return OPENAI_MODEL
+# Function to call model for OCR test.
+def get_openai_model() -> str:
+	# Single source of truth for model selection
+	return settings.OPENAI_MODEL

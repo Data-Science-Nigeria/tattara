@@ -13,7 +13,7 @@ except Exception:
 from app.config import get_openai_model
 from app.services.providers.openai_provider import OpenAIProvider
 
-IMAGE_PATH = r"C:\Users\johne\Desktop\DSN\picture trial.jpg"
+IMAGE_PATH = "files\image_test_2.jpeg"
 API_KEY = os.environ.get("OPENAI_API_KEY", "").strip()
 MODEL = get_openai_model()  # model comes from app/config.py
 
