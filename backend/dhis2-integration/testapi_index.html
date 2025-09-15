@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>DHIS2 API Tester</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    select, input, button { margin: 5px 0; padding: 8px; width: 100%; max-width: 500px; }
+    fieldset { margin: 10px 0; padding: 10px; border: 1px solid #ccc; }
+    label { display: block; margin-top: 8px; font-weight: bold; }
+    pre { background: #f4f4f4; padding: 10px; border-radius: 5px; white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <h2>DHIS2 API Tester</h2>
+
+  <!-- Authentication -->
+  <label>Username</label>
+  <input type="text" id="username" placeholder="DHIS2 Username" />
+  <label>Password</label>
+  <input type="password" id="password" placeholder="DHIS2 Password" />
+  <button onclick="setAuth()">Set Authorization</button>
+  <p id="authStatus" style="color:green;"></p>
+
+  <!-- Step 1: Select type -->
+  <h3>1. Select Program or Dataset</h3>
+  <select id="typeSelect" onchange="loadList()">
+    <option value="programs">Programs</option>
+    <option value="datasets">Datasets</option>
+  </select>
+
+  <!-- Step 2: Select item -->
+  <h3>2. Available Items</h3>
+  <select id="itemSelect"></select>
+  <button onclick="loadSchema()">Load Schema</button>
+
+  <!-- Step 3: Render form -->
+  <h3>3. Fill Form</h3>
+  <form id="schemaForm" onsubmit="submitForm(event)">
+    <!-- Dynamic fields will appear here -->
+  </form>
+
+  <h3>4. Payload Preview</h3>
+  <pre id="payloadPreview"></pre>
+
+  <script>
+    const API_BASE = "http://localhost:4000";
+    let authHeader = "";
+    let currentSchema = null;
+
+    function setAuth() {
+      const user = document.getElementById("username").value;
+      const pass = document.getElementById("password").value;
+      if (!user || !pass) {
+        alert("Please enter username and password");
+        return;
+      }
+      const token = btoa(`${user}:${pass}`);
+      authHeader = `Basic ${token}`;
+      document.getElementById("authStatus").innerText = "Authorization set ✅";
+      loadList();
+    }
+
+    async function loadList() {
+      const type = document.getElementById("typeSelect").value;
+      try {
+        const res = await fetch(`${API_BASE}/${type}`, {
+          headers: { Authorization: authHeader }
+        });
+        if (!res.ok) throw new Error("Failed to load list");
+        const data = await res.json();
+        let items = [];
+        if (type === "programs" && data.programs) items = data.programs;
+        else if (type === "datasets" && data.dataSets) items = data.dataSets;
+
+        const select = document.getElementById("itemSelect");
+        select.innerHTML = "";
+        items.forEach(item => {
+          const opt = document.createElement("option");
+          opt.value = item.id;
+          opt.textContent = `${item.displayName} (${item.id})`;
+          select.appendChild(opt);
+        });
+      } catch (err) {
+        alert("Error loading list: " + err);
+      }
+    }
+
+    async function loadSchema() {
+      const type = document.getElementById("typeSelect").value;
+      const id = document.getElementById("itemSelect").value;
+      try {
+        const res = await fetch(`${API_BASE}/schema?id=${id}&type=${type.slice(0,-1)}`, {
+          headers: { Authorization: authHeader }
+        });
+        if (!res.ok) throw new Error("Failed to load schema");
+        currentSchema = await res.json();
+        renderForm(currentSchema);
+      } catch (err) {
+        alert("Error loading schema: " + err);
+      }
+    }
+
+    function renderForm(schema) {
+      const form = document.getElementById("schemaForm");
+      form.innerHTML = "";
+
+      // Basic fields
+      Object.keys(schema).forEach(key => {
+        if (Array.isArray(schema[key])) return; // skip dataValues here
+        const label = document.createElement("label");
+        label.textContent = key;
+        const input = document.createElement("input");
+        input.name = key;
+        input.value = schema[key];
+        form.appendChild(label);
+        form.appendChild(input);
+      });
+
+      // Data values
+      const fs = document.createElement("fieldset");
+      const legend = document.createElement("legend");
+      legend.textContent = "Data Values";
+      fs.appendChild(legend);
+
+      schema.dataValues.forEach((de, idx) => {
+        const label = document.createElement("label");
+        label.textContent = `${de.dataElementName} (${de.dataElement})`;
+        const input = document.createElement("input");
+        input.name = `de_${idx}`;
+        input.dataset.deid = de.dataElement;
+        input.value = de.value;
+        fs.appendChild(label);
+        fs.appendChild(input);
+      });
+
+      form.appendChild(fs);
+
+      // Submit button
+      const submitBtn = document.createElement("button");
+      submitBtn.type = "submit";
+      submitBtn.textContent = "Submit to Backend";
+      form.appendChild(submitBtn);
+    }
+
+    function submitForm(event) {
+      event.preventDefault();
+      if (!currentSchema) return;
+
+      // Build payload
+      const formData = new FormData(event.target);
+      const payload = { ...currentSchema };
+
+      // Replace base fields
+      for (let [k, v] of formData.entries()) {
+        if (!k.startsWith("de_")) payload[k] = v;
+      }
+
+      // Replace data values
+      payload.dataValues = currentSchema.dataValues.map((de, idx) => ({
+        dataElement: de.dataElement,
+        dataElementName: de.dataElementName,
+        value: formData.get(`de_${idx}`)
+      }));
+
+      document.getElementById("payloadPreview").innerText =
+        JSON.stringify(payload, null, 2);
+
+      // POST to backend
+      fetch(`${API_BASE}/dhis2-push`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: authHeader
+        },
+        body: JSON.stringify(payload)
+      })
+      .then(r => r.json())
+      .then(data => alert("Submitted ✅ " + JSON.stringify(data)))
+      .catch(err => alert("Submit failed: " + err));
+    }
+  </script>
+</body>
+</html>

@@ -1,11 +1,22 @@
 # dhis2_api.py
 from fastapi import FastAPI, Header, HTTPException, Query
 import requests
+from fastapi.middleware.cors import CORSMiddleware
+
+
 
 app = FastAPI()
 
 # Base DHIS2 URL (change to your instance)
 DHIS2_BASE_URL = "http://localhost:8081/api"
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # for testing, allow all origins
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.get("/programs")
 def get_programs(authorization: str = Header(...)):
