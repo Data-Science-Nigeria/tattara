@@ -1,11 +1,110 @@
 # dhis2_api.py
-from fastapi import FastAPI, Header, HTTPException
+from fastapi import FastAPI, Header, HTTPException, Query
 import requests
 
 app = FastAPI()
 
 # Base DHIS2 URL (change to your instance)
 DHIS2_BASE_URL = "http://localhost:8081/api"
+
+@app.get("/programs")
+def get_programs(authorization: str = Header(...)):
+    """
+    Fetch all DHIS2 programs
+    """
+    url = f"{DHIS2_BASE_URL}/programs.json"
+    headers = {"Authorization": authorization}
+    try:
+        response = requests.get(url, headers=headers, timeout=30)
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/datasets")
+def get_datasets(authorization: str = Header(...)):
+    """
+    Fetch all DHIS2 dataSets
+    """
+    url = f"{DHIS2_BASE_URL}/dataSets.json"
+    headers = {"Authorization": authorization}
+    try:
+        response = requests.get(url, headers=headers, timeout=30)
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+
+
+@app.get("/schema")
+def get_schema(
+    id: str = Query(..., description="Program ID or Dataset ID"),
+    type: str = Query(..., regex="^(program|dataset)$", description="Select 'program' or 'dataset'"),
+    authorization: str = Header(...)
+):
+    """
+    Generate a generic DHIS2 payload schema for a program or dataset,
+    including data element IDs and names for frontend use.
+    """
+    headers = {"Authorization": authorization}
+
+    if type == "program":
+        url = (
+            f"{DHIS2_BASE_URL}/programs/{id}.json"
+            "?fields=id,name,programStages[programStageDataElements[dataElement[id,name]]]"
+        )
+    else:  # dataset
+        url = (
+            f"{DHIS2_BASE_URL}/dataSets/{id}.json"
+            "?fields=id,name,dataSetElements[dataElement[id,name]]"
+        )
+
+    try:
+        response = requests.get(url, headers=headers, timeout=30)
+        response.raise_for_status()
+        data = response.json()
+    except requests.exceptions.RequestException as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+    # Extract data elements
+    if type == "program":
+        program_stage = data.get("programStages", [])[0]  # assume first stage
+        data_elements = [
+            {
+                "dataElement": de["dataElement"]["id"],
+                "dataElementName": de["dataElement"]["name"],
+                "value": ""
+            }
+            for de in program_stage.get("programStageDataElements", [])
+        ]
+        schema = {
+            "program": data["id"],
+            "orgUnit": "REPLACE_WITH_ORG_UNIT_ID",
+            "eventDate": "YYYY-MM-DD",
+            "status": "COMPLETED",
+            "dataValues": data_elements
+        }
+    else:  # dataset
+        data_elements = [
+            {
+                "dataElement": de["dataElement"]["id"],
+                "dataElementName": de["dataElement"]["name"],
+                "value": ""
+            }
+            for de in data.get("dataSetElements", [])
+        ]
+        schema = {
+            "dataSet": data["id"],
+            "completeDate": "YYYY-MM-DD",
+            "period": "YYYYMM",
+            "orgUnit": "REPLACE_WITH_ORG_UNIT_ID",
+            "dataValues": data_elements
+        }
+
+    return schema
+
 
 def detect_endpoint(payload: dict) -> str:
     """
