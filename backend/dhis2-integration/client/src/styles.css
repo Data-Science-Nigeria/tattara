@@ -1,1 +1,51 @@
-body { font-family: sans-serif; margin: 0; padding: 0; }
+/* Global reset / base */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+  background-color: #f9fafb; /* soft gray background */
+  color: #1f2937; /* neutral dark text */
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Headings */
+h1, h2, h3, h4, h5, h6 {
+  margin: 0.5em 0;
+  font-weight: 600;
+  color: #111827;
+}
+
+/* Links */
+a {
+  color: #2563eb; /* blue-600 */
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+
+/* Forms */
+input, select, textarea, button {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+button:active {
+  transform: scale(0.97);
+}
+
+/* Utility containers */
+.container {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 1rem;
+}
