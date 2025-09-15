@@ -1,78 +1,275 @@
-# DHIS2 Integration
+# 📖 DHIS2 API Proxy Service
 
-This project provides integration between your backend system and [DHIS2](https://www.dhis2.org/), enabling seamless data exchange and synchronization for health information management.
+This FastAPI service acts as a lightweight **proxy between a frontend application and a DHIS2 instance**.  
+It simplifies retrieving metadata (programs, datasets, schemas) and pushing data (events or dataset values) into DHIS2, while handling headers and payload formatting.
 
-## Features
+---
 
-- Connects to DHIS2 API for data import/export
-- Supports authentication and secure communication
-- Handles DHIS2 data models (organisation units, data elements, events, etc.)
-- Error handling and logging
-- Configurable endpoints and credentials
+## 🚀 Features
+- Retrieve all **programs** from DHIS2  
+- Retrieve all **datasets** from DHIS2  
+- Generate a **generic payload schema** for a program or dataset  
+- Push payloads to the correct DHIS2 endpoint (`/events` or `/dataValueSets`) automatically  
 
-## Prerequisites
+---
 
-- Node.js (v14+ recommended)
-- DHIS2 instance with API access
-- Environment variables configured for DHIS2 credentials
+## ⚙️ Setup
 
-## Installation
+### Requirements
+- Python 3.9+
+- [FastAPI](https://fastapi.tiangolo.com/)
+- [Requests](https://requests.readthedocs.io/)
+- [Uvicorn](https://www.uvicorn.org/)
+
+### Install dependencies
+```bash
+pip install fastapi uvicorn requests
+````
+
+### Run the API
 
 ```bash
-git clone https://github.com/your-org/dhis2-integration.git
-cd dhis2-integration
-npm install
+uvicorn dhis2_api:app --reload --port 4000
 ```
 
-## Configuration
+The service will be available at:
+👉 `http://localhost:4000`
 
-Create a `.env` file in the root directory:
+---
 
-```env
-DHIS2_BASE_URL=https://your-dhis2-instance.org
-DHIS2_USERNAME=your-username
-DHIS2_PASSWORD=your-password
+## 🔑 Authentication
+
+All endpoints require the **Authorization** header.
+You can use either:
+
+* **Basic Auth** → `Authorization: Basic base64(username:password)`
+* **Personal Access Token (PAT)** → `Authorization: ApiToken <your-token>`
+
+---
+
+## 📡 API Endpoints
+
+### 1. **Get Programs**
+
+Fetch all DHIS2 programs.
+
+* **Endpoint**: `GET /programs`
+* **Headers**:
+
+  * `Authorization: <your-auth>`
+
+**Example (cURL):**
+
+```bash
+curl -X GET "http://localhost:4000/programs" \
+  -H "Authorization: Basic dXNlcjpwYXNz"
 ```
 
-## Usage
+---
 
-### Import Data from DHIS2
+### 2. **Get Datasets**
 
-```js
-const dhis2 = require('./dhis2');
-dhis2.importData('dataElement', { params });
+Fetch all DHIS2 datasets.
+
+* **Endpoint**: `GET /datasets`
+* **Headers**:
+
+  * `Authorization: <your-auth>`
+
+**Example (cURL):**
+
+```bash
+curl -X GET "http://localhost:4000/datasets" \
+  -H "Authorization: Basic dXNlcjpwYXNz"
 ```
 
-### Export Data to DHIS2
+---
 
-```js
-const dhis2 = require('./dhis2');
-dhis2.exportData('event', { payload });
+### 3. **Get Schema**
+
+Generate a **payload template** for either a program or dataset.
+
+* **Endpoint**: `GET /schema`
+* **Query Parameters**:
+
+  * `id` → Program ID or Dataset ID
+  * `type` → `program` or `dataset`
+* **Headers**:
+
+  * `Authorization: <your-auth>`
+
+**Example (Program):**
+
+```bash
+curl -X GET "http://localhost:4000/schema?id=IpHINAT79UW&type=program" \
+  -H "Authorization: Basic dXNlcjpwYXNz"
 ```
 
-## API Reference
+**Example Response (Program):**
 
-- `importData(type, options)` - Imports data of specified type from DHIS2
-- `exportData(type, payload)` - Exports data to DHIS2
-- `getOrganisationUnits()` - Retrieves organisation units
-- `getDataElements()` - Retrieves data elements
+```json
+{
+  "program": "IpHINAT79UW",
+  "orgUnit": "REPLACE_WITH_ORG_UNIT_ID",
+  "eventDate": "YYYY-MM-DD",
+  "status": "COMPLETED",
+  "dataValues": [
+    { "dataElement": "abc123", "dataElementName": "Patient Age", "value": "" }
+  ]
+}
+```
 
-## Error Handling
+---
 
-All API calls return Promises. Errors are logged and can be handled using `.catch()`.
+### 4. **Push Data to DHIS2**
 
-## Contributing
+Submit a **program event** or **dataset values**.
+The service auto-detects the correct DHIS2 endpoint (`/events` or `/dataValueSets`).
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/my-feature`)
-3. Commit your changes (`git commit -am 'Add new feature'`)
-4. Push to the branch (`git push origin feature/my-feature`)
-5. Open a pull request
+* **Endpoint**: `POST /dhis2-push`
+* **Headers**:
 
-## License
+  * `Authorization: <your-auth>`
+  * `Content-Type: application/json`
+* **Body**: DHIS2 event or dataset payload
 
-This project is licensed under the MIT License.
+**Event Payload Example:**
 
-## Contact
+```json
+{
+  "program": "IpHINAT79UW",
+  "orgUnit": "DiszpKrYNg8",
+  "eventDate": "2025-09-01",
+  "status": "COMPLETED",
+  "dataValues": [
+    { "dataElement": "abc123", "value": "25" },
+    { "dataElement": "xyz456", "value": "Male" }
+  ]
+}
+```
 
-For support or inquiries, please contact [your-email@example.com](mailto:your-email@example.com).
+**Dataset Payload Example:**
+
+```json
+{
+  "dataSet": "lyLU2wR22tC",
+  "completeDate": "2025-09-01",
+  "period": "202509",
+  "orgUnit": "DiszpKrYNg8",
+  "dataValues": [
+    { "dataElement": "abc123", "value": "100" },
+    { "dataElement": "xyz456", "value": "200" }
+  ]
+}
+```
+
+**Example (cURL):**
+
+```bash
+curl -X POST "http://localhost:4000/dhis2-push" \
+  -H "Authorization: Basic dXNlcjpwYXNz" \
+  -H "Content-Type: application/json" \
+  -d @event_payload.json
+```
+
+---
+
+## 🧭 Endpoint Auto-Detection
+
+The API decides where to push based on payload structure:
+
+* **Program Event** → must contain `"program"` + `"eventDate"` → sent to `/events`
+* **Dataset Values** → must contain `"dataSet"` + `"period"` → sent to `/dataValueSets`
+
+---
+
+## 🖥️ Frontend Usage Examples
+
+You can call this proxy from any frontend app (React, Vue, Angular).
+Here are examples with **React**:
+
+### Fetching Programs (using `fetch`)
+
+```javascript
+const API_URL = "http://localhost:4000";
+
+async function getPrograms(authToken) {
+  const response = await fetch(`${API_URL}/programs`, {
+    headers: {
+      Authorization: authToken
+    }
+  });
+  return response.json();
+}
+
+// Usage:
+getPrograms("Basic dXNlcjpwYXNz").then(data => {
+  console.log("Programs:", data);
+});
+```
+
+---
+
+### Fetching Schema (using `axios`)
+
+```javascript
+import axios from "axios";
+
+const API_URL = "http://localhost:4000";
+
+async function getSchema(authToken, programId) {
+  const response = await axios.get(`${API_URL}/schema`, {
+    params: { id: programId, type: "program" },
+    headers: { Authorization: authToken }
+  });
+  return response.data;
+}
+
+// Usage:
+getSchema("Basic dXNlcjpwYXNz", "IpHINAT79UW")
+  .then(schema => console.log("Program Schema:", schema));
+```
+
+---
+
+### Submitting an Event (using `fetch`)
+
+```javascript
+async function submitEvent(authToken, payload) {
+  const response = await fetch(`${API_URL}/dhis2-push`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: authToken
+    },
+    body: JSON.stringify(payload)
+  });
+  return response.json();
+}
+
+// Usage:
+const eventPayload = {
+  program: "IpHINAT79UW",
+  orgUnit: "DiszpKrYNg8",
+  eventDate: "2025-09-01",
+  status: "COMPLETED",
+  dataValues: [
+    { dataElement: "abc123", value: "25" },
+    { dataElement: "xyz456", value: "Male" }
+  ]
+};
+
+submitEvent("Basic dXNlcjpwYXNz", eventPayload)
+  .then(res => console.log("DHIS2 Response:", res));
+```
+
+---
+
+## 🛠️ Development Notes
+
+* Update the DHIS2 base URL in `dhis2_api.py`:
+
+  ```python
+  DHIS2_BASE_URL = "http://localhost:8081/api"
+  ```
+* For production, restrict CORS origins instead of `allow_origins=["*"]`.
