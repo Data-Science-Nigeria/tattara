@@ -53,7 +53,7 @@ def index():
 
 @app.get("/health", tags=["Utility"])
 def health():
-    "Simple health check."
+    """Simple health check."""
     return {"status": "ok"}
 
 whisper_service = WhisperService()
