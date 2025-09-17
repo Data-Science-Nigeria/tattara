@@ -1,0 +1,13 @@
+uvicorn[standard]>=0.29
+python-dotenv
+httpx
+Pillow>=11.3.0
+fastapi>=0.111
+pydantic>=2.7
+pydantic-settings>=2.3
+python-multipart>=0.0.9
+jsonschema>=4.22
+pytesseract>=0.3.10
+openai>=1.30
+groq>=0.10
+faster-whisper>=1.0
