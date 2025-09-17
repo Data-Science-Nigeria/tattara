@@ -10,6 +10,8 @@ from .services.extraction_router import ExtractionRouter
 from .services.validator import SchemaValidator
 from .services.providers.openai_provider import OpenAIProvider
 import warnings
+from fastapi.responses import RedirectResponse
+from fastapi.middleware.cors import CORSMiddleware
 
 # Suppress pkg_resources deprecation warning emitted by some dependencies (ctranslate2)
 warnings.filterwarnings(
@@ -18,7 +20,41 @@ warnings.filterwarnings(
     category=UserWarning,
 )
 
-app = FastAPI(title=settings.APP_NAME)
+# Create the app with nice metadata (shows on Swagger)
+app = FastAPI(
+    title="Tattara AI API",
+    version="1.0.0",
+    description="AI endpoints for text, audio and image extraction using LLMs, Whisper and Vision Services, and OCR heuristics.",
+    contact={"name": "DSN Team", "url": "https://datasciencenigeria.org"},
+    license_info={"name": "Proprietary"},
+)
+
+# CORS (optional for local/frontend testing)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Redirect root to Swagger UI
+@app.get("/", include_in_schema=False)
+def index():
+    """
+    API Root: returns a brief welcome and helpful URLs.
+    """
+    version = getattr(settings, "APP_VERSION", "1.0.0")
+    return {
+        "message": "Welcome to Tattara AI API",
+        "version": version,
+        "docs_url": "/docs",
+        "health_url": "/health",
+    }
+
+@app.get("/health", tags=["Utility"])
+def health():
+    """Simple health check."""
+    return {"status": "ok"}
 
 whisper_service = WhisperService()
 vision_service = VisionService()
@@ -28,13 +64,44 @@ router = ExtractionRouter()
 default_openai_provider = OpenAIProvider(api_key=settings.OPENAI_API_KEY, model=settings.OPENAI_MODEL)
 
 
-@app.get("/health")
-def health():
-    return {"status": "ok", "env": settings.APP_ENV}
-
-
-@app.post("/process/text", response_model=ExtractionResponse)
+@app.post(
+    "/process/text",
+    response_model=ExtractionResponse,
+    response_model_exclude_none=True,
+    tags=["AI"],
+)
 async def process_text(req: TextRequest):
+    """
+    Extract Structured Fields from Raw Text
+
+    Overview:
+    - Parses free-form text and maps values to your form schema fields.
+    - Uses LLM plus lightweight heuristics to improve accuracy for common fields.
+
+    Request:
+    - form_id: Identifier of your form/template.
+    - form_schema: JSON object with "fields" (id, type, required).
+    - text: The raw text to analyze.
+    - provider_preference: Optional provider hint (e.g., "openai").
+
+    Process:
+    1. Validate schema.
+    2. Run extraction with the configured model.
+    3. Apply heuristics for:
+       - First name / Last name
+       - Email
+       - Age
+       - Comments/Notes
+
+    Returns:
+    - extracted: Dict of field_id -> value
+    - missing_required: List of missing required fields
+    - metrics: Timing/cost/model metadata
+
+    Error Handling:
+    - 400 for invalid schema
+    - 502 for provider errors
+    """
     need_vision = False
     provider_name = router.pick(req.provider_preference, need_vision)
 
@@ -78,7 +145,12 @@ async def process_text(req: TextRequest):
     )
 
 
-@app.post("/process/audio", response_model=ExtractionResponse)
+@app.post(
+    "/process/audio",
+    response_model=ExtractionResponse,
+    response_model_exclude_none=True,
+    tags=["AI"],
+)
 async def process_audio(
     form_id: str = Form(...),
     form_schema: str = Form(...),  # JSON string
@@ -86,6 +158,44 @@ async def process_audio(
     provider_preference: Optional[str] = Form(None),
     audio_file: UploadFile = File(...),
 ):
+    """
+    Audio Transcription and Form Extraction
+
+    Overview:
+    - Upload an audio file (WAV/MP3) for transcription.
+    - Extracts structured data using your form schema.
+
+    Request (multipart/form-data):
+    - form_id: Your form identifier.
+    - form_schema: JSON string of the fields object:
+      {
+        "fields": [
+          {"id":"first_name","type":"string"},
+          {"id":"last_name","type":"string"},
+          {"id":"email","type":"string"},
+          {"id":"age","type":"integer"},
+          {"id":"comments","type":"string"}
+        ]
+      }
+    - language: Optional language code (e.g., "en", "fr").
+    - provider_preference: e.g., "openai".
+    - audio_file: The audio file to transcribe (WAV/MP3).
+
+    Process:
+    1. Parse and validate form_schema.
+    2. Transcribe audio to text using Whisper ASR.
+    3. Run extraction on the transcribed text with the configured model.
+    4. Apply heuristics for common fields (e.g., name, email).
+
+    Returns:
+    - extracted: Filled fields
+    - missing_required: Any required but missing fields
+    - metrics: ASR/LLM timings and model info
+
+    Errors:
+    - 400: Invalid form_schema or audio file
+    - 502: Transcription/provider error (with details)
+    """
     try:
         schema = json.loads(form_schema)
     except Exception as e:
@@ -139,7 +249,12 @@ async def process_audio(
     )
 
 
-@app.post("/process/image", response_model=ExtractionResponse)
+@app.post(
+    "/process/image",
+    response_model=ExtractionResponse,
+    response_model_exclude_none=True,
+    tags=["AI"],
+)
 async def process_image(
     form_id: str = Form(...),
     form_schema: str = Form(...),
@@ -147,6 +262,48 @@ async def process_image(
     provider_preference: Optional[str] = Form(None),
     images: List[UploadFile] = File(...),
 ):
+    """
+    OCR + Form Extraction from Images
+
+    Overview:
+    - Accepts one or more PNG/JPEG files.
+    - Uses a vision-capable model (e.g., gpt-4o) to transcribe text.
+    - Applies heuristics to populate common fields reliably.
+
+    Request (multipart/form-data):
+    - form_id: Your form identifier.
+    - form_schema: JSON string of the fields object:
+      {
+        "fields": [
+          {"id":"first_name","type":"string"},
+          {"id":"last_name","type":"string"},
+          {"id":"email","type":"string"},
+          {"id":"age","type":"integer"},
+          {"id":"comments","type":"string"}
+        ]
+      }
+    - use_vision: true/false (true recommended).
+    - provider_preference: e.g., "openai".
+    - images: One or more PNG/JPEG files.
+
+    Process:
+    1. Parse and validate form_schema.
+    2. OCR each image via the configured provider.
+    3. Combine text and apply heuristics for:
+       - First name / Surname (supports variants: given name, family name)
+       - Email (regex validated)
+       - Age (integers)
+       - Comments/Notes
+
+    Returns:
+    - extracted: Filled fields
+    - missing_required: Any required but missing fields
+    - metrics: Vision/LLM timings and model info
+
+    Errors:
+    - 400: Invalid form_schema
+    - 502: OCR/provider error (with details)
+    """
     # Single source of truth for schema parsing
     schema = resolve_form_schema_from_locals(locals())
 
