@@ -6,6 +6,6 @@
   "useTabs": false,
   "printWidth": 80,
   "bracketSpacing": true,
-  "endOfLine": "auto",
+  "endOfLine": "lf",
   "plugins": ["prettier-plugin-tailwindcss"]
 }

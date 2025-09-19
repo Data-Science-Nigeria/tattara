@@ -57,7 +57,7 @@ const StatusBadge = ({ status }: { status: StatusType }) => {
 
 export function WorkflowHistory() {
   return (
-    <div className="p-8">
+    <div className="space-y-6 p-8">
       {workflowHistory.map((workflow) => (
         <div
           key={workflow.id}

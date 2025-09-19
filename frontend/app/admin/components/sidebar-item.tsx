@@ -18,13 +18,13 @@ export const SidebarItem = ({
 }: SidebarItemProps) => {
   const pathname = usePathname();
   return (
-    <div className="items-center justify-center border-b px-4 py-3">
+    <div className="items-center justify-center border-b px-2 py-2">
       <Link
         href={href}
-        className={`flex items-center gap-2 rounded-lg px-4 py-3 text-sm text-gray-500 hover:bg-[#00A859] hover:text-white lg:text-base ${pathname === href && 'w-[215px] bg-[#00A859] text-white'}`}
+        className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-500 hover:bg-[#00A859] hover:text-white ${pathname === href && 'bg-[#00A859] text-white'}`}
         onClick={onClick}
       >
-        <Icon size={24} />
+        <Icon size={18} />
         <span>{name}</span>
       </Link>
     </div>
