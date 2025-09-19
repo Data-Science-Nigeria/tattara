@@ -6,12 +6,12 @@ import {
   IsObject,
   IsOptional,
 } from 'class-validator';
-import { WorkflowType } from 'src/common/enums';
+import { IntegrationType } from 'src/common/enums';
 
 export class CreateConfigurationDto {
-  @IsEnum(WorkflowType)
+  @IsEnum(IntegrationType)
   @IsNotEmpty()
-  type: WorkflowType;
+  type: IntegrationType;
 
   @IsObject()
   @IsNotEmptyObject({}, { message: 'configuration cannot be an empty object' })

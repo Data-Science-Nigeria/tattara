@@ -27,6 +27,7 @@ import { LocalStorageStrategy } from './strategies';
   exports: [
     // S3Strategy,
     //  AzureBlobStrategy,
+    FileManagerService,
     LocalStorageStrategy,
   ],
 })

@@ -3,44 +3,44 @@ import {
   Column,
   PrimaryGeneratedColumn,
   CreateDateColumn,
+  JoinColumn,
+  ManyToOne,
 } from 'typeorm';
+import { User } from '.';
 
 @Entity('files')
 export class FileUploads {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column('uuid')
-  userId: string;
-
-  @Column('uuid')
+  @Column('uuid', { nullable: true })
   submissionId: string;
 
-  @Column('uuid')
-  aiProcessingLodId: string;
+  @Column('uuid', { nullable: true })
+  aiProcessingLogId: string;
 
   @Column()
   originalFilename: string;
 
-  @Column()
+  @Column({ nullable: true })
   fileType: string;
 
-  @Column()
+  @Column({ nullable: true })
   mimetype: string;
 
   @Column()
   fileSize: number;
 
-  @Column()
+  @Column({ nullable: true })
   key: string; // S3 object key
 
-  @Column()
+  @Column({ nullable: true })
   storagePath: string; // S3 public URL
 
-  @Column()
+  @Column({ nullable: true })
   storageProvider: string;
 
-  @Column()
+  @Column({ nullable: true })
   checksum: string;
 
   @Column({ type: 'jsonb', nullable: true })
@@ -52,7 +52,7 @@ export class FileUploads {
   @CreateDateColumn()
   createdAt: Date;
 
-  // @ManyToOne(() => User, (user) => user.fileUploads)
-  // @JoinColumn({ name: 'userId' })
-  // user: User;
+  @ManyToOne(() => User)
+  @JoinColumn({ name: 'user_id' })
+  user: User;
 }

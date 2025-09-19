@@ -8,7 +8,7 @@ import {
   Unique,
 } from 'typeorm';
 import { Workflow, WorkflowField } from '.';
-import { WorkflowType } from 'src/common/enums';
+import { IntegrationType } from 'src/common/enums';
 
 @Entity('field_mappings')
 @Unique(['workflow', 'workflowField', 'targetType'])
@@ -36,10 +36,10 @@ export class FieldMapping {
 
   @Column({
     type: 'enum',
-    enum: WorkflowType,
-    default: WorkflowType.DHIS2,
+    enum: IntegrationType,
+    default: IntegrationType.DHIS2,
   })
-  targetType: WorkflowType;
+  targetType: IntegrationType;
 
   @Column({ type: 'jsonb' })
   target: Record<string, any>;

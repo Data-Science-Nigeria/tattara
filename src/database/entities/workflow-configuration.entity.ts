@@ -4,11 +4,14 @@ import {
   Entity,
   JoinColumn,
   ManyToOne,
+  OneToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
 import { Workflow } from './workflow.entity';
-import { WorkflowType } from 'src/common/enums';
+import { IntegrationType } from 'src/common/enums';
+import { ExternalConnection } from './external-connections.entity';
+import type { WorkflowConfigurationData } from 'src/common/interfaces';
 
 @Entity('workflow_configurations')
 export class WorkflowConfiguration {
@@ -23,15 +26,19 @@ export class WorkflowConfiguration {
 
   @Column({
     type: 'enum',
-    enum: WorkflowType,
-    default: WorkflowType.DHIS2,
+    enum: IntegrationType,
+    default: IntegrationType.DHIS2,
   })
-  type: WorkflowType;
+  type: IntegrationType;
+
+  @OneToOne(() => ExternalConnection)
+  @JoinColumn({ name: 'external_connection_id' })
+  externalConnection: ExternalConnection;
 
   @Column({ type: 'jsonb' })
-  configuration: Record<string, any>;
+  configuration: WorkflowConfigurationData;
 
-  @Column({ default: true })
+  @Column({ type: 'boolean', default: true })
   isActive: boolean;
 
   @CreateDateColumn()

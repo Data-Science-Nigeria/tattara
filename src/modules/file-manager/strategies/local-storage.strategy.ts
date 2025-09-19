@@ -16,8 +16,7 @@ export class LocalStorageStrategy implements FileStorageStrategy {
     @InjectRepository(FileUploads)
     private readonly fileRepo: Repository<FileUploads>,
   ) {
-    // the location to store the files
-    this.uploadDir = path.resolve(__dirname, '../../../../uploads');
+    this.uploadDir = path.resolve(__dirname, '../../../../uploads'); // TODO: set the folder location as a config var
     if (!fs.existsSync(this.uploadDir)) {
       fs.mkdirSync(this.uploadDir, { recursive: true });
     }
@@ -37,6 +36,7 @@ export class LocalStorageStrategy implements FileStorageStrategy {
         storagePath: fileUrl,
         mimetype: file.mimetype,
         fileSize: file.size,
+        storageProvider: 'local',
       });
       return this.fileRepo.save(savedFile);
     } catch (err) {

@@ -46,13 +46,15 @@ export class S3Strategy implements FileStorageStrategy {
 
       const fileUrl = `https://${this.bucketName}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}`;
 
-      // save metadata in DB
+      // TODO: move this to a method(saveToFileRepo) on the super class since it is repeated in every strategy
       const savedFile = this.fileRepo.create({
         id: fileId,
         originalFilename: key,
         storagePath: fileUrl,
         mimetype: file.mimetype,
         fileSize: file.size,
+        storageProvider: 's3',
+        // TODO: add the filetype here
       });
       return this.fileRepo.save(savedFile);
     } catch (err) {

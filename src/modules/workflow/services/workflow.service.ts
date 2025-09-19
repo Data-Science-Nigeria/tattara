@@ -13,6 +13,7 @@ import { PaginationResult } from 'src/common/interfaces';
 import { Program, User, Workflow } from 'src/database/entities';
 import { DataSource, ILike, In, QueryFailedError, Repository } from 'typeorm';
 import { CreateWorkflowDto, UpdateWorkflowBasicDto } from '../dto';
+import { FormSchema } from 'src/modules/ai/interfaces';
 
 @Injectable()
 export class WorkflowService {
@@ -101,6 +102,21 @@ export class WorkflowService {
     }
 
     return workflow;
+  }
+
+  async findWorkflowByIdWithSchema(
+    workflowId: string,
+  ): Promise<{ workflow: Workflow; schema: FormSchema[] }> {
+    const workflow = await this.findWorkflowById(workflowId);
+
+    const schema: FormSchema[] = workflow.workflowFields.map(f => ({
+      id: f.fieldName,
+      type: f.fieldType,
+      required: f.isRequired,
+      // TODO: support flexible validation rules in future; tell ai devs
+    }));
+
+    return { workflow, schema };
   }
 
   async searchWorkflows(

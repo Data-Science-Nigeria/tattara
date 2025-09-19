@@ -12,6 +12,9 @@ import {
   FileUploads,
   WorkflowField,
   WorkflowConfiguration,
+  Submission,
+  AiProcessingLog,
+  ExternalConnection,
 } from './entities';
 import { SnakeNamingStrategy } from 'typeorm-naming-strategies';
 
@@ -38,6 +41,9 @@ import { SnakeNamingStrategy } from 'typeorm-naming-strategies';
           WorkflowField,
           FieldMapping,
           WorkflowConfiguration,
+          Submission,
+          AiProcessingLog,
+          ExternalConnection,
         ],
         synchronize: false,
         logging: false,

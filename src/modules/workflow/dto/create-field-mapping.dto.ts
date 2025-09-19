@@ -5,16 +5,16 @@ import {
   IsObject,
   IsUUID,
 } from 'class-validator';
-import { WorkflowType } from 'src/common/enums';
+import { IntegrationType } from 'src/common/enums';
 
 export class CreateFieldMappingDto {
   @IsUUID()
   @IsNotEmpty()
   workflowFieldId: string;
 
-  @IsEnum(WorkflowType)
+  @IsEnum(IntegrationType)
   @IsNotEmpty()
-  targetType: WorkflowType;
+  targetType: IntegrationType;
 
   @IsObject()
   @IsNotEmptyObject({}, { message: 'target cannot be an empty object' })

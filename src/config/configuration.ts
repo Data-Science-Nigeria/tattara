@@ -42,4 +42,5 @@ export default () => ({
     connectionString: process.env.AZURE_STORAGE_CONNECTION_STRING ?? '',
     container: process.env.AZURE_BLOB_CONTAINER ?? 'tattara-container',
   },
+  ai_base_url: process.env.AI_BASE_URL,
 });

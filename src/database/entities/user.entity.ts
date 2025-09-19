@@ -12,8 +12,8 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { Role } from './role.entity';
-import { Workflow } from './workflow.entity';
+import { Role, Workflow, AiProcessingLog } from '.';
+import { ExternalConnection } from './external-connections.entity';
 
 @Entity('users')
 export class User {
@@ -81,6 +81,12 @@ export class User {
 
   @OneToMany(() => User, user => user.createdBy)
   createdUsers: User[];
+
+  @OneToMany(() => AiProcessingLog, aiProcessingLog => aiProcessingLog.user)
+  aiProcessingLogs: AiProcessingLog[];
+
+  @OneToMany(() => ExternalConnection, connection => connection.creator)
+  externalConnections: ExternalConnection[];
 
   @CreateDateColumn()
   createdAt: Date;

@@ -1,20 +1,22 @@
+import { ExpressAdapter } from '@bull-board/express';
+import { BullBoardModule } from '@bull-board/nestjs';
+import { BullModule } from '@nestjs/bull';
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
-import { AuthModule } from './modules/auth/auth.module';
-import { UserModule } from './modules/user/user.module';
-import { FileManagerModule } from './modules/file-manager/file-manager.module';
-import { MailModule } from './shared/mail/mail.module';
-import { DatabaseModule } from './database/database.module';
-import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
-import { QueueModule } from './shared/queue/queue.module';
-import { ProgramModule } from './modules/program/program.module';
-import configuration from './config/configuration';
-import { BullBoardModule } from '@bull-board/nestjs';
-import { ExpressAdapter } from '@bull-board/express';
 import basicAuth from 'express-basic-auth';
-import { BullModule } from '@nestjs/bull';
+import configuration from './config/configuration';
+import { DatabaseModule } from './database/database.module';
+import { AiModule } from './modules/ai/ai.module';
+import { AuthModule } from './modules/auth/auth.module';
+import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
+import { CollectorModule } from './modules/collector/collector.module';
+import { FileManagerModule } from './modules/file-manager/file-manager.module';
+import { ProgramModule } from './modules/program/program.module';
+import { UserModule } from './modules/user/user.module';
 import { WorkflowModule } from './modules/workflow/workflow.module';
+import { MailModule } from './shared/mail/mail.module';
+import { QueueModule } from './shared/queue/queue.module';
 
 @Module({
   imports: [
@@ -49,6 +51,8 @@ import { WorkflowModule } from './modules/workflow/workflow.module';
       }),
     }),
     WorkflowModule,
+    CollectorModule,
+    AiModule,
   ],
   providers: [
     {

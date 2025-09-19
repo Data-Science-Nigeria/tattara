@@ -5,16 +5,16 @@ import {
   IsOptional,
   IsUUID,
 } from 'class-validator';
-import { WorkflowType } from 'src/common/enums';
+import { IntegrationType } from 'src/common/enums';
 
 export class UpdateConfigurationDto {
   @IsUUID()
   @IsOptional()
   id?: string;
 
-  @IsEnum(WorkflowType)
+  @IsEnum(IntegrationType)
   @IsOptional()
-  type?: WorkflowType;
+  type?: IntegrationType;
 
   @IsObject()
   @IsOptional()
