@@ -8,3 +8,4 @@ export * from './file-uploads.entity';
 export * from './workflow.entity';
 export * from './workflow-field.entity';
 export * from './program.entity';
+export * from './external-connection.entity';

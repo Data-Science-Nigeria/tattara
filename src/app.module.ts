@@ -9,13 +9,14 @@ import { DatabaseModule } from './database/database.module';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
 import { QueueModule } from './shared/queue/queue.module';
 import { ProgramModule } from './modules/program/program.module';
-import { Dhis2ConnectorModule } from './integration/dhis2-connector/dhis2-connector.module';
-import { GenericDbConnectorModule } from './integration/generic-db-connector/generic-db-connector.module';
+import { Dhis2ConnectorModule } from './integration/others/dhis2-connector/dhis2-connector.module';
+import { GenericDbConnectorModule } from './integration/others/generic-db-connector/generic-db-connector.module';
 import configuration from './config/configuration';
 import { BullBoardModule } from '@bull-board/nestjs';
 import { ExpressAdapter } from '@bull-board/express';
 import basicAuth from 'express-basic-auth';
 import { BullModule } from '@nestjs/bull';
+import { IntegrationModule } from './integration/integration.module';
 
 @Module({
   imports: [
@@ -51,6 +52,7 @@ import { BullModule } from '@nestjs/bull';
         users: { admin: 'tattara' },
       }),
     }),
+    IntegrationModule,
   ],
   providers: [
     {

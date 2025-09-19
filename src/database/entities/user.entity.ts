@@ -13,6 +13,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { Role } from './role.entity';
+import { ExternalConnection } from './external-connection.entity';
 
 @Entity('users')
 export class User {
@@ -72,6 +73,9 @@ export class User {
 
   @OneToMany(() => User, user => user.createdBy)
   createdUsers: User[];
+
+  @OneToMany(() => ExternalConnection, connection => connection.createdBy)
+  externalConnections: ExternalConnection[];
 
   @CreateDateColumn()
   createdAt: Date;
