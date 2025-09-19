@@ -3,12 +3,10 @@ from fastapi import FastAPI, Header, HTTPException, Query
 import requests
 from fastapi.middleware.cors import CORSMiddleware
 
-
-
 app = FastAPI()
 
 # Base DHIS2 URL (change to your instance)
-DHIS2_BASE_URL = "http://localhost:8081/api"
+DHIS2_BASE_URL = "https://dhis.dsnsandbox.com/dhis/api"
 
 app.add_middleware(
     CORSMiddleware,
@@ -48,7 +46,6 @@ def get_datasets(authorization: str = Header(...)):
         raise HTTPException(status_code=500, detail=str(e))
     
 
-
 @app.get("/schema")
 def get_schema(
     id: str = Query(..., description="Program ID or Dataset ID"),
@@ -64,7 +61,7 @@ def get_schema(
     if type == "program":
         url = (
             f"{DHIS2_BASE_URL}/programs/{id}.json"
-            "?fields=id,name,programStages[programStageDataElements[dataElement[id,name]]]"
+            "?fields=id,name,programStages[id,programStageDataElements[dataElement[id,name]]]"
         )
     else:  # dataset
         url = (
@@ -79,9 +76,15 @@ def get_schema(
     except requests.exceptions.RequestException as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-    # Extract data elements
     if type == "program":
-        program_stage = data.get("programStages", [])[0]  # assume first stage
+        # Get first program stage (if any)
+        program_stages = data.get("programStages", [])
+        if not program_stages:
+            raise ValueError("No program stages found for this program")
+
+        program_stage = program_stages[0]  # first stage (e.g. QPIlefRyPzr)
+
+        # Extract data elements from that stage
         data_elements = [
             {
                 "dataElement": de["dataElement"]["id"],
@@ -90,10 +93,13 @@ def get_schema(
             }
             for de in program_stage.get("programStageDataElements", [])
         ]
+
+        # Build event schema
         schema = {
             "program": data["id"],
+            "programStage": program_stage["id"],  # safe now, exists
             "orgUnit": "REPLACE_WITH_ORG_UNIT_ID",
-            "eventDate": "YYYY-MM-DD",
+            "occurredAt": "2025-09-19T00:00:00.000",  # ISO datetime format
             "status": "COMPLETED",
             "dataValues": data_elements
         }
@@ -120,15 +126,16 @@ def get_schema(
 def detect_endpoint(payload: dict) -> str:
     """
     Detects whether the payload is for events or dataValueSets.
-    - Event payloads usually contain 'program' and 'eventDate'
+    - Event payloads usually contain 'program' and 'occurredAt'
     - Dataset payloads usually contain 'dataSet' and 'period'
     """
-    if "program" in payload and "eventDate" in payload:
-        return "events"
+    if "program" in payload and "occurredAt" in payload:
+        return "tracker"
     elif "dataSet" in payload and "period" in payload:
         return "dataValueSets"
     else:
         return None
+
 
 @app.post("/dhis2-push")
 def push_to_dhis2(
@@ -144,10 +151,18 @@ def push_to_dhis2(
         raise HTTPException(
             status_code=400,
             detail="Could not determine DHIS2 endpoint. Payload must contain either "
-                   "('program' + 'eventDate') for events OR ('dataSet' + 'period') for datasets."
+                   "('program' + 'occurredAt') for events OR ('dataSet' + 'period') for datasets."
         )
 
-    url = f"{DHIS2_BASE_URL}/{endpoint}"
+    # ✅ Wrap single event payloads correctly
+    if endpoint == "tracker" and "events" not in payload:
+        payload = {"events": [payload]}
+
+    # Add importStrategy if tracker
+    if endpoint == "tracker":
+        url = f"{DHIS2_BASE_URL}/{endpoint}?importStrategy=CREATE"
+    else:
+        url = f"{DHIS2_BASE_URL}/{endpoint}"
 
     headers = {
         "Content-Type": "application/json",
@@ -163,7 +178,13 @@ def push_to_dhis2(
                 detail=response.json()
             )
 
-        return {"status": "success", "endpoint": endpoint, "dhis2_response": response.json()}
+        return {
+            "status": "success",
+            "endpoint": endpoint,
+            "dhis2_response": response.json()
+        }
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+    
