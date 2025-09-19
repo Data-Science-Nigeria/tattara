@@ -46,6 +46,35 @@ def get_datasets(authorization: str = Header(...)):
         raise HTTPException(status_code=500, detail=str(e))
     
 
+@app.get("/orgunits")
+def get_orgunits(
+    id: str = Query(..., description="Program or Dataset ID"),
+    type: str = Query(..., description="program or dataset"),
+    authorization: str = Header(..., description="DHIS2 auth header"),
+):
+    """
+    Get org units assigned to a program or dataset.
+    type = program OR dataset
+    """
+
+    headers = {"Authorization": authorization}
+
+    if type == "program":
+        url = f"{DHIS2_BASE_URL}/programs/{id}.json?fields=organisationUnits[id,displayName]"
+    elif type == "dataset":
+        url = f"{DHIS2_BASE_URL}/dataSets/{id}.json?fields=organisationUnits[id,displayName]"
+    else:
+        raise HTTPException(status_code=400, detail="Type must be 'program' or 'dataset'")
+
+    res = requests.get(url, headers=headers)
+    if not res.ok:
+        raise HTTPException(status_code=res.status_code, detail=res.text)
+
+    data = res.json()
+    # Programs and datasets both have an organisationUnits field
+    return {"organisationUnits": data.get("organisationUnits", [])}
+    
+
 @app.get("/schema")
 def get_schema(
     id: str = Query(..., description="Program ID or Dataset ID"),

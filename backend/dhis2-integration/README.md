@@ -85,7 +85,41 @@ curl -X GET "http://localhost:4000/datasets" \
 
 ---
 
-### 3. **Get Schema**
+### 3. **Get Assigned Organisation Units**
+
+Fetch organisation units assigned to a program or dataset.
+
+* **Endpoint**: `GET /orgunits?id={id}&type={program|dataset}`
+* **Headers**:
+
+  * `Authorization: <your-auth>`
+
+**Parameters**:
+
+* `id` → UID of the program or dataset
+* `type` → `"program"` or `"dataset"`
+
+**Example (cURL):**
+
+```bash
+curl -X GET "http://localhost:4000/orgunits?id=************=program" \
+  -H "Authorization: Basic dXNlcjpwYXNz"
+```
+
+**Example Response:**
+
+```json
+{
+  "organisationUnits": [
+    { "id": "ABCDEFGH", "displayName": "District A" },
+    { "id": "IJKLMNOP", "displayName": "District B" }
+  ]
+}
+```
+
+---
+
+### 4. **Get Schema**
 
 Generate a **payload template** for either a program or dataset.
 
@@ -101,7 +135,7 @@ Generate a **payload template** for either a program or dataset.
 **Example (Program):**
 
 ```bash
-curl -X GET "http://localhost:4000/schema?id=IpHINAT79UW&type=program" \
+curl -X GET "http://localhost:4000/schema?id=*********&type=program" \
   -H "Authorization: Basic dXNlcjpwYXNz"
 ```
 
@@ -109,7 +143,7 @@ curl -X GET "http://localhost:4000/schema?id=IpHINAT79UW&type=program" \
 
 ```json
 {
-  "program": "IpHINAT79UW",
+  "program": "*************",
   "orgUnit": "REPLACE_WITH_ORG_UNIT_ID",
   "eventDate": "YYYY-MM-DD",
   "status": "COMPLETED",
@@ -121,7 +155,7 @@ curl -X GET "http://localhost:4000/schema?id=IpHINAT79UW&type=program" \
 
 ---
 
-### 4. **Push Data to DHIS2**
+### 5. **Push Data to DHIS2**
 
 Submit a **program event** or **dataset values**.
 The service auto-detects the correct DHIS2 endpoint (`/events` or `/dataValueSets`).
@@ -137,8 +171,8 @@ The service auto-detects the correct DHIS2 endpoint (`/events` or `/dataValueSet
 
 ```json
 {
-  "program": "IpHINAT79UW",
-  "orgUnit": "DiszpKrYNg8",
+  "program": "***********",
+  "orgUnit": "***********",
   "eventDate": "2025-09-01",
   "status": "COMPLETED",
   "dataValues": [
@@ -152,10 +186,10 @@ The service auto-detects the correct DHIS2 endpoint (`/events` or `/dataValueSet
 
 ```json
 {
-  "dataSet": "lyLU2wR22tC",
+  "dataSet": "************",
   "completeDate": "2025-09-01",
   "period": "202509",
-  "orgUnit": "DiszpKrYNg8",
+  "orgUnit": "**********",
   "dataValues": [
     { "dataElement": "abc123", "value": "100" },
     { "dataElement": "xyz456", "value": "200" }
@@ -167,7 +201,7 @@ The service auto-detects the correct DHIS2 endpoint (`/events` or `/dataValueSet
 
 ```bash
 curl -X POST "http://localhost:4000/dhis2-push" \
-  -H "Authorization: Basic dXNlcjpwYXNz" \
+  -H "Authorization: Basic **********" \
   -H "Content-Type: application/json" \
   -d @event_payload.json
 ```
@@ -178,7 +212,7 @@ curl -X POST "http://localhost:4000/dhis2-push" \
 
 The API decides where to push based on payload structure:
 
-* **Program Event** → must contain `"program"` + `"eventDate"` → sent to `/events`
+* **Program Event** → must contain `"program"` + `"occuredAt"` → sent to `/tracker`
 * **Dataset Values** → must contain `"dataSet"` + `"period"` → sent to `/dataValueSets`
 
 ---
@@ -203,7 +237,7 @@ async function getPrograms(authToken) {
 }
 
 // Usage:
-getPrograms("Basic dXNlcjpwYXNz").then(data => {
+getPrograms("Basic *********").then(data => {
   console.log("Programs:", data);
 });
 ```
@@ -226,7 +260,7 @@ async function getSchema(authToken, programId) {
 }
 
 // Usage:
-getSchema("Basic dXNlcjpwYXNz", "IpHINAT79UW")
+getSchema("Basic ********", "**********")
   .then(schema => console.log("Program Schema:", schema));
 ```
 
@@ -249,8 +283,8 @@ async function submitEvent(authToken, payload) {
 
 // Usage:
 const eventPayload = {
-  program: "IpHINAT79UW",
-  orgUnit: "DiszpKrYNg8",
+  program: "**********",
+  orgUnit: "**********",
   eventDate: "2025-09-01",
   status: "COMPLETED",
   dataValues: [
@@ -259,7 +293,7 @@ const eventPayload = {
   ]
 };
 
-submitEvent("Basic dXNlcjpwYXNz", eventPayload)
+submitEvent("Basic ********", eventPayload)
   .then(res => console.log("DHIS2 Response:", res));
 ```
 
