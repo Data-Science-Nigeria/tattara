@@ -5,6 +5,7 @@ import { AppModule } from './app.module';
 import { SeedService } from './database/seeds/seed.service';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 import { GlobalExceptionFilter } from './common/exceptions/http-exception.filter';
+import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -35,6 +36,24 @@ async function bootstrap() {
     const seedService = app.get(SeedService);
     await seedService.runSeeds();
   }
+
+  const config = new DocumentBuilder()
+    .setTitle('Tattara DSN AI Data Collection App API')
+    .setDescription(
+      `
+      Backend API for the Tattara DSN AI Data Collection App.
+    Features:
+      - JWT Authentication with RBAC (Roles & Permissions)
+      - Program & Workflow management
+      - AI-assisted data collection (Voice, OCR) with user confirmation step
+      - Dual integration: DHIS2 and Generic Database
+      - Offline sync & comprehensive audit logging
+      `,
+    )
+    .setVersion('1.0')
+    .build();
+  const documentFactory = () => SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('api', app, documentFactory);
 
   await app.listen(port);
   console.log(`Application is running on: http://localhost:${port}/api/v1`);
