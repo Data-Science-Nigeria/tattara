@@ -2,13 +2,20 @@
   "form_id": "demo_form1",
   "form_schema": {
     "fields": [
-      { "id": "first_name", "type": "string", "required": true },
-      { "id": "last_name", "type": "string", "required": true },
-      { "id": "email", "type": "string", "pattern": "^\\S+@\\S+\\.\\S+$", "required": false },
-      { "id": "age", "type": "integer", "required": false },
-      { "id": "comments", "type": "string", "required": false }
+      { "id": "patientName", "type": "text", "required": true },
+      { "id": "patientAge", "type": "number", "required": true },
+      { "id": "patientGender", "type": "select", "required": true },
+      { "id": "symptomsDate", "type": "date", "required": true },
+      { "id": "reportedSymptoms", "type": "multiselect", "required": false },
+      { "id": "testResult", "type": "select", "required": true },
+      { "id": "treatmentProvided", "type": "select", "required": false },
+      { "id": "healthWorkerId", "type": "text", "required": true },
+      { "id": "location", "type": "text", "required": true },
+      { "id": "followUpRequired", "type": "boolean", "required": false },
+      { "id": "notes", "type": "textarea", "required": false }
     ]
   },
-  "text": "John Doe is 34 years old. He can be reached at john.doe@example.com. He said: I had a fantastic experience. No further comments.",
-  "provider_preference": null
+  "text": "The patient name is Janet Yakubu. She is a 29-year-old trader, who was seen at Ketu Clinic, Lagos on 2025-09-21 with fever, headache, and cough; the rapid test result was Positive, treatment provided included paracetamol and rest, attended by health worker ID HW-9321; follow-up is required; notes: patient stable and asked to return in 3 days.",
+  "provider_preference": null,
+  "model_preference": null
 }

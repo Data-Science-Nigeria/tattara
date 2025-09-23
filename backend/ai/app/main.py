@@ -12,6 +12,8 @@ from .services.providers.openai_provider import OpenAIProvider
 import warnings
 from fastapi.responses import RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
+from .utils.schema import ensure_demo_schema, BadFormSchema
+from datetime import datetime 
 
 # Suppress pkg_resources deprecation warning emitted by some dependencies (ctranslate2)
 warnings.filterwarnings(
@@ -64,12 +66,7 @@ router = ExtractionRouter()
 default_openai_provider = OpenAIProvider(api_key=settings.OPENAI_API_KEY, model=settings.OPENAI_MODEL)
 
 
-@app.post(
-    "/process/text",
-    response_model=ExtractionResponse,
-    response_model_exclude_none=True,
-    tags=["AI"],
-)
+@app.post("/process/text", response_model=ExtractionResponse, response_model_exclude_none=True, tags=["AI"])
 async def process_text(req: TextRequest):
     """
     Extract Structured Fields from Raw Text
@@ -84,14 +81,38 @@ async def process_text(req: TextRequest):
     - text: The raw text to analyze.
     - provider_preference: Optional provider hint (e.g., "openai").
 
+    Demo Form:
+
+        {
+            "form_id": "demo_form1",
+            "form_schema": {
+                "fields": [
+                { "id": "patientName", "type": "text", "required": true },
+                { "id": "patientAge", "type": "number", "required": true },
+                { "id": "patientGender", "type": "select", "required": true },
+                { "id": "symptomsDate", "type": "date", "required": true },
+                { "id": "reportedSymptoms", "type": "multiselect", "required": false },
+                { "id": "testResult", "type": "select", "required": true },
+                { "id": "treatmentProvided", "type": "select", "required": false },
+                { "id": "healthWorkerId", "type": "text", "required": true },
+                { "id": "location", "type": "text", "required": true },
+                { "id": "followUpRequired", "type": "boolean", "required": false },
+                { "id": "notes", "type": "textarea", "required": false }
+                ]
+            },
+            "text": "The patient name is Janet Yakubu. She is a 29-year-old trader, who was seen at Ketu Clinic, Lagos on 2025-09-21 with fever, headache, and cough; the rapid test result was Positive, treatment provided included paracetamol and rest, attended by health worker ID HW-9321; follow-up is required; notes: patient stable and asked to return in 3 days.",
+            "provider_preference": null,
+            "model_preference": null
+        }
+
+
     Process:
     1. Validate schema.
     2. Run extraction with the configured model.
     3. Apply heuristics for:
-       - First name / Last name
-       - Email
-       - Age
-       - Comments/Notes
+       - patientName, patientAge, patientGender, symptomsDate
+       - reportedSymptoms, testResult, treatmentProvided
+       - healthWorkerId, location, followUpRequired, notes
 
     Returns:
     - extracted: Dict of field_id -> value
@@ -105,22 +126,33 @@ async def process_text(req: TextRequest):
     need_vision = False
     provider_name = router.pick(req.provider_preference, need_vision)
 
+    # Coerce/validate form_schema to the demo_form1 shape
     try:
-        data, confidence, llm_ms, tokens_in, tokens_out, cost, model = (
-            router.extract(
-                provider_name=provider_name,
-                form_schema=req.form_schema,
-                text_blob=req.text,
-                images=None,
-                ocr_blocks=None,
-                locale=req.locale,
-            )
-        )
-    except ValueError as e:
-        # Surface provider errors as 502 Bad Gateway with helpful message
-        raise HTTPException(status_code=502, detail=str(e))
+        schema = ensure_demo_schema(req.form_schema)
+    except BadFormSchema as e:
+        raise HTTPException(status_code=422, detail=str(e))
 
-    validator = SchemaValidator(req.form_schema)
+    try:
+        data, confidence, llm_ms, tokens_in, tokens_out, cost, model = router.extract(
+            provider_name=provider_name,
+            form_schema=schema,
+            text_blob=req.text,
+            images=None,
+            ocr_blocks=None,
+            locale=None,
+        )
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Extraction error: {e}")
+
+    # Heuristic fallback/merge for the medical schema
+    heur = heuristic_extract_from_text(req.text or "", schema)
+    if not isinstance(data, dict):
+        data = {}
+    for k, v in heur.items():
+        if k not in data or data[k] in (None, "", [], {}):
+            data[k] = v
+
+    validator = SchemaValidator(schema)
     missing = validator.validate_and_report(data)
 
     metrics = ExtractionMetrics(
@@ -168,24 +200,34 @@ async def process_audio(
     Request (multipart/form-data):
     - form_id: Your form identifier.
     - form_schema: JSON string of the fields object:
-      {
-        "fields": [
-          {"id":"first_name","type":"string"},
-          {"id":"last_name","type":"string"},
-          {"id":"email","type":"string"},
-          {"id":"age","type":"integer"},
-          {"id":"comments","type":"string"}
-        ]
-      }
     - language: Optional language code (e.g., "en", "fr").
     - provider_preference: e.g., "openai".
     - audio_file: The audio file to transcribe (WAV/MP3).
+    
+
+    Demo Form Schema:
+
+            {
+                "fields": [
+                { "id": "patientName", "type": "text", "required": true },
+                { "id": "patientAge", "type": "number", "required": true },
+                { "id": "patientGender", "type": "select", "required": true },
+                { "id": "symptomsDate", "type": "date", "required": true },
+                { "id": "reportedSymptoms", "type": "multiselect", "required": false },
+                { "id": "testResult", "type": "select", "required": true },
+                { "id": "treatmentProvided", "type": "select", "required": false },
+                { "id": "healthWorkerId", "type": "text", "required": true },
+                { "id": "location", "type": "text", "required": true },
+                { "id": "followUpRequired", "type": "boolean", "required": false },
+                { "id": "notes", "type": "textarea", "required": false }
+                ]
+            }
 
     Process:
     1. Parse and validate form_schema.
     2. Transcribe audio to text using Whisper ASR.
     3. Run extraction on the transcribed text with the configured model.
-    4. Apply heuristics for common fields (e.g., name, email).
+    4. Apply heuristics for the medical fields listed above.
 
     Returns:
     - extracted: Filled fields
@@ -196,10 +238,11 @@ async def process_audio(
     - 400: Invalid form_schema or audio file
     - 502: Transcription/provider error (with details)
     """
+    # Enforce demo_form1 shape
     try:
-        schema = json.loads(form_schema)
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Invalid form_schema JSON: {e}")
+        schema = ensure_demo_schema(form_schema)
+    except BadFormSchema as e:
+        raise HTTPException(status_code=422, detail=str(e))
 
     suffix = f"_{audio_file.filename}"
     with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
@@ -211,27 +254,33 @@ async def process_audio(
 
     provider_name = router.pick(provider_preference, need_vision=False)
 
-    data, confidence, llm_ms, tokens_in, tokens_out, cost, model = (
-        router.extract(
-            provider_name=provider_name,
-            form_schema=schema,
-            text_blob=transcript,
-            images=None,
-            ocr_blocks=None,
-            locale=None,
-        )
+    data, confidence, llm_ms, tokens_in, tokens_out, cost, model = router.extract(
+        provider_name=provider_name,
+        form_schema=schema,
+        text_blob=transcript,
+        images=None,
+        ocr_blocks=None,
+        locale=None,
     )
+
+    # Heuristic fallback/merge
+    heur = heuristic_extract_from_text(transcript or "", schema)
+    if not isinstance(data, dict):
+        data = {}
+    for k, v in heur.items():
+        if k not in data or data[k] in (None, "", [], {}):
+            data[k] = v
 
     validator = SchemaValidator(schema)
     missing = validator.validate_and_report(data)
 
-    total_ms = asr_ms + llm_ms
+    total_ms = (asr_ms or 0) + (llm_ms or 0)
 
     metrics = ExtractionMetrics(
-        asr_seconds=round(asr_ms / 1000, 2) if asr_ms is not None else None,
+        asr_seconds=round((asr_ms or 0) / 1000, 2),
         vision_seconds=round(0 / 1000, 2),
-        llm_seconds=round(llm_ms / 1000, 2) if llm_ms is not None else None,
-        total_seconds=round(total_ms / 1000, 2) if total_ms is not None else None,
+        llm_seconds=round((llm_ms or 0) / 1000, 2),
+        total_seconds=round(total_ms / 1000, 2),
         tokens_in=tokens_in,
         tokens_out=tokens_out,
         cost_usd=round(cost, 6),
@@ -249,17 +298,12 @@ async def process_audio(
     )
 
 
-@app.post(
-    "/process/image",
-    response_model=ExtractionResponse,
-    response_model_exclude_none=True,
-    tags=["AI"],
-)
+@app.post("/process/image", response_model=ExtractionResponse, response_model_exclude_none=True, tags=["AI"])
 async def process_image(
     form_id: str = Form(...),
     form_schema: str = Form(...),
     use_vision: bool = Form(True),
-    provider_preference: Optional[str] = Form(None),
+    model_preference: Optional[str] = Form(None),
     images: List[UploadFile] = File(...),
 ):
     """
@@ -268,32 +312,41 @@ async def process_image(
     Overview:
     - Accepts one or more PNG/JPEG files.
     - Uses a vision-capable model (e.g., gpt-4o) to transcribe text.
-    - Applies heuristics to populate common fields reliably.
+    - Applies heuristics to populate medical fields reliably.
 
     Request (multipart/form-data):
     - form_id: Your form identifier.
     - form_schema: JSON string of the fields object:
-      {
-        "fields": [
-          {"id":"first_name","type":"string"},
-          {"id":"last_name","type":"string"},
-          {"id":"email","type":"string"},
-          {"id":"age","type":"integer"},
-          {"id":"comments","type":"string"}
-        ]
-      }
     - use_vision: true/false (true recommended).
     - provider_preference: e.g., "openai".
     - images: One or more PNG/JPEG files.
+
+    Demo Form Schema:
+
+            {
+                "fields": [
+                { "id": "patientName", "type": "text", "required": true },
+                { "id": "patientAge", "type": "number", "required": true },
+                { "id": "patientGender", "type": "select", "required": true },
+                { "id": "symptomsDate", "type": "date", "required": true },
+                { "id": "reportedSymptoms", "type": "multiselect", "required": false },
+                { "id": "testResult", "type": "select", "required": true },
+                { "id": "treatmentProvided", "type": "select", "required": false },
+                { "id": "healthWorkerId", "type": "text", "required": true },
+                { "id": "location", "type": "text", "required": true },
+                { "id": "followUpRequired", "type": "boolean", "required": false },
+                { "id": "notes", "type": "textarea", "required": false }
+                ]
+            }
+       
 
     Process:
     1. Parse and validate form_schema.
     2. OCR each image via the configured provider.
     3. Combine text and apply heuristics for:
-       - First name / Surname (supports variants: given name, family name)
-       - Email (regex validated)
-       - Age (integers)
-       - Comments/Notes
+       - patientName, patientAge, patientGender, symptomsDate
+       - reportedSymptoms, testResult, treatmentProvided
+       - healthWorkerId, location, followUpRequired, notes
 
     Returns:
     - extracted: Filled fields
@@ -304,8 +357,11 @@ async def process_image(
     - 400: Invalid form_schema
     - 502: OCR/provider error (with details)
     """
-    # Single source of truth for schema parsing
-    schema = resolve_form_schema_from_locals(locals())
+    # Coerce/validate form_schema to the demo_form1 shape
+    try:
+        schema = ensure_demo_schema(form_schema)
+    except BadFormSchema as e:
+        raise HTTPException(status_code=422, detail=str(e))
 
     ocr_texts = []
     all_blocks = []
@@ -328,16 +384,15 @@ async def process_image(
     text_blob = "\n".join(ocr_texts)
     ocr_text = text_blob  # define for heuristic use
 
-    provider_name = router.pick(provider_preference, need_vision=use_vision)
-    data, confidence, llm_ms, tokens_in, tokens_out, cost, model = (
-        router.extract(
-            provider_name=provider_name,
-            form_schema=schema,
-            text_blob=text_blob,
-            images=None,
-            ocr_blocks=all_blocks,
-            locale=None,
-        )
+    # Pick using model_preference
+    provider_name = router.pick(model_preference, need_vision=use_vision)
+    data, confidence, llm_ms, tokens_in, tokens_out, cost, model = router.extract(
+        provider_name=provider_name,
+        form_schema=schema,
+        text_blob=text_blob, 
+        images=None,
+        ocr_blocks=all_blocks,
+        locale=None
     )
 
     validator = SchemaValidator(schema)
@@ -357,7 +412,7 @@ async def process_image(
         model=model,
     )
 
-    # Heuristic extraction from OCR text
+    # Heuristic extraction from OCR text (new medical schema-aware)
     extracted = heuristic_extract_from_text(ocr_text or "", schema)
 
     return ExtractionResponse(
@@ -371,42 +426,192 @@ async def process_image(
     )
 
 
+# --- Heuristic helpers for the medical schema ---
+
 def _norm_line(s: str) -> str:
-    s = unicodedata.normalize("NFKC", s)
-    return s.lstrip("•·-—–*☒☐✓✔✗[]() \t").strip()
+    s = unicodedata.normalize("NFKC", s or "")
+    return s.strip("•·-—–*☒☐✓✔✗[]() \t\r\n")
+
+def _parse_bool(v: Optional[str]) -> Optional[bool]:
+    if not v:
+        return None
+    x = v.strip().lower()
+    if x in {"yes", "y", "true", "t", "1"}:
+        return True
+    if x in {"no", "n", "false", "f", "0"}:
+        return False
+    return None
+
+def _parse_date_any(s: str) -> Optional[str]:
+    s = s or ""
+    s = s.strip()
+    # 2025-09-21 / 2025/09/21
+    m = re.search(r"\b(\d{4})[-/](\d{1,2})[-/](\d{1,2})\b", s)
+    if m:
+        y, mo, d = map(int, m.groups())
+        try:
+            return datetime(y, mo, d).strftime("%Y-%m-%d")
+        except Exception:
+            pass
+    # 21/09/2025 or 09/21/2025
+    m = re.search(r"\b(\d{1,2})[-/](\d{1,2})[-/](\d{4})\b", s)
+    if m:
+        a, b, y = map(int, m.groups())
+        try:
+            if a > 12:
+                d, mo = a, b
+            else:
+                mo, d = a, b
+            return datetime(y, mo, d).strftime("%Y-%m-%d")
+        except Exception:
+            pass
+    # 21 Sep 2025 / September 21, 2025
+    m = re.search(r"\b(\d{1,2})\s+([A-Za-z]{3,})\s*,?\s*(\d{4})\b", s)
+    if m:
+        d, mon, y = int(m.group(1)), m.group(2), int(m.group(3))
+        for fmt in ("%d %B %Y", "%d %b %Y"):
+            try:
+                return datetime.strptime(f"{d} {mon} {y}", fmt).strftime("%Y-%m-%d")
+            except Exception:
+                continue
+    return None
+
+_SYMPTOM_VOCAB = {
+    "fever", "headache", "chills", "cough", "nausea", "vomiting", "diarrhea",
+    "fatigue", "body pain", "muscle pain", "sore throat", "loss of appetite",
+    "sweats", "weakness", "dizziness"
+}
+
+def _split_symptoms(s: str) -> List[str]:
+    s = (s or "").lower()
+    parts = re.split(r"[;,]", s)
+    out: List[str] = []
+    for p in parts:
+        p = p.strip()
+        if not p:
+            continue
+        if p in _SYMPTOM_VOCAB:
+            out.append(p)
+        else:
+            for vocab in _SYMPTOM_VOCAB:
+                if vocab in p and vocab not in out:
+                    out.append(vocab)
+    return out
 
 def heuristic_extract_from_text(text: str, form_schema: dict) -> dict:
-    fields = {f["id"]: (None if f.get("type") == "integer" else "") for f in form_schema.get("fields", [])}
-    for raw in text.splitlines():
+    # Initialize defaults based on schema
+    fields = {}
+    for f in form_schema.get("fields", []):
+        fid = f.get("id")
+        ftype = (f.get("type") or "").lower()
+        if not isinstance(fid, str):
+            continue
+        if ftype == "number":
+            fields[fid] = None
+        elif ftype == "multiselect":
+            fields[fid] = []
+        elif ftype == "boolean":
+            fields[fid] = None
+        else:
+            fields[fid] = ""
+
+    # Pass 1: key:value style lines
+    for raw in (text or "").splitlines():
         line = _norm_line(raw)
-        if not line or ":" not in line:
+        if not line:
             continue
-        key, value = [p.strip() for p in line.split(":", 1)]
-        if not value:
-            continue
-        k = key.lower()
-        if ("first name" in k or "firstname" in k or "given name" in k) and "first_name" in fields:
-            fields["first_name"] = value.split()[0]
-        elif ("surname" in k or "last name" in k or "lastname" in k or "family name" in k) and "last_name" in fields:
-            fields["last_name"] = value.split()[-1]
-        elif k.startswith("email") and "email" in fields:
-            m = re.search(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}", value)
-            if m:
-                fields["email"] = m.group(0)
-        elif k.startswith("age") and "age" in fields:
-            m = re.search(r"\d{1,3}", value)
-            if m:
-                fields["age"] = int(m.group(0))
-        elif (k.startswith("comments") or k.startswith("note")) and "comments" in fields:
-            fields["comments"] = value
-    if ("first_name" in fields and "last_name" in fields) and (not fields["first_name"] or not fields["last_name"]):
-        m = re.search(r"\bName\s*:\s*([A-Za-z]+)\s+([A-Za-z]+)", text, re.IGNORECASE)
+        key, value = (line.split(":", 1) + [""])[:2] if ":" in line else (line, "")
+        key = key.strip().lower()
+        value = value.strip()
+
+        if "patient name" in key or key == "name":
+            if "patientName" in fields and value:
+                fields["patientName"] = value
+        elif "age" in key:
+            if "patientAge" in fields:
+                m = re.search(r"\b(\d{1,3})\b", value or line)
+                if m:
+                    fields["patientAge"] = int(m.group(1))
+        elif "gender" in key or "sex" in key:
+            if "patientGender" in fields:
+                v = (value or line).lower()
+                if "female" in v or v.strip() in {"f"}:
+                    fields["patientGender"] = "Female"
+                elif "male" in v or v.strip() in {"m"}:
+                    fields["patientGender"] = "Male"
+        elif "symptoms date" in key or "date of symptoms" in key or key == "date" or "onset date" in key:
+            if "symptomsDate" in fields:
+                d = _parse_date_any(value or line)
+                if d:
+                    fields["symptomsDate"] = d
+        elif "reported symptoms" in key or key == "symptoms":
+            if "reportedSymptoms" in fields:
+                vals = _split_symptoms(value or "")
+                if vals:
+                    fields["reportedSymptoms"] = vals
+        elif "test result" in key or key == "result":
+            if "testResult" in fields:
+                v = (value or line).lower()
+                if "positive" in v:
+                    fields["testResult"] = "Positive"
+                elif "negative" in v:
+                    fields["testResult"] = "Negative"
+                elif "inconclusive" in v:
+                    fields["testResult"] = "Inconclusive"
+                else:
+                    fields["testResult"] = value
+        elif "treatment provided" in key or key == "treatment" or "therapy" in key or "medication" in key:
+            if "treatmentProvided" in fields:
+                fields["treatmentProvided"] = value or fields["treatmentProvided"]
+        elif "health worker id" in key or "hw id" in key or "staff id" in key or "worker id" in key:
+            if "healthWorkerId" in fields:
+                v = re.sub(r"[^A-Za-z0-9\-_]", "", value or "")
+                fields["healthWorkerId"] = v
+        elif "location" in key:
+            if "location" in fields:
+                fields["location"] = value or fields["location"]
+        elif "follow up" in key or "follow-up" in key or "followup" in key:
+            if "followUpRequired" in fields:
+                b = _parse_bool(value or line)
+                if b is not None:
+                    fields["followUpRequired"] = b
+        elif "notes" in key or "remarks" in key or "comments" in key or "observation" in key:
+            if "notes" in fields:
+                fields["notes"] = value or fields["notes"]
+
+    # Pass 2: fallbacks from free text
+    if "patientName" in fields and not fields["patientName"]:
+        m = re.search(r"\b(Patient\s+Name|Name)\s*:\s*([A-Za-z][A-ZaZ.'-]+\s+[A-ZaZ][A-ZaZ.'-]+)", text, re.IGNORECASE)
         if m:
-            fields["first_name"] = fields.get("first_name") or m.group(1)
-            fields["last_name"] = fields.get("last_name") or m.group(2)
+            fields["patientName"] = m.group(2).strip()
+
+    if "patientAge" in fields and fields["patientAge"] is None:
+        m = re.search(r"\bAge\s*:\s*(\d{1,3})\b", text, re.IGNORECASE)
+        if m:
+            fields["patientAge"] = int(m.group(1))
+
+    if "patientGender" in fields and not fields["patientGender"]:
+        m = re.search(r"\b(Gender|Sex)\s*:\s*(Male|Female|M|F)\b", text, re.IGNORECASE)
+        if m:
+            v = m.group(2).lower()
+            fields["patientGender"] = "Female" if v.startswith("f") else "Male"
+
+    if "symptomsDate" in fields and not fields["symptomsDate"]:
+        d = _parse_date_any(text)
+        if d:
+            fields["symptomsDate"] = d
+
+    if "reportedSymptoms" in fields and not fields["reportedSymptoms"]:
+        fields["reportedSymptoms"] = _split_symptoms(text)
+
+    if "followUpRequired" in fields and fields["followUpRequired"] is None:
+        b = _parse_bool(text)
+        if b is not None:
+            fields["followUpRequired"] = b
+
     return fields
 
-# Helper (ensure this exists once near the top of main.py)
+# keep only one clean version of this helper
 def resolve_form_schema_from_locals(ns: dict) -> dict:
     cand = ns.get("form_schema")
     if cand is None and "req" in ns:
