@@ -34,15 +34,15 @@ COPY --from=builder /app/package.json ./
 COPY --from=builder /app/pnpm-lock.yaml ./
 
 # Install only production dependencies
-RUN pnpm install --prod --frozen-lockfile
+RUN pnpm install --prod --frozen-lockfile --ignore-scripts
 
 # Copy built application
 COPY --from=builder /app/dist ./dist
 
 # Copy necessary files for migrations (if needed)
 COPY --from=builder /app/ormconfig.js ./
-COPY --from=builder /app/src/migrations ./src/migrations
-COPY --from=builder /app/tsconfig.json ./
+# COPY --from=builder /app/src/database/migrations ./src/database/migrations
+# COPY --from=builder /app/tsconfig.json ./
 
 # Change ownership to app user
 RUN chown -R app:app /app
