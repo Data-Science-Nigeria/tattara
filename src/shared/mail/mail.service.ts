@@ -12,18 +12,26 @@ export class MailService {
   private readonly resend: Resend;
   private templatesDir: string;
   constructor(private configService: ConfigService) {
-    const apiKey = this.configService.get<string>('mail.resendApiKey');
+    const apiKey =
+      process.env.RESEND_API_KEY ||
+      this.configService.get<string>('RESEND_API_KEY');
+
     if (!apiKey) {
       this.logger.warn('Resend API key not found');
     }
     this.resend = new Resend(apiKey);
-    this.templatesDir = join(
-      process.cwd(),
-      'src',
-      'shared',
-      'mail',
-      'templates',
-    );
+    this.templatesDir = this.getTemplatesDirectory();
+    this.logger.log(`Templates directory: ${this.templatesDir}`);
+  }
+
+  private getTemplatesDirectory(): string {
+    const isDevelopment = process.env.NODE_ENV !== 'production';
+
+    if (isDevelopment) {
+      return join(process.cwd(), 'src', 'shared', 'mail', 'templates');
+    }
+
+    return join(process.cwd(), 'dist', 'shared', 'mail', 'templates');
   }
 
   private compileTemplate(

@@ -153,6 +153,7 @@ export class UserService {
 
         const frontendUrl = this.configService.get<string>('app.frontendUrl');
 
+        // TODO: Remove await so user can get response immediately the queue will handle this
         await this.mailQueue.add(
           'sendEmail',
           {
