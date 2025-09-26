@@ -41,8 +41,6 @@ COPY --from=builder /app/dist ./dist
 
 # Copy necessary files for migrations (if needed)
 COPY --from=builder /app/ormconfig.js ./
-# COPY --from=builder /app/src/database/migrations ./src/database/migrations
-# COPY --from=builder /app/tsconfig.json ./
 
 # Change ownership to app user
 RUN chown -R app:app /app
