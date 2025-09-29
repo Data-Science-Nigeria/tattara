@@ -224,7 +224,7 @@ export class AuthService {
 
     const resetUrl = `${frontendUrl}/auth/reset-password?token=${resetToken}`;
 
-    await this.mailQueue.add(
+    void this.mailQueue.add(
       'sendEmail',
       {
         to: user.email,

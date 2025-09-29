@@ -1,6 +1,14 @@
-import { BadRequestException, Body, Controller, Post } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Get,
+  Param,
+  ParseUUIDPipe,
+  Post,
+} from '@nestjs/common';
 import { IntegrationType } from 'src/common/enums';
-import type { ConnectionDto } from '../dto/connection.dto';
+import { ConnectionDto } from '../dto';
 import { IntegrationService } from '../services/integration.service';
 
 @Controller('integration')
@@ -9,18 +17,19 @@ export class IntegrationController {
 
   @Post('test-connection')
   async testConnection(@Body() connection: ConnectionDto): Promise<any> {
-    return this.integrationService.testConnection(connection);
+    await this.integrationService.testConnection(connection);
+
+    return {
+      message: 'Connection ok',
+    };
   }
 
-  @Post('schemas')
-  async fetchSchemas(@Body() connection: ConnectionDto): Promise<any> {
-    return this.integrationService.fetchSchemas(connection);
+  @Get(':connectionId/schemas')
+  async fetchSchemas(
+    @Param('connectionId', new ParseUUIDPipe()) connId: string,
+  ): Promise<any> {
+    return this.integrationService.fetchSchemas(connId);
   }
-
-  // @Post('push')
-  // async pushData(@Body() body: PushDataDto): Promise<any> {
-  //   return this.integrationService.pushData(body.connection, body.payload);
-  // }
 
   // DHIS2 specific endpoints
   @Post('dhis2/programs')

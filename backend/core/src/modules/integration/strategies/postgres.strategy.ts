@@ -166,18 +166,46 @@ export class PostgresStrategy extends ConnectorStrategy {
 
     const { schema, table, values } = payload;
 
+    // Build object for insert
     const insertObj = values.reduce(
       (acc, v) => ({ ...acc, [v.column]: v.value }),
       {},
     );
 
     try {
+      // Ensure schema exists
+      await db.raw(`CREATE SCHEMA IF NOT EXISTS "${schema}"`);
+
+      // Ensure table exists
+      const hasTable = await db.schema.withSchema(schema).hasTable(table);
+
+      if (!hasTable) {
+        await db.schema
+          .withSchema(schema)
+          .createTable(table, (t: Knex.CreateTableBuilder) => {
+            t.increments('id').primary();
+
+            for (const col of values) {
+              // Naive column type inference (you can improve this mapping)
+              if (typeof col.value === 'number') {
+                t.float(col.column);
+              } else if (typeof col.value === 'boolean') {
+                t.boolean(col.column);
+              } else if ((col.value as any) instanceof Date) {
+                t.timestamp(col.column);
+              } else {
+                t.text(col.column);
+              }
+            }
+          });
+      }
+
+      // Insert data
       const result = await db
         .withSchema(schema)
         .table(table)
         .insert(insertObj)
         .returning('*');
-
       return result as R[];
     } catch (err: any) {
       if (this.isDatabaseError(err)) {

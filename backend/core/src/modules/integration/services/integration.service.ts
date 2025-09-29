@@ -40,21 +40,16 @@ export class IntegrationService {
     return this.getStrategy(connection.type).testConnection(connection.config);
   }
 
-  async fetchSchemas(connection: {
-    type: string;
-    config: ExternalConnectionConfiguration;
-  }): Promise<any> {
-    return this.getStrategy(connection.type).fetchSchemas(connection.config);
+  async fetchSchemas(connId: string): Promise<any> {
+    const conn = await this.externalConnService.findOne(connId);
+
+    return this.getStrategy(conn.type).fetchSchemas(conn.configuration);
   }
 
   async pushData(config: WorkflowConfiguration, payload: unknown) {
-    console.log('config', config);
-    return;
     const conn = await this.externalConnService.findOne(
       config.externalConnection.id,
     );
-
-    // console.log('conn', conn);
 
     return this.getStrategy(config.type).pushData(conn.configuration, payload);
   }

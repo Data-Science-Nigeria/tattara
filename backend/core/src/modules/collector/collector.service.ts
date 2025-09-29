@@ -198,12 +198,6 @@ export class CollectorService {
           submitData.data,
         );
 
-        console.log(
-          'length',
-          workflow.workflowFields.length,
-          extractedIntegrationData.postgres?.length,
-        );
-
         // return;
 
         // console.log('extractedIntegrationData', extractedIntegrationData);
@@ -257,15 +251,13 @@ export class CollectorService {
             if ('schema' in config.configuration) {
               payload = {
                 ...config.configuration,
-                dataValues: extractedIntegrationData[IntegrationType.DHIS2],
+                values: extractedIntegrationData[IntegrationType.POSTGRES],
               };
             }
 
-            const resDhis = await this.integrationService.pushData(
-              config,
-              payload,
-            );
-            console.log(resDhis);
+            console.log('payload', payload);
+
+            await this.integrationService.pushData(config, payload);
           }
         }
 
@@ -278,6 +270,10 @@ export class CollectorService {
         });
 
         await manager.save(submission);
+
+        return {
+          message: 'Form submitted successfully',
+        };
       });
     } catch (error) {
       if (error instanceof Error) {

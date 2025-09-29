@@ -1,14 +1,16 @@
-import { IsString, IsObject, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
-import type { ExternalConnectionConfiguration } from 'src/common/interfaces';
+import { IsEnum, IsNotEmpty, IsObject, ValidateNested } from 'class-validator';
 import { IntegrationType } from 'src/common/enums';
+import type { ExternalConnectionConfiguration } from 'src/common/interfaces';
 
 export class ConnectionDto {
-  @IsString()
-  type!: IntegrationType;
+  @IsEnum(IntegrationType)
+  @IsNotEmpty()
+  type: IntegrationType;
 
   @IsObject()
-  config!: ExternalConnectionConfiguration;
+  @IsNotEmpty()
+  config: ExternalConnectionConfiguration;
 }
 
 export class PushDataDto {

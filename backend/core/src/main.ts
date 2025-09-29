@@ -64,16 +64,6 @@ async function bootstrap() {
 
   await app.listen(port);
   console.log(`Application is running on: http://localhost:${port}/api/v1`);
-
-  console.log('=== DOCKER ENV DEBUG ===');
-  console.log('NODE_ENV:', process.env.NODE_ENV);
-  console.log(
-    'All env vars containing "RESEND":',
-    Object.keys(process.env)
-      .filter(key => key.toLowerCase().includes('resend'))
-      .map(key => `${key}: ${process.env[key] ? 'SET' : 'NOT SET'}`),
-  );
-  console.log('========================');
 }
 
 bootstrap().catch(error => {
