@@ -14,6 +14,7 @@ from fastapi.responses import RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 from .utils.schema import ensure_demo_schema, BadFormSchema
 from datetime import datetime 
+from .utils.prompting import build_extraction_header
 
 # Suppress pkg_resources deprecation warning emitted by some dependencies (ctranslate2)
 warnings.filterwarnings(
@@ -306,67 +307,102 @@ async def process_image(
     model_preference: Optional[str] = Form(None),
     images: List[UploadFile] = File(...),
 ):
+    """OCR + Extraction (schema-agnostic heuristics + LLM merge).
+
+    Flow:
+      1. OCR each uploaded image (vision provider).
+      2. Build an instruction header + OCR text and call LLM.
+      3. Run generic key:value heuristics (any schema) + medical heuristics (legacy).
+      4. Merge results (LLM > generic > medical > defaults) and validate.
     """
-    OCR + Form Extraction from Images
-
-    Overview:
-    - Accepts one or more PNG/JPEG files.
-    - Uses a vision-capable model (e.g., gpt-4o) to transcribe text.
-    - Applies heuristics to populate medical fields reliably.
-
-    Request (multipart/form-data):
-    - form_id: Your form identifier.
-    - form_schema: JSON string of the fields object:
-    - use_vision: true/false (true recommended).
-    - provider_preference: e.g., "openai".
-    - images: One or more PNG/JPEG files.
-
-    Demo Form Schema:
-
-            {
-                "fields": [
-                { "id": "patientName", "type": "text", "required": true },
-                { "id": "patientAge", "type": "number", "required": true },
-                { "id": "patientGender", "type": "select", "required": true },
-                { "id": "symptomsDate", "type": "date", "required": true },
-                { "id": "reportedSymptoms", "type": "multiselect", "required": false },
-                { "id": "testResult", "type": "select", "required": true },
-                { "id": "treatmentProvided", "type": "select", "required": false },
-                { "id": "healthWorkerId", "type": "text", "required": true },
-                { "id": "location", "type": "text", "required": true },
-                { "id": "followUpRequired", "type": "boolean", "required": false },
-                { "id": "notes", "type": "textarea", "required": false }
-                ]
-            }
-       
-
-    Process:
-    1. Parse and validate form_schema.
-    2. OCR each image via the configured provider.
-    3. Combine text and apply heuristics for:
-       - patientName, patientAge, patientGender, symptomsDate
-       - reportedSymptoms, testResult, treatmentProvided
-       - healthWorkerId, location, followUpRequired, notes
-
-    Returns:
-    - extracted: Filled fields
-    - missing_required: Any required but missing fields
-    - metrics: Vision/LLM timings and model info
-
-    Errors:
-    - 400: Invalid form_schema
-    - 502: OCR/provider error (with details)
-    """
-    # Coerce/validate form_schema to the demo_form1 shape
+    # Normalize/validate schema
     try:
         schema = ensure_demo_schema(form_schema)
     except BadFormSchema as e:
         raise HTTPException(status_code=422, detail=str(e))
 
-    ocr_texts = []
-    all_blocks = []
-    vision_ms_total = 0
+    # Persist temp files for OCR
+    tmp_paths: List[str] = []
+    for img in images:
+        suffix = f"_{img.filename}"
+        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+            content = await img.read()
+            tmp.write(content)
+            tmp_paths.append(tmp.name)
 
+    ocr_texts: List[str] = []
+    all_blocks: List[dict] = []
+    vision_ms_total = 0
+    for p in tmp_paths:
+        ocr_text, blocks, vision_ms = vision_service.ocr(p, provider_client=default_openai_provider)
+        ocr_texts.append(ocr_text)
+        all_blocks.extend(blocks)
+        vision_ms_total += vision_ms
+
+    raw_ocr_text = "\n".join(ocr_texts)
+
+    header = build_extraction_header(schema)
+    combined_text = f"{header}\n\n---\nSOURCE TEXT:\n{raw_ocr_text}"
+
+    provider_name = router.pick(model_preference, need_vision=use_vision)
+    data, confidence, llm_ms, tokens_in, tokens_out, cost, model = router.extract(
+        provider_name=provider_name,
+        form_schema=schema,
+        text_blob=combined_text,
+        images=None,
+        ocr_blocks=all_blocks,
+        locale=None,
+    )
+
+    # Normalise possible wrapper
+    if isinstance(data, dict) and isinstance(data.get("extracted"), dict):
+        llm_fields = data.get("extracted", {})
+    elif isinstance(data, dict):
+        llm_fields = data
+    else:
+        llm_fields = {}
+
+    generic_fields = generic_heuristic_extract(raw_ocr_text, schema)
+    medical_fields = heuristic_extract_from_text(raw_ocr_text, schema)
+
+    merged: Dict[str, Any] = {}
+    for fdef in schema.get("fields", []):
+        fid = fdef.get("id")
+        if fid in llm_fields and llm_fields[fid] not in (None, "", [], {}):
+            merged[fid] = llm_fields[fid]
+        elif fid in generic_fields and generic_fields[fid] not in (None, "", [], {}):
+            merged[fid] = generic_fields[fid]
+        elif fid in medical_fields and medical_fields[fid] not in (None, "", [], {}):
+            merged[fid] = medical_fields[fid]
+        else:
+            merged[fid] = generic_fields.get(fid)
+
+    validator = SchemaValidator(schema)
+    missing = validator.validate_and_report(merged)
+
+    total_ms = (vision_ms_total or 0) + (llm_ms or 0)
+    metrics = ExtractionMetrics(
+        asr_seconds=0.0,
+        vision_seconds=round((vision_ms_total or 0) / 1000, 2),
+        llm_seconds=round((llm_ms or 0) / 1000, 2),
+        total_seconds=round(total_ms / 1000, 2),
+        tokens_in=tokens_in,
+        tokens_out=tokens_out,
+        cost_usd=round(cost, 6),
+        provider=provider_name,
+        model=model,
+    )
+
+    return ExtractionResponse(
+        form_id=form_id,
+        form_version=None,
+        extracted=merged,
+        confidence={k: 0.8 for k in merged.keys()},
+        spans={},
+        missing_required=missing,
+        metrics=metrics,
+    )
+    """Debug endpoint to see raw OCR output"""
     temp_paths = []
     for img in images:
         suffix = f"_{img.filename}"
@@ -375,55 +411,17 @@ async def process_image(
             tmp.write(content)
             temp_paths.append(tmp.name)
 
+    ocr_results = []
     for p in temp_paths:
         ocr_text, blocks, vision_ms = vision_service.ocr(p, provider_client=default_openai_provider)
-        ocr_texts.append(ocr_text)
-        all_blocks.extend(blocks)
-        vision_ms_total += vision_ms
+        ocr_results.append({
+            "path": p,
+            "ocr_text": ocr_text,
+            "blocks_count": len(blocks),
+            "vision_ms": vision_ms
+        })
 
-    text_blob = "\n".join(ocr_texts)
-    ocr_text = text_blob  # define for heuristic use
-
-    # Pick using model_preference
-    provider_name = router.pick(model_preference, need_vision=use_vision)
-    data, confidence, llm_ms, tokens_in, tokens_out, cost, model = router.extract(
-        provider_name=provider_name,
-        form_schema=schema,
-        text_blob=text_blob, 
-        images=None,
-        ocr_blocks=all_blocks,
-        locale=None
-    )
-
-    validator = SchemaValidator(schema)
-    missing = validator.validate_and_report(data)
-
-    total_ms = vision_ms_total + llm_ms
-
-    metrics = ExtractionMetrics(
-        asr_seconds=round(0 / 1000, 2),
-        vision_seconds=round(vision_ms_total / 1000, 2) if vision_ms_total is not None else None,
-        llm_seconds=round(llm_ms / 1000, 2) if llm_ms is not None else None,
-        total_seconds=round(total_ms / 1000, 2) if total_ms is not None else None,
-        tokens_in=tokens_in,
-        tokens_out=tokens_out,
-        cost_usd=round(cost, 6),
-        provider=provider_name,
-        model=model,
-    )
-
-    # Heuristic extraction from OCR text (new medical schema-aware)
-    extracted = heuristic_extract_from_text(ocr_text or "", schema)
-
-    return ExtractionResponse(
-        form_id=form_id,
-        form_version=None,
-        extracted=extracted,
-        confidence={k: 0.8 for k in extracted.keys()},
-        spans={},
-        missing_required=[],
-        metrics=metrics,
-    )
+    return {"ocr_results": ocr_results}
 
 
 # --- Heuristic helpers for the medical schema ---
@@ -610,6 +608,151 @@ def heuristic_extract_from_text(text: str, form_schema: dict) -> dict:
             fields["followUpRequired"] = b
 
     return fields
+
+# ---------------- Generic (schema-agnostic) heuristic extraction utilities -----------------
+
+def _generate_field_aliases(field_id: str) -> List[str]:
+    """Generate alias candidates for fuzzy key matching of arbitrary schema field IDs."""
+    base = field_id.strip()
+    aliases = set()
+    simple = re.sub(r"[^A-Za-z0-9]", "", base).lower()
+    if simple:
+        aliases.add(simple)
+    tokens = re.findall(r"[A-Z]?[a-z]+|[0-9]+", base)
+    if not tokens:
+        tokens = [base]
+    tokens_lower = [t.lower() for t in tokens]
+    spaced = " ".join(tokens_lower)
+    aliases.add(spaced)
+    aliases.add("".join(tokens_lower))
+    if spaced.endswith(" id"):
+        aliases.add(spaced[:-3])
+    if spaced.endswith(" date"):
+        aliases.add(spaced[:-5])
+    if "date" in tokens_lower and "birth" in tokens_lower:
+        aliases.add("dob")
+        aliases.add("birth date")
+    if tokens_lower[-1] == "name" and len(tokens_lower) > 1:
+        aliases.add("name")
+    if tokens_lower[-1] == "id" and len(tokens_lower) > 1:
+        aliases.add("id")
+    return list(aliases)
+
+def _best_field_match(key_norm: str, field_alias_map: Dict[str, List[str]]) -> Optional[str]:
+    best_id = None
+    best_score = 0
+    for fid, aliases in field_alias_map.items():
+        for a in aliases:
+            if not a:
+                continue
+            score = 0
+            if key_norm == a:
+                score = 100
+            elif a in key_norm or key_norm in a:
+                score = 80
+            else:
+                toks_a = set(a.split())
+                toks_k = set(key_norm.split())
+                if toks_a and toks_k:
+                    overlap = len(toks_a & toks_k) / len(toks_a | toks_k)
+                    score = int(overlap * 60)
+            if score > best_score:
+                best_score = score
+                best_id = fid
+    return best_id if best_score >= 40 else None
+
+def generic_heuristic_extract(text: str, form_schema: dict) -> Dict[str, Any]:
+    """Schema-agnostic extraction using fuzzy key:value line parsing."""
+    fields_def = form_schema.get("fields", [])
+    out: Dict[str, Any] = {}
+    for f in fields_def:
+        fid = f.get("id")
+        ftype = (f.get("type") or "").lower()
+        if ftype == "number":
+            out[fid] = None
+        elif ftype == "multiselect":
+            out[fid] = []
+        elif ftype == "boolean":
+            out[fid] = None
+        else:
+            out[fid] = ""
+
+    alias_map: Dict[str, List[str]] = {f.get("id"): _generate_field_aliases(f.get("id")) for f in fields_def if f.get("id")}
+    options_map: Dict[str, List[str]] = {}
+    for f in fields_def:
+        fid = f.get("id")
+        opts = f.get("options") or []
+        if isinstance(opts, list):
+            options_map[fid] = [str(o) for o in opts]
+
+    line_re = re.compile(r"^\s*([A-Za-z0-9 ._/()\-]{1,64})\s*[:=\-]\s*(.+)$")
+    for raw in (text or "").splitlines():
+        raw = raw.strip()
+        if not raw:
+            continue
+        m = line_re.match(raw)
+        if not m:
+            continue
+        key_raw, val_raw = m.group(1).strip(), m.group(2).strip()
+        key_norm = re.sub(r"[^a-z0-9 ]", "", key_raw.lower())
+        fid = _best_field_match(key_norm, alias_map)
+        if not fid:
+            continue
+        fdef = next((fd for fd in fields_def if fd.get("id") == fid), {})
+        ftype = (fdef.get("type") or "").lower()
+        if ftype == "number":
+            mnum = re.search(r"\b\d+(?:\.\d+)?\b", val_raw)
+            if mnum:
+                try:
+                    out[fid] = float(mnum.group(0)) if "." in mnum.group(0) else int(mnum.group(0))
+                except Exception:
+                    pass
+        elif ftype == "boolean":
+            b = _parse_bool(val_raw)
+            if b is not None:
+                out[fid] = b
+        elif ftype == "date":
+            d = _parse_date_any(val_raw)
+            if d:
+                out[fid] = d
+        elif ftype == "multiselect":
+            parts = [p.strip() for p in re.split(r"[;,]", val_raw) if p.strip()]
+            opts = options_map.get(fid)
+            if opts:
+                norm_opts = {o.lower(): o for o in opts}
+                matched = []
+                for p in parts:
+                    pl = p.lower()
+                    if pl in norm_opts:
+                        matched.append(norm_opts[pl])
+                    else:
+                        for ol, orig in norm_opts.items():
+                            if pl in ol or ol in pl:
+                                matched.append(orig)
+                                break
+                if matched:
+                    out[fid] = matched
+            else:
+                if parts:
+                    out[fid] = parts
+        elif ftype == "select":
+            opts = options_map.get(fid)
+            if opts:
+                vl = val_raw.lower()
+                chosen = None
+                for o in opts:
+                    if o.lower() == vl:
+                        chosen = o; break
+                if not chosen:
+                    for o in opts:
+                        if o.lower() in vl or vl in o.lower():
+                            chosen = o; break
+                out[fid] = chosen if chosen else val_raw
+            else:
+                out[fid] = val_raw
+        else:
+            out[fid] = val_raw
+    return out
 
 # keep only one clean version of this helper
 def resolve_form_schema_from_locals(ns: dict) -> dict:

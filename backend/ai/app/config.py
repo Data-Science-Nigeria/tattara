@@ -14,7 +14,7 @@ class Settings(BaseSettings):
 	# LLMs
 	DEFAULT_PROVIDER: str = Field("openai", description="openai|groq")
 	GROQ_API_KEY: str | None = None
-	OPENAI_MODEL: str = "gpt-4o-mini"  # change here when you want a different model (e.g., "gpt-4o")
+	OPENAI_MODEL: str = "gpt-4o"  # change here when you want a different model (e.g., "gpt-4o")
 	GROQ_MODEL: str = "llama-4"
 
 	# Vision/OCR

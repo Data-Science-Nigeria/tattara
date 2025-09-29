@@ -1,5 +1,6 @@
+[
 {
-  "form_id": "demo_form1",
+  "form_id": "patient_consultation",
   "form_schema": {
     "fields": [
       { "id": "patientName", "type": "text", "required": true },
@@ -18,4 +19,186 @@
   "text": "The patient name is Janet Yakubu. She is a 29-year-old trader, who was seen at Ketu Clinic, Lagos on 2025-09-21 with fever, headache, and cough; the rapid test result was Positive, treatment provided included paracetamol and rest, attended by health worker ID HW-9321; follow-up is required; notes: patient stable and asked to return in 3 days.",
   "provider_preference": null,
   "model_preference": null
+},
+
+{
+  "form_id": "patient_registration",
+  "form_schema": {
+    "fields": [
+      { "id": "fullName", "type": "text", "required": true },
+      { "id": "dateOfBirth", "type": "date", "required": true },
+      { "id": "gender", "type": "select", "required": true, "options": ["Male", "Female", "Other"] },
+      { "id": "phoneNumber", "type": "text", "required": true },
+      { "id": "emergencyContact", "type": "text", "required": false },
+      { "id": "bloodType", "type": "select", "required": false, "options": ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"] },
+      { "id": "allergies", "type": "multiselect", "required": false, "options": ["Penicillin", "Nuts", "Shellfish", "Dairy", "None"] },
+      { "id": "chronicConditions", "type": "multiselect", "required": false },
+      { "id": "insuranceProvider", "type": "text", "required": false },
+      { "id": "consentGiven", "type": "boolean", "required": true }
+    ]
+  },
+  "text": "Patient John Smith was born on March 15, 1985. He is male with phone number 08012345678. His emergency contact is Mary Smith at 08087654321. Blood type is O+. He has allergies to penicillin and nuts. No chronic conditions reported. Insurance with NHIS. Patient gave consent for treatment.",
+  "provider_preference": null,
+  "model_preference": null
+},
+{
+  "form_id": "vaccination_record",
+  "form_schema": {
+    "fields": [
+      { "id": "patientId", "type": "text", "required": true },
+      { "id": "vaccineName", "type": "select", "required": true, "options": ["COVID-19", "Hepatitis B", "Measles", "Polio", "Yellow Fever"] },
+      { "id": "vaccineBrand", "type": "select", "required": true, "options": ["Pfizer", "AstraZeneca", "Johnson & Johnson", "Moderna"] },
+      { "id": "doseNumber", "type": "number", "required": true },
+      { "id": "administrationDate", "type": "date", "required": true },
+      { "id": "nextDueDate", "type": "date", "required": false },
+      { "id": "administeredBy", "type": "text", "required": true },
+      { "id": "batchNumber", "type": "text", "required": true },
+      { "id": "sideEffects", "type": "multiselect", "required": false, "options": ["Pain", "Swelling", "Fever", "Fatigue", "None"] },
+      { "id": "facilityName", "type": "text", "required": true }
+    ]
+  },
+  "text": "Patient ID VAC001 received COVID-19 vaccine, Pfizer brand, dose 1 on 2025-01-15. Next due date is 2025-02-15. Administered by Dr. Ahmed at batch PF2025A. Patient experienced mild pain and swelling. Given at Lagos Primary Healthcare Centre.",
+  "provider_preference": null,
+  "model_preference": null
+},
+{
+  "form_id": "lab_test_results",
+  "form_schema": {
+    "fields": [
+      { "id": "patientName", "type": "text", "required": true },
+      { "id": "testType", "type": "select", "required": true, "options": ["Blood Sugar", "Cholesterol", "HIV", "Malaria", "Hepatitis"] },
+      { "id": "testDate", "type": "date", "required": true },
+      { "id": "resultValue", "type": "text", "required": true },
+      { "id": "normalRange", "type": "text", "required": false },
+      { "id": "resultStatus", "type": "select", "required": true, "options": ["Normal", "High", "Low", "Positive", "Negative"] },
+      { "id": "laboratoryName", "type": "text", "required": true },
+      { "id": "technicianId", "type": "text", "required": true },
+      { "id": "criticalAlert", "type": "boolean", "required": false },
+      { "id": "recommendations", "type": "textarea", "required": false }
+    ]
+  },
+  "text": "Patient Grace Okoro had blood sugar test on 2025-09-20. Result value is 180 mg/dL with normal range 70-100 mg/dL. Status is High. Test done at MedLab Diagnostics by technician LAB-456. This is a critical alert. Recommendation: immediate consultation with endocrinologist and dietary changes.",
+  "provider_preference": null,
+  "model_preference": null
+},
+{
+  "form_id": "prescription_form",
+  "form_schema": {
+    "fields": [
+      { "id": "patientName", "type": "text", "required": true },
+      { "id": "medicationName", "type": "text", "required": true },
+      { "id": "dosage", "type": "text", "required": true },
+      { "id": "frequency", "type": "select", "required": true, "options": ["Once daily", "Twice daily", "Three times daily", "As needed"] },
+      { "id": "duration", "type": "text", "required": true },
+      { "id": "prescriptionDate", "type": "date", "required": true },
+      { "id": "doctorName", "type": "text", "required": true },
+      { "id": "pharmacyInstructions", "type": "textarea", "required": false },
+      { "id": "refillsAllowed", "type": "number", "required": false },
+      { "id": "genericSubstitution", "type": "boolean", "required": false }
+    ]
+  },
+  "text": "Patient Michael Adebayo prescribed Amoxicillin 500mg, take twice daily for 7 days. Prescribed on 2025-09-22 by Dr. Williams. Pharmacy instructions: take with food. Two refills allowed. Generic substitution permitted.",
+  "provider_preference": null,
+  "model_preference": null
+},
+{
+  "form_id": "surgery_report",
+  "form_schema": {
+    "fields": [
+      { "id": "patientName", "type": "text", "required": true },
+      { "id": "procedureName", "type": "text", "required": true },
+      { "id": "surgeonName", "type": "text", "required": true },
+      { "id": "surgeryDate", "type": "date", "required": true },
+      { "id": "duration", "type": "number", "required": true },
+      { "id": "anesthesiaType", "type": "select", "required": true, "options": ["General", "Local", "Regional", "Sedation"] },
+      { "id": "complications", "type": "multiselect", "required": false, "options": ["Bleeding", "Infection", "Allergic reaction", "None"] },
+      { "id": "postOpInstructions", "type": "textarea", "required": true },
+      { "id": "followUpRequired", "type": "boolean", "required": true },
+      { "id": "hospitalStay", "type": "number", "required": false }
+    ]
+  },
+  "text": "Patient Sarah Okonkwo underwent appendectomy performed by Dr. Johnson on 2025-09-18. Surgery lasted 90 minutes under general anesthesia. No complications occurred. Post-op instructions: bed rest for 48 hours, antibiotics as prescribed. Follow-up required in 1 week. Hospital stay is 2 days.",
+  "provider_preference": null,
+  "model_preference": null
+},
+{
+  "form_id": "mental_health_assessment",
+  "form_schema": {
+    "fields": [
+      { "id": "clientName", "type": "text", "required": true },
+      { "id": "assessmentDate", "type": "date", "required": true },
+      { "id": "moodRating", "type": "number", "required": true },
+      { "id": "anxietyLevel", "type": "select", "required": true, "options": ["Low", "Moderate", "High", "Severe"] },
+      { "id": "sleepQuality", "type": "select", "required": true, "options": ["Poor", "Fair", "Good", "Excellent"] },
+      { "id": "currentMedications", "type": "multiselect", "required": false },
+      { "id": "therapistName", "type": "text", "required": true },
+      { "id": "riskAssessment", "type": "select", "required": true, "options": ["Low risk", "Moderate risk", "High risk"] },
+      { "id": "treatmentPlan", "type": "textarea", "required": true },
+      { "id": "nextAppointment", "type": "date", "required": false }
+    ]
+  },
+  "text": "Client David Nwosu assessed on 2025-09-19. Mood rating is 6 out of 10. Anxiety level is moderate. Sleep quality reported as fair. Currently taking sertraline. Assessed by therapist Dr. Peace. Risk assessment is low risk. Treatment plan includes weekly therapy sessions and mindfulness exercises. Next appointment scheduled for 2025-09-26.",
+  "provider_preference": null,
+  "model_preference": null
+},
+{
+  "form_id": "ed_triage",
+  "form_schema": {
+    "fields": [
+      { "id": "patientName", "type": "text", "required": true },
+      { "id": "arrivalTime", "type": "text", "required": true },
+      { "id": "chiefComplaint", "type": "text", "required": true },
+      { "id": "painScore", "type": "number", "required": false },
+      { "id": "vitalSigns", "type": "text", "required": true },
+      { "id": "triageLevel", "type": "select", "required": true, "options": ["1-Resuscitation", "2-Emergent", "3-Urgent", "4-Less Urgent", "5-Non-urgent"] },
+      { "id": "triageNurse", "type": "text", "required": true },
+      { "id": "alertFlags", "type": "multiselect", "required": false, "options": ["Chest pain", "Difficulty breathing", "Severe bleeding", "Altered consciousness"] },
+      { "id": "transportMethod", "type": "select", "required": true, "options": ["Ambulance", "Walk-in", "Police", "Helicopter"] },
+      { "id": "estimatedWaitTime", "type": "number", "required": false }
+    ]
+  },
+  "text": "Patient Emma Okafor arrived at 14:30 with chief complaint of severe chest pain. Pain score is 9/10. Vital signs: BP 160/95, HR 110, RR 22, Temp 37.2C. Triage level 2-Emergent assigned by Nurse Janet. Alert flags include chest pain and difficulty breathing. Arrived by ambulance. Estimated wait time 15 minutes.",
+  "provider_preference": null,
+  "model_preference": null
+},
+{
+  "form_id": "maternal_health",
+  "form_schema": {
+    "fields": [
+      { "id": "motherName", "type": "text", "required": true },
+      { "id": "gestationalWeek", "type": "number", "required": true },
+      { "id": "pregnancyNumber", "type": "number", "required": true },
+      { "id": "lastMenstrualPeriod", "type": "date", "required": true },
+      { "id": "expectedDeliveryDate", "type": "date", "required": true },
+      { "id": "bloodPressure", "type": "text", "required": true },
+      { "id": "weight", "type": "number", "required": true },
+      { "id": "fetalHeartRate", "type": "number", "required": false },
+      { "id": "complications", "type": "multiselect", "required": false, "options": ["Gestational diabetes", "Preeclampsia", "Anemia", "None"] },
+      { "id": "midwifeName", "type": "text", "required": true }
+    ]
+  },
+  "text": "Mother Blessing Okoro is at 32 weeks gestation, pregnancy number 2. Last menstrual period was January 10, 2025. Expected delivery date is October 15, 2025. Blood pressure 120/80, weight 72kg. Fetal heart rate 140 bpm. No complications noted. Attended by midwife Sister Mary.",
+  "provider_preference": null,
+  "model_preference": null
+},
+{
+  "form_id": "dental_exam",
+  "form_schema": {
+    "fields": [
+      { "id": "patientName", "type": "text", "required": true },
+      { "id": "examDate", "type": "date", "required": true },
+      { "id": "chiefComplaint", "type": "text", "required": false },
+      { "id": "oralHygiene", "type": "select", "required": true, "options": ["Excellent", "Good", "Fair", "Poor"] },
+      { "id": "cavitiesFound", "type": "number", "required": false },
+      { "id": "gumsCondition", "type": "select", "required": true, "options": ["Healthy", "Gingivitis", "Periodontitis"] },
+      { "id": "treatmentNeeded", "type": "multiselect", "required": false, "options": ["Cleaning", "Filling", "Extraction", "Root canal", "Crown"] },
+      { "id": "dentistName", "type": "text", "required": true },
+      { "id": "nextVisitDate", "type": "date", "required": false },
+      { "id": "fluorideTreatment", "type": "boolean", "required": false }
+    ]
+  },
+  "text": "Patient Linda Mustapha had a dental exam on 2025-09-20. Chief complaint: toothache in lower right molar. Oral hygiene rated as fair. Two cavities found. Gums condition: gingivitis. Treatment needed: filling and cleaning. Examined by Dr. Smith. Next visit scheduled for 2025-12-20. Fluoride treatment not applied.",
+  "provider_preference": null,
+  "model_preference": null
 }
+]
