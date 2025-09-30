@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 app = FastAPI()
 
 # Base DHIS2 URL (change to your instance)
-DHIS2_BASE_URL = "https://dhis.dsnsandbox.com/dhis/api"
+DHIS2_BASE_URL = "https://eko360.org.ng/api"
 
 app.add_middleware(
     CORSMiddleware,
@@ -15,6 +15,22 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.get("/version")
+def get_dhis2_version(authorization: str = Header(...)):
+    """
+    Fetch DHIS2 version only
+    """
+    url = f"{DHIS2_BASE_URL}/system/info"
+    headers = {"Authorization": authorization}
+
+    try:
+        response = requests.get(url, headers=headers, timeout=30)
+        response.raise_for_status()
+        data = response.json()
+        return {"version": data.get("version")}
+    except requests.exceptions.RequestException as e:
+        return {"error": str(e)}
 
 @app.get("/programs")
 def get_programs(authorization: str = Header(...)):
@@ -128,7 +144,8 @@ def get_schema(
             "program": data["id"],
             "programStage": program_stage["id"],  # safe now, exists
             "orgUnit": "REPLACE_WITH_ORG_UNIT_ID",
-            "occurredAt": "2025-09-19T00:00:00.000",  # ISO datetime format
+            "occurredAt": "YYYY-MM-DDTHH:MM:SS.SSS",  # ISO datetime format
+            "eventDate": "YYYY-MM-DD",
             "status": "COMPLETED",
             "dataValues": data_elements
         }
@@ -143,6 +160,7 @@ def get_schema(
         ]
         schema = {
             "dataSet": data["id"],
+            "datasetName": data["name"],
             "completeDate": "YYYY-MM-DD",
             "period": "YYYYMM",
             "orgUnit": "REPLACE_WITH_ORG_UNIT_ID",
@@ -155,11 +173,13 @@ def get_schema(
 def detect_endpoint(payload: dict) -> str:
     """
     Detects whether the payload is for events or dataValueSets.
-    - Event payloads usually contain 'program' and 'occurredAt'
+    - Event payloads usually contain 'program' and 'occurredAt' or 'eventDate'
     - Dataset payloads usually contain 'dataSet' and 'period'
     """
     if "program" in payload and "occurredAt" in payload:
         return "tracker"
+    elif "program" in payload and "eventDate" in payload:
+        return "events"
     elif "dataSet" in payload and "period" in payload:
         return "dataValueSets"
     else:
@@ -187,11 +207,11 @@ def push_to_dhis2(
     if endpoint == "tracker" and "events" not in payload:
         payload = {"events": [payload]}
 
-    # Add importStrategy if tracker
-    if endpoint == "tracker":
-        url = f"{DHIS2_BASE_URL}/{endpoint}?importStrategy=CREATE"
-    else:
-        url = f"{DHIS2_BASE_URL}/{endpoint}"
+    # # Add importStrategy if tracker
+    # if endpoint == "tracker":
+    #     url = f"{DHIS2_BASE_URL}/{endpoint}?importStrategy=CREATE"
+    # else:
+    url = f"{DHIS2_BASE_URL}/{endpoint}"
 
     headers = {
         "Content-Type": "application/json",

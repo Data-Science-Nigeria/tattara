@@ -102,7 +102,7 @@ Fetch organisation units assigned to a program or dataset.
 **Example (cURL):**
 
 ```bash
-curl -X GET "http://localhost:4000/orgunits?id=************=program" \
+curl -X GET "http://localhost:4000/orgunits?id=**********&type=program" \
   -H "Authorization: Basic dXNlcjpwYXNz"
 ```
 
