@@ -11,7 +11,9 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { FileManagerService } from './file-manager.service';
 import { FileUploads } from 'src/database/entities';
+import { ApiExcludeController } from '@nestjs/swagger';
 
+@ApiExcludeController()
 @Controller('file-manager')
 export class FileManagerController {
   constructor(private readonly FileManagerService: FileManagerService) {}

@@ -40,10 +40,19 @@ export class IntegrationService {
     return this.getStrategy(connection.type).testConnection(connection.config);
   }
 
-  async fetchSchemas(connId: string): Promise<any> {
+  async fetchSchemas(
+    connId: string,
+    options?: {
+      id?: string;
+      type?: 'program' | 'dataset';
+    },
+  ): Promise<any> {
     const conn = await this.externalConnService.findOne(connId);
 
-    return this.getStrategy(conn.type).fetchSchemas(conn.configuration);
+    return this.getStrategy(conn.type).fetchSchemas(
+      conn.configuration,
+      options,
+    );
   }
 
   async pushData(config: WorkflowConfiguration, payload: unknown) {
@@ -54,13 +63,39 @@ export class IntegrationService {
     return this.getStrategy(config.type).pushData(conn.configuration, payload);
   }
 
-  async getPrograms(connection: {
-    type: IntegrationType;
-    config: Dhis2ConnectionConfig;
-  }): Promise<any> {
-    if (connection.type !== IntegrationType.DHIS2) {
+  async getPrograms(connId: string): Promise<any> {
+    const conn = await this.externalConnService.findOne(connId);
+
+    if (conn.type !== IntegrationType.DHIS2) {
       throw new Error('getPrograms is only supported for DHIS2 connectors');
     }
-    return this.dhis2.getPrograms(connection.config);
+
+    return this.dhis2.getPrograms(conn.configuration as Dhis2ConnectionConfig);
+  }
+
+  async getDatasets(connId: string): Promise<any> {
+    const conn = await this.externalConnService.findOne(connId);
+
+    if (conn.type !== IntegrationType.DHIS2) {
+      throw new Error('getDatasets is only supported for DHIS2 connectors');
+    }
+
+    return this.dhis2.getDatasets(conn.configuration as Dhis2ConnectionConfig);
+  }
+
+  async getOrgUnits(
+    connId: string,
+    options: { id: string; type: 'program' | 'dataset' },
+  ): Promise<any> {
+    const conn = await this.externalConnService.findOne(connId);
+
+    if (conn.type !== IntegrationType.DHIS2) {
+      throw new Error('getOrgUnits is only supported for DHIS2 connectors');
+    }
+
+    return this.dhis2.getOrgUnits(
+      conn.configuration as Dhis2ConnectionConfig,
+      options,
+    );
   }
 }

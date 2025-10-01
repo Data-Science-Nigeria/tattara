@@ -1,5 +1,5 @@
 import { ConflictException, Injectable } from '@nestjs/common';
-import { Program } from 'src/database/entities';
+import { Program, User } from 'src/database/entities';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Workflow } from 'src/database/entities';
 import { Repository } from 'typeorm';
@@ -11,6 +11,8 @@ export class ProgramService {
     private programRepository: Repository<Program>,
     @InjectRepository(Workflow)
     private workflowRepository: Repository<Workflow>,
+    @InjectRepository(User)
+    private userRepository: Repository<User>,
   ) {}
 
   async create(programData: Partial<Program>): Promise<Program> {
@@ -40,7 +42,7 @@ export class ProgramService {
     limit: number = 10,
   ): Promise<{ programs: Program[]; total: number }> {
     const [programs, total] = await this.programRepository.findAndCount({
-      relations: ['workflows'],
+      relations: ['workflows', 'users'],
       skip: (page - 1) * limit,
       take: limit,
       order: { createdAt: 'DESC' },
@@ -110,5 +112,42 @@ export class ProgramService {
     program.workflows.push(...workflows);
 
     return this.programRepository.save(program);
+  }
+
+  async assignUsersToProgram(
+    userIds: string[],
+    programId: string,
+  ): Promise<Program> {
+    const program = await this.programRepository.findOne({
+      where: { id: programId },
+      relations: ['users'],
+    });
+
+    if (!program) {
+      throw new ConflictException('Program not found');
+    }
+
+    const users = await this.userRepository.find({
+      where: userIds.map(id => ({ id })),
+    });
+
+    if (users.length !== userIds.length) {
+      throw new ConflictException('One or more users not found');
+    }
+
+    program.users.push(...users);
+
+    return this.programRepository.save(program);
+  }
+
+  async getAllProgramsForUser(userId: string): Promise<Program[]> {
+    return this.programRepository.find({
+      relations: ['users', 'workflows'],
+      where: {
+        users: {
+          id: userId,
+        },
+      },
+    });
   }
 }

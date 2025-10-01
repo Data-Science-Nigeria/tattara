@@ -7,6 +7,10 @@ export abstract class ConnectorStrategy {
   ): Promise<boolean>;
   abstract fetchSchemas(
     connectionConfig: ExternalConnectionConfiguration,
+    options?: {
+      id?: string;
+      type?: 'program' | 'dataset';
+    },
   ): Promise<any>;
   abstract pushData<R>(
     config: ExternalConnectionConfiguration,

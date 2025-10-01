@@ -47,20 +47,39 @@ async function bootstrap() {
   const config = new DocumentBuilder()
     .setTitle('Tattara DSN AI Data Collection App API')
     .setDescription(
-      `
-      Backend API for the Tattara DSN AI Data Collection App.
-    Features:
-      - JWT Authentication with RBAC (Roles & Permissions)
-      - Program & Workflow management
-      - AI-assisted data collection (Voice, OCR) with user confirmation step
-      - Dual integration: DHIS2 and Generic Database
-      - Offline sync & comprehensive audit logging
-      `,
+      `### 📋 Overview  
+Backend API for the Tattara DSN AI Data Collection App.
+
+### 🚀 Features  
+- 🔐 JWT Authentication with RBAC (Roles & Permissions) 
+- 👥 User & Program Management
+- ⚙️ Workflow Configuration  
+- 🤖 AI-assisted Data Collection (🎤 Voice, 👁️ OCR) with ✅ User Confirmation
+- 📦 Dual Integration: 🏢 DHIS2 and 🗃️ Generic Database  
+- 📡 Offline Sync & 📊 Comprehensive Audit Logging
+
+### Response format
+All responses are wrapped in this format:
+
+\`\`\`json
+{
+  "success": true,
+  "timestamp": "2025-09-29T12:34:56.000Z",
+  "data": { ...actual response here... }
+}
+\`\`\`
+
+### 💡 Notes  
+- 🔄 All endpoints are versioned under \`/v1\`  
+- 🛡️ Use \`Authorization: Bearer <token>\` for secured routes`,
     )
     .setVersion('1.0')
+    .setExternalDoc('API Specification', '/api-json')
     .build();
   const documentFactory = () => SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api', app, documentFactory);
+  SwaggerModule.setup('api/docs', app, documentFactory, {
+    jsonDocumentUrl: '/api-json',
+  });
 
   await app.listen(port);
   console.log(`Application is running on: http://localhost:${port}/api/v1`);

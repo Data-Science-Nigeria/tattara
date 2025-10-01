@@ -12,7 +12,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { Role, Workflow, AiProcessingLog } from '.';
+import { Role, Workflow, AiProcessingLog, Program } from '.';
 import { ExternalConnection } from './external-connection.entity';
 
 @Entity('users')
@@ -58,6 +58,14 @@ export class User {
     inverseJoinColumn: { name: 'role_id', referencedColumnName: 'id' },
   })
   roles: Role[];
+
+  @ManyToMany(() => Program, program => program.users)
+  @JoinTable({
+    name: 'user_programs',
+    joinColumn: { name: 'user_id', referencedColumnName: 'id' },
+    inverseJoinColumn: { name: 'program_id', referencedColumnName: 'id' },
+  })
+  programs: Program[];
 
   @ManyToMany(() => Workflow, workflow => workflow.users, { eager: true })
   @JoinTable({

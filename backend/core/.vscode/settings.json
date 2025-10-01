@@ -5,6 +5,8 @@
     "genericdb",
     "implemnent",
     "LRUSIZE",
+    "organisation",
+    "orgunits",
     "ormconfig",
     "requirepass",
     "Superadmin",

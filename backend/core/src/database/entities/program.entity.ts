@@ -5,8 +5,10 @@ import {
   Entity,
   OneToMany,
   PrimaryGeneratedColumn,
+  ManyToMany,
 } from 'typeorm';
 import { Workflow } from './workflow.entity';
+import { User } from '.';
 
 @Entity('programs')
 export class Program {
@@ -21,6 +23,9 @@ export class Program {
 
   @OneToMany(() => Workflow, workflow => workflow.program)
   workflows: Workflow[];
+
+  @ManyToMany(() => User, user => user.programs)
+  users: User[];
 
   @CreateDateColumn()
   createdAt: Date;
