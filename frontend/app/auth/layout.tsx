@@ -1,9 +1,9 @@
-import React from 'react';
+import React, { PropsWithChildren, Suspense } from 'react';
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  return <div>{children}</div>;
+export default function Layout({ children }: PropsWithChildren) {
+  return (
+    <div>
+      <Suspense>{children}</Suspense>
+    </div>
+  );
 }

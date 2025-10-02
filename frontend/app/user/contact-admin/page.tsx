@@ -32,11 +32,13 @@ export default function ContactAdminPage() {
   };
 
   return (
-    <div className="flex min-h-screen flex-1 items-center justify-center">
-      <div className="mx-auto max-w-xl rounded-lg bg-white p-6 shadow-md">
-        <h1 className="mb-6 text-2xl font-semibold">Contact Admin</h1>
+    <div className="flex min-h-screen items-center justify-center px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto w-full max-w-xl rounded-lg bg-white p-4 shadow-md sm:p-6">
+        <h1 className="mb-4 text-xl font-semibold sm:mb-6 sm:text-2xl">
+          Contact Admin
+        </h1>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
           <div className="space-y-2">
             <Label htmlFor="name">Name</Label>
             <Input
@@ -46,7 +48,7 @@ export default function ContactAdminPage() {
               onChange={(e) =>
                 setFormData({ ...formData, name: e.target.value })
               }
-              className="h-12"
+              className="h-10 sm:h-12"
             />
           </div>
 
@@ -58,7 +60,7 @@ export default function ContactAdminPage() {
                 setFormData({ ...formData, issue: value })
               }
             >
-              <SelectTrigger className="h-12">
+              <SelectTrigger className="h-10 sm:h-12">
                 <SelectValue placeholder="Select Issue" />
               </SelectTrigger>
               <SelectContent>
@@ -80,7 +82,7 @@ export default function ContactAdminPage() {
               onChange={(e) =>
                 setFormData({ ...formData, comment: e.target.value })
               }
-              className="min-h-[120px] resize-none"
+              className="min-h-[100px] resize-none sm:min-h-[120px]"
             />
           </div>
 
@@ -95,18 +97,18 @@ export default function ContactAdminPage() {
             </Button>
           </div>
 
-          <div className="flex justify-end gap-3 pt-6">
+          <div className="flex flex-col justify-end gap-3 pt-4 sm:flex-row sm:pt-6">
             <Button
               type="button"
               variant="ghost"
               onClick={handleCancel}
-              className="text-muted-foreground hover:text-foreground h-11 px-8"
+              className="text-muted-foreground hover:text-foreground h-10 w-full px-6 sm:h-11 sm:w-auto sm:px-8"
             >
               Cancel
             </Button>
             <Button
               type="submit"
-              className="h-11 bg-green-600 px-8 text-white hover:bg-green-700"
+              className="h-10 w-full bg-green-600 px-6 text-white hover:bg-green-700 sm:h-11 sm:w-auto sm:px-8"
             >
               Send
             </Button>

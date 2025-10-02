@@ -6,25 +6,38 @@ import {
   PencilIcon,
   Search,
   Trash2,
+  ArrowLeft,
+  CheckSquare,
+  Users,
 } from 'lucide-react';
 import { useState } from 'react';
 import { Stat, StatsCard } from '../components/stat-card';
-import { UserTable } from '../components/table';
+import ProgramTable from '../../components/program-table';
+import EditProgramModal from '../components/edit-program-modal';
+import DeleteProgramModal from '../components/delete-program-modal';
+import { Tooltip, TooltipTrigger, TooltipContent } from '../../../../components/ui/tooltip';
 
 export default function Card() {
   const [searchTerm, setSearchTerm] = useState('');
   const [itemsPerPage, setItemsPerPage] = useState(1);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  
+  const programData = {
+    title: 'Child Surveillance',
+    description: 'Monitor and track child health and development indicators'
+  };
   const stats: Stat[] = [
     {
       title: 'Active Users',
       description: 'All active users under this program',
-      icon: '/profile-2user.svg',
+      icon: Users,
       value: 12,
     },
     {
       title: 'Completed Workflows',
       description: 'Workflows completed by assigned users',
-      icon: '/profile-2user.svg',
+      icon: CheckSquare,
       value: 8,
     },
   ];
@@ -34,20 +47,48 @@ export default function Card() {
         <div className="mb-8">
           <div className="mb-4 flex items-start justify-between">
             <div>
+              <button 
+                onClick={() => window.history.back()}
+                className="flex items-center gap-2 mb-4 text-gray-600 hover:text-gray-900"
+              >
+                <ArrowLeft size={20} />
+                Back
+              </button>
               <h1 className="font-poppins text-2xl font-bold">
                 Child Surveillance
               </h1>
               <p>Manage, Edit and Delete Program</p>
             </div>
             <div className="flex gap-3">
-              <button className="flex items-center gap-2 rounded-lg border border-[#DB363B] bg-[#FFF5F5] px-6 py-3 text-sm font-medium text-[#DB363B]">
-                <Trash2 />
-                Delete Program
-              </button>
-              <button className="font-poppins flex items-center gap-2 rounded-lg bg-[#008647] px-6 py-3 text-sm font-medium text-white">
-                <PencilIcon size={20} />
-                Edit Program
-              </button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button 
+                    onClick={() => setShowDeleteModal(true)}
+                    className="flex items-center gap-2 rounded-lg border border-[#DB363B] bg-[#FFF5F5] px-6 py-3 sm:px-3 text-sm font-medium text-[#DB363B] hover:bg-[#FFE8E8] transition-colors"
+                  >
+                    <Trash2 />
+                    <span className="hidden sm:inline">Delete Program</span>
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent className="sm:hidden">
+                  Delete Program
+                </TooltipContent>
+              </Tooltip>
+              
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button 
+                    onClick={() => setShowEditModal(true)}
+                    className="font-poppins flex items-center gap-2 rounded-lg bg-[#008647] px-6 py-3 sm:px-3 text-sm font-medium text-white hover:bg-[#007A3D] transition-colors"
+                  >
+                    <PencilIcon size={20} />
+                    <span className="hidden sm:inline">Edit Program</span>
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent className="sm:hidden">
+                  Edit Program
+                </TooltipContent>
+              </Tooltip>
             </div>
           </div>
         </div>
@@ -57,49 +98,24 @@ export default function Card() {
             <StatsCard key={index} stat={stat} />
           ))}
         </div>
-        <div className="mb-6 flex flex-col items-center justify-between gap-4 md:flex-row">
-          <div className="relative max-w-md flex-1 items-center justify-center">
-            <Search className="absolute top-1/2 left-4 h-5 w-5 -translate-y-1/2 transform text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search users..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full items-center rounded-lg border-2 border-[#BAC7DF] py-3 pr-4 pl-12 text-white placeholder-gray-400"
-            />
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 text-[#A4B1CA]">
-              <span>Showing:</span>
-              <div className="relative gap-2 rounded-md border border-[#BAC7DF] bg-white px-2 py-2 text-black">
-                <select
-                  value={itemsPerPage}
-                  onChange={(e) => setItemsPerPage(Number(e.target.value))}
-                >
-                  <option>10</option>
-                </select>
-                <ChevronDown className="absolute top-1/2 right-2 h-4 w-4 -translate-y-1/2 transform" />
-              </div>
-            </div>
-          </div>
-          <div className="flex flex-row gap-4">
-            <button className="flex items-center gap-2 rounded-md border border-[#BAC7DF] bg-[#DBDCEA] px-3 py-3 text-sm text-[#65738B]">
-              <Filter size={18} />
-              Filter
-            </button>
-            <button className="flex items-center gap-2 rounded-md border border-[#BAC7DF] bg-[#DBDCEA] px-3 py-3 text-sm text-[#65738B]">
-              <Download size={18} />
-              Export
-              <ChevronDown size={18} />
-            </button>
-          </div>
-        </div>
-        <UserTable
-          searchQuery={''}
-          currentPage={0}
-          resultsPerPage={0}
-          selectedDomain={''}
-          filteredUsers={[]}
+        <ProgramTable data={[
+          { name: 'John Doe', program: 'Child Surveillance', completedOn: '2024-01-15', status: 'Completed' },
+          { name: 'Jane Smith', program: 'Health Monitoring', completedOn: null, status: 'Pending' },
+          { name: 'Mike Johnson', program: 'Vaccination Program', completedOn: '2024-01-10', status: 'Completed' },
+          { name: 'Sarah Wilson', program: 'Nutrition Tracking', completedOn: null, status: 'Pending' },
+          { name: 'David Brown', program: 'Growth Monitoring', completedOn: '2024-01-20', status: 'Completed' }
+        ]} />
+        
+        <EditProgramModal 
+          isOpen={showEditModal}
+          onClose={() => setShowEditModal(false)}
+          programData={programData}
+        />
+        
+        <DeleteProgramModal 
+          isOpen={showDeleteModal}
+          onClose={() => setShowDeleteModal(false)}
+          programName="Child Surveillance"
         />
       </div>
     </div>
