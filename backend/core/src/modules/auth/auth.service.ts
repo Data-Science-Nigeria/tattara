@@ -22,6 +22,7 @@ import {
   VerifyEmailDto,
 } from './dto';
 import { ResendVerificationDto } from './dto/resend-verification.dto';
+import { Response } from 'express';
 
 @Injectable()
 export class AuthService {
@@ -33,6 +34,27 @@ export class AuthService {
     private configService: ConfigService,
     @InjectQueue('mail') private mailQueue: Queue,
   ) {}
+
+  setAuthCookie(res: Response, token: string) {
+    const isProduction = this.configService.get('NODE_ENV') === 'production';
+
+    res.cookie('accessToken', token, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: 'strict',
+      maxAge: 15 * 60 * 1000,
+    });
+  }
+
+  clearAuthCookie(res: Response) {
+    const isProduction = this.configService.get('NODE_ENV') === 'production';
+
+    res.clearCookie('accessToken', {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: 'strict',
+    });
+  }
 
   async register(registerDto: RegisterDto) {
     try {

@@ -5,6 +5,7 @@ import {
   HttpCode,
   HttpStatus,
   Post,
+  Res,
   UseGuards,
 } from '@nestjs/common';
 import { CurrentUser, Public } from 'src/common/decorators';
@@ -21,6 +22,7 @@ import {
 } from './dto';
 import { RegisterResponseDto } from './dto/register-response.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import type { Response } from 'express';
 
 @Controller('auth')
 export class AuthController {
@@ -44,8 +46,24 @@ export class AuthController {
   @Public()
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  async login(@Body() loginDto: LoginDto): Promise<AuthResponse> {
-    return this.authService.login(loginDto);
+  async login(
+    @Body() loginDto: LoginDto,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<AuthResponse> {
+    const loginResponse = await this.authService.login(loginDto);
+
+    this.authService.setAuthCookie(res, loginResponse.accessToken);
+
+    return loginResponse;
+  }
+
+  /**
+   * Logout the currently authenticated user
+   */
+  @Post('logout')
+  logout(@Res({ passthrough: true }) res: Response) {
+    this.authService.clearAuthCookie(res);
+    return { message: 'Logged out successfully' };
   }
 
   /**
