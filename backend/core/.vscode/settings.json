@@ -1,0 +1,35 @@
+{
+  "dbmlERDPreviewer.preferredTheme": "dark",
+  "cSpell.words": [
+    "DHIS",
+    "genericdb",
+    "implemnent",
+    "LRUSIZE",
+    "organisation",
+    "orgunits",
+    "ormconfig",
+    "requirepass",
+    "Superadmin",
+    "tattara",
+    "timestamptz",
+    "tobianointing",
+    "Upserted",
+    "varchar"
+  ],
+  "github.copilot.chat.commitMessageGeneration.instructions": [
+    { "text": "Use conventional commit format: type(scope): description." },
+    {
+      "text": "Type must be one of feat, fix, docs, style, refactor, perf, test, chore, ci, build, revert."
+    },
+    { "text": "Ensure type and scope are lower-case." },
+    {
+      "text": "Subject must not be empty, not end with a period, and must be under 72 characters."
+    },
+    {
+      "text": "Use imperative mood: e.g., 'Add feature', not 'Added feature'."
+    },
+    { "text": "Keep header ≤72 chars; body lines ≤100 chars." },
+    { "text": "Separate header from body with a blank line." },
+    { "text": "If necessary, include a footer formatted with blank lines." }
+  ]
+}

@@ -1,24 +1,67 @@
 # Node / Frontend
 node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
 .next/
+out/
 dist/
 build/
 *.log
 
 # Python / Backend
 __pycache__/
-*.pyc
+*.py[cod]
+*.so
+*.egg
+*.egg-info/
+.eggs/
+.Python
 .venv/
+env/
+venv/
+ENV/
+pip-wheel-metadata/
+pip-log.txt
+*.manifest
+*.spec
+.mypy_cache/
+.dmypy.json
+.pytest_cache/
+.coverage
+.tox/
+.pyre/
+.pytype/
+celerybeat-schedule
+instance/
+.scrapy/
+*.db
+*.sqlite3
 
-# Env
+# Environment / Secrets
 .env
 .env.*
+*.pem
 
-# OS/IDE
+# OS
 .DS_Store
+Thumbs.db
+
+# IDE / Editors
 .vscode/
 .idea/
+*.swp
+*.swo
 
-# build files
+# Next.js / Build outputs
+.next/
+out/
+
+# NestJS specific
+dist/
+coverage/
+
+# Build artifacts
 tattara_ai_backend.egg-info/
 backend/ai/*.egg-info/
