@@ -17,17 +17,19 @@ export const SidebarItem = ({
   onClick,
 }: SidebarItemProps) => {
   const pathname = usePathname();
-  
+
   const isActive = () => {
     if (href === '/admin/overview') {
       return pathname === href || pathname.startsWith('/admin/overview/');
     }
     if (href === '/admin/create-workflow') {
-      return pathname === href || pathname.startsWith('/admin/create-workflow/');
+      return (
+        pathname === href || pathname.startsWith('/admin/create-workflow/')
+      );
     }
     return pathname === href;
   };
-  
+
   return (
     <div className="items-center justify-center border-b px-2 py-2">
       <Link

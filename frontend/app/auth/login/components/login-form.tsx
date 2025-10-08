@@ -47,8 +47,36 @@ export function LoginForm() {
         body: data,
       });
 
-      const userData = res as any;
-      
+      interface LoginResponse {
+        data?: {
+          user?: {
+            id: string;
+            email: string;
+            firstName?: string;
+            lastName?: string;
+            isEmailVerified: boolean;
+            createdAt: string;
+            roles?: Array<string | { name: string }>;
+            permissions?: string[];
+          };
+          accessToken: string;
+        };
+        user?: {
+          id: string;
+          email: string;
+          firstName?: string;
+          lastName?: string;
+          isEmailVerified: boolean;
+          createdAt: string;
+          roles?: Array<string | { name: string }>;
+          permissions?: string[];
+        };
+        accessToken?: string;
+      }
+
+      const response = res as LoginResponse;
+      const userData = response?.data || response;
+
       // Check if email is verified
       if (userData?.user?.isEmailVerified === false) {
         setAuth({
@@ -63,7 +91,7 @@ export function LoginForm() {
       }
 
       // Set auth data
-      setAuth({
+      const authData = {
         email: userData?.user?.email || data.email,
         id: userData?.user?.id,
         isEmailVerified: userData?.user?.isEmailVerified,
@@ -71,14 +99,30 @@ export function LoginForm() {
         token: userData?.accessToken,
         firstName: userData?.user?.firstName,
         lastName: userData?.user?.lastName,
-        roles: userData?.user?.roles,
+        roles: userData?.user?.roles?.map((role) =>
+          typeof role === 'string' ? role : role.name
+        ),
         permissions: userData?.user?.permissions,
+      };
+
+      setAuth(authData);
+
+      // Immediately configure client with token
+      const { client } = await import('@/client/client.gen');
+      client.setConfig({
+        baseUrl: process.env.NEXT_PUBLIC_API_URL,
+        credentials: 'include',
+        headers: {
+          Authorization: `Bearer ${userData?.accessToken}`,
+        },
       });
 
       // Role-based routing
       const userRoles = userData?.user?.roles || [];
-      const hasAdminRole = userRoles.some((role: any) => 
-        role.name === 'admin' || role === 'admin'
+      const hasAdminRole = userRoles.some(
+        (role: string | { name: string }) =>
+          (typeof role === 'object' && role.name === 'admin') ||
+          role === 'admin'
       );
 
       if (hasAdminRole) {
@@ -121,7 +165,10 @@ export function LoginForm() {
         </p>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 sm:px-6 lg:px-8">
+      <form
+        onSubmit={handleSubmit(onSubmit)}
+        className="space-y-4 sm:px-6 lg:px-8"
+      >
         <div>
           <label className="block text-sm font-medium text-gray-600">
             Email Address
@@ -131,7 +178,7 @@ export function LoginForm() {
               type="email"
               {...register('email')}
               placeholder="Enter your Email Address"
-              className="mt-1 w-full rounded border p-2 pr-10 bg-[#F2F3FF] placeholder:text-sm placeholder:text-[#525F76] focus:border-[#03390F] focus:ring-[#03390F] focus:outline-none"
+              className="mt-1 w-full rounded border bg-[#F2F3FF] p-2 pr-10 placeholder:text-sm placeholder:text-[#525F76] focus:border-[#03390F] focus:ring-[#03390F] focus:outline-none"
             />
             <img
               src={'/sms.svg'}
@@ -167,11 +214,7 @@ export function LoginForm() {
           className="mt-2 mb-2 w-full rounded-md bg-[#008647] py-4 text-center"
           disabled={isSubmitting}
         >
-          {isSubmitting ? (
-            <LoaderCircle className="animate-spin" />
-          ) : (
-            'Log In'
-          )}
+          {isSubmitting ? <LoaderCircle className="animate-spin" /> : 'Log In'}
         </Button>
       </form>
     </>

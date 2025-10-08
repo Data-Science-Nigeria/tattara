@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import { Search, X } from 'lucide-react';
 
 interface SearchInputProps {
@@ -9,7 +8,11 @@ interface SearchInputProps {
   onChange: (value: string) => void;
 }
 
-export default function SearchInput({ placeholder, value, onChange }: SearchInputProps) {
+export default function SearchInput({
+  placeholder,
+  value,
+  onChange,
+}: SearchInputProps) {
   const clearSearch = () => {
     onChange('');
   };

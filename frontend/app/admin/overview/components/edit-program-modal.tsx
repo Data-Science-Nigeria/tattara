@@ -1,7 +1,10 @@
 'use client';
 
 import { CircleX } from 'lucide-react';
-import React from 'react';
+import React, { useState } from 'react';
+import { useMutation } from '@tanstack/react-query';
+import { programControllerUpdateMutation } from '@/client/@tanstack/react-query.gen';
+import { toast } from 'sonner';
 
 interface EditProgramModalProps {
   isOpen: boolean;
@@ -10,65 +13,107 @@ interface EditProgramModalProps {
     title: string;
     description: string;
   };
+  programId?: string;
 }
 
-const EditProgramModal: React.FC<EditProgramModalProps> = ({ 
-  isOpen, 
-  onClose, 
-  programData = { title: '', description: '' } 
+const EditProgramModal: React.FC<EditProgramModalProps> = ({
+  isOpen,
+  onClose,
+  programData = { title: '', description: '' },
+  programId,
 }) => {
+  const [title, setTitle] = useState(programData.title);
+  const [description, setDescription] = useState(programData.description);
+
+  const updateProgram = useMutation({
+    ...programControllerUpdateMutation(),
+  });
+
+  const handleSubmit = async () => {
+    if (!programId) {
+      toast.error('Program ID is missing');
+      return;
+    }
+
+    try {
+      await updateProgram.mutateAsync({
+        path: { id: programId },
+        body: { name: title, description },
+      });
+
+      toast.success('Program updated successfully');
+      onClose();
+    } catch {
+      toast.error('Failed to update program');
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(12,16,20,0.88)] p-4 backdrop-blur-sm">
-      <div className="w-full max-w-md sm:max-w-lg md:max-w-xl lg:max-w-2xl rounded-3xl bg-white p-4 sm:p-6 md:p-8 lg:p-10">
-        <div className="mb-4 sm:mb-6 flex justify-between items-start">
+      <div className="w-full max-w-md rounded-3xl bg-white p-4 sm:max-w-lg sm:p-6 md:max-w-xl md:p-8 lg:max-w-2xl lg:p-10">
+        <div className="mb-4 flex items-start justify-between sm:mb-6">
           <div>
-            <h1 className="text-lg sm:text-xl lg:text-2xl font-semibold text-[#2F3A4C]">
+            <h1 className="text-lg font-semibold text-[#2F3A4C] sm:text-xl lg:text-2xl">
               Edit Program
             </h1>
-            <p className="text-xs sm:text-sm text-[#7987A0]">
+            <p className="text-xs text-[#7987A0] sm:text-sm">
               Update program details
             </p>
           </div>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700 flex-shrink-0">
+          <button
+            onClick={onClose}
+            className="flex-shrink-0 text-gray-500 hover:text-gray-700"
+          >
             <CircleX className="h-5 w-5 sm:h-6 sm:w-6" />
           </button>
         </div>
-        <form className="mb-4 sm:mb-6 space-y-3 sm:space-y-4">
+        <form
+          onSubmit={handleSubmit}
+          className="mb-4 space-y-3 sm:mb-6 sm:space-y-4"
+        >
           <div>
-            <label className="mb-1 sm:mb-2 block text-xs sm:text-sm font-medium text-gray-600">
+            <label className="mb-1 block text-xs font-medium text-gray-600 sm:mb-2 sm:text-sm">
               Title
             </label>
             <input
               type="text"
               placeholder="Enter your Title"
-              defaultValue={programData.title}
-              className="w-full rounded-xl border border-[#BAC7DF] bg-[#FAFAFA] px-3 py-2 sm:py-3 text-sm focus:border-green-500 focus:outline-none"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="w-full rounded-xl border border-[#BAC7DF] bg-[#FAFAFA] px-3 py-2 text-sm focus:border-green-500 focus:outline-none sm:py-3"
+              required
             />
           </div>
           <div>
-            <label className="mb-1 sm:mb-2 block text-xs sm:text-sm font-medium text-gray-600">
+            <label className="mb-1 block text-xs font-medium text-gray-600 sm:mb-2 sm:text-sm">
               Description
             </label>
             <textarea
               placeholder="Description"
               rows={3}
-              defaultValue={programData.description}
-              className="w-full rounded-xl border border-[#BAC7DF] bg-[#FAFAFA] px-3 py-2 sm:py-3 text-sm focus:border-green-500 focus:outline-none resize-none"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              className="w-full resize-none rounded-xl border border-[#BAC7DF] bg-[#FAFAFA] px-3 py-2 text-sm focus:border-green-500 focus:outline-none sm:py-3"
             />
           </div>
         </form>
         <div className="flex justify-end">
           <div className="flex gap-2 sm:gap-4">
-            <button 
+            <button
               onClick={onClose}
-              className="px-3 sm:px-4 py-2 sm:py-3 text-sm text-[#999AAA] hover:text-gray-700"
+              className="px-3 py-2 text-sm text-[#999AAA] hover:text-gray-700 sm:px-4 sm:py-3"
             >
               Cancel
             </button>
-            <button className="rounded-xl bg-green-800 px-4 sm:px-6 py-2 sm:py-3 text-sm text-white hover:bg-green-900 transition-colors">
-              Update
+            <button
+              type="button"
+              onClick={handleSubmit}
+              disabled={updateProgram.isPending}
+              className="rounded-xl bg-green-800 px-4 py-2 text-sm text-white transition-colors hover:bg-green-900 disabled:opacity-50 sm:px-6 sm:py-3"
+            >
+              {updateProgram.isPending ? 'Updating...' : 'Update'}
             </button>
           </div>
         </div>

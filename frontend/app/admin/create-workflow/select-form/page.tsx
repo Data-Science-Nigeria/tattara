@@ -1,7 +1,15 @@
 'use client';
 
 import React, { useState } from 'react';
-import { FileText, Target, Image, Mic, Edit, FormInput, ArrowLeft } from 'lucide-react';
+import {
+  FileText,
+  Target,
+  Image,
+  Mic,
+  Edit,
+  FormInput,
+  ArrowLeft,
+} from 'lucide-react';
 
 export default function SelectForm() {
   const [selectedForm, setSelectedForm] = useState('');
@@ -10,15 +18,19 @@ export default function SelectForm() {
     <div className="space-y-8 p-8">
       {/* Header */}
       <div>
-        <button 
-          onClick={() => window.location.href = '/admin/create-workflow'}
-          className="flex items-center gap-2 mb-4 text-gray-600 hover:text-gray-900"
+        <button
+          onClick={() => (window.location.href = '/admin/create-workflow')}
+          className="mb-4 flex items-center gap-2 text-gray-600 hover:text-gray-900"
         >
           <ArrowLeft size={20} />
           Back
         </button>
-        <h1 className="text-3xl font-semibold text-gray-900 mb-2">Select Form</h1>
-        <p className="text-gray-600">Choose a form type to create workflow assignments</p>
+        <h1 className="mb-2 text-3xl font-semibold text-gray-900">
+          Select Form
+        </h1>
+        <p className="text-gray-600">
+          Choose a form type to create workflow assignments
+        </p>
       </div>
 
       {/* Form Selection Cards */}
@@ -37,20 +49,26 @@ export default function SelectForm() {
           <label
             htmlFor="child-registration"
             className={`flex cursor-pointer rounded-2xl border-2 p-6 transition-all hover:border-green-600 hover:shadow-lg ${
-              selectedForm === 'child-registration' 
-                ? 'border-green-600 bg-green-50' 
+              selectedForm === 'child-registration'
+                ? 'border-green-600 bg-green-50'
                 : 'border-gray-200 bg-white'
             }`}
           >
             <div className="flex w-full items-start gap-4">
-              <div className={`mt-1 flex h-6 w-6 items-center justify-center rounded-full border-2 ${
-                selectedForm === 'child-registration'
-                  ? 'border-green-600 bg-green-600'
-                  : 'border-gray-300 bg-white'
-              }`}>
-                <div className={`h-2 w-2 rounded-full bg-white ${
-                  selectedForm === 'child-registration' ? 'opacity-100' : 'opacity-0'
-                }`}></div>
+              <div
+                className={`mt-1 flex h-6 w-6 items-center justify-center rounded-full border-2 ${
+                  selectedForm === 'child-registration'
+                    ? 'border-green-600 bg-green-600'
+                    : 'border-gray-300 bg-white'
+                }`}
+              >
+                <div
+                  className={`h-2 w-2 rounded-full bg-white ${
+                    selectedForm === 'child-registration'
+                      ? 'opacity-100'
+                      : 'opacity-0'
+                  }`}
+                ></div>
               </div>
               <div className="flex-1">
                 <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-green-100">
@@ -60,7 +78,8 @@ export default function SelectForm() {
                   Child Registration
                 </h3>
                 <p className="leading-relaxed text-gray-600">
-                  Capture essential details to create and manage a child's health record.
+                  Capture essential details to create and manage a child&apos;s
+                  health record.
                 </p>
               </div>
             </div>
@@ -81,20 +100,26 @@ export default function SelectForm() {
           <label
             htmlFor="malaria-surveillance"
             className={`flex cursor-pointer rounded-2xl border-2 p-6 transition-all hover:border-green-600 hover:shadow-lg ${
-              selectedForm === 'malaria-surveillance' 
-                ? 'border-green-600 bg-green-50' 
+              selectedForm === 'malaria-surveillance'
+                ? 'border-green-600 bg-green-50'
                 : 'border-gray-200 bg-white'
             }`}
           >
             <div className="flex w-full items-start gap-4">
-              <div className={`mt-1 flex h-6 w-6 items-center justify-center rounded-full border-2 ${
-                selectedForm === 'malaria-surveillance'
-                  ? 'border-green-600 bg-green-600'
-                  : 'border-gray-300 bg-white'
-              }`}>
-                <div className={`h-2 w-2 rounded-full bg-white ${
-                  selectedForm === 'malaria-surveillance' ? 'opacity-100' : 'opacity-0'
-                }`}></div>
+              <div
+                className={`mt-1 flex h-6 w-6 items-center justify-center rounded-full border-2 ${
+                  selectedForm === 'malaria-surveillance'
+                    ? 'border-green-600 bg-green-600'
+                    : 'border-gray-300 bg-white'
+                }`}
+              >
+                <div
+                  className={`h-2 w-2 rounded-full bg-white ${
+                    selectedForm === 'malaria-surveillance'
+                      ? 'opacity-100'
+                      : 'opacity-0'
+                  }`}
+                ></div>
               </div>
               <div className="flex-1">
                 <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-green-100">
@@ -104,7 +129,8 @@ export default function SelectForm() {
                   Malaria Surveillance
                 </h3>
                 <p className="leading-relaxed text-gray-600">
-                  Record and track malaria cases to strengthen early detection and response.
+                  Record and track malaria cases to strengthen early detection
+                  and response.
                 </p>
               </div>
             </div>
@@ -115,8 +141,10 @@ export default function SelectForm() {
       {/* Input Type Selection */}
       {selectedForm && (
         <div>
-          <h2 className="text-2xl font-semibold text-gray-900 mb-6">Select Input Type</h2>
-          
+          <h2 className="mb-6 text-2xl font-semibold text-gray-900">
+            Select Input Type
+          </h2>
+
           <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
             {/* Form Card */}
             <div className="cursor-pointer rounded-xl border-2 border-gray-200 bg-white p-6 text-center transition-all hover:border-green-600 hover:shadow-md">

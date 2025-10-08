@@ -18,16 +18,26 @@ export const StatsCard: React.FC<{ stat: Stat }> = ({ stat }) => {
           </h3>
           <p className="text-sm text-gray-600">{stat.description}</p>
         </div>
-        <div className={`rounded-xl p-3 ${
-          stat.title === 'Completed Workflows' ? 'bg-[#DCF5E9]' : 
-          stat.title === 'Active Users' ? 'bg-[#DCF5E9]' : ''
-        }`}>
+        <div
+          className={`rounded-xl p-3 ${
+            stat.title === 'Completed Workflows'
+              ? 'bg-[#DCF5E9]'
+              : stat.title === 'Active Users'
+                ? 'bg-[#DCF5E9]'
+                : ''
+          }`}
+        >
           {typeof IconComponent === 'string' ? (
-            <img src={IconComponent} />
+            <img src={IconComponent} alt={stat.title} />
           ) : (
-            <IconComponent className={`h-6 w-6 ${
-              stat.title === 'Completed Workflows' || stat.title === 'Active Users' ? 'text-[#008647]' : 'text-gray-600'
-            }`} />
+            <IconComponent
+              className={`h-6 w-6 ${
+                stat.title === 'Completed Workflows' ||
+                stat.title === 'Active Users'
+                  ? 'text-[#008647]'
+                  : 'text-gray-600'
+              }`}
+            />
           )}
         </div>
       </div>

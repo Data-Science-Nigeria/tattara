@@ -3,7 +3,11 @@
 import React, { useLayoutEffect, useState } from 'react';
 import { useAuthStore } from '@/app/store/use-auth-store';
 
-export const ProtectRoute = ({ children }: { children: React.ReactNode }) => {
+export const ProtectUserRoute = ({
+  children,
+}: {
+  children: React.ReactNode;
+}) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const { auth, clearAuth } = useAuthStore();
 
@@ -23,7 +27,7 @@ export const ProtectRoute = ({ children }: { children: React.ReactNode }) => {
           return; // Don't clear auth, just wait
         }
 
-        // Check if user has admin role
+        // Check if user has admin role - redirect admins to admin dashboard
         const hasAdminRole = auth.roles.some(
           (role: string | { name: string }) =>
             role === 'admin' ||
@@ -31,9 +35,9 @@ export const ProtectRoute = ({ children }: { children: React.ReactNode }) => {
         );
 
         if (hasAdminRole) {
-          setIsAuthenticated(true);
+          window.location.href = '/admin/overview';
         } else {
-          window.location.href = '/user/overview';
+          setIsAuthenticated(true);
         }
       };
 

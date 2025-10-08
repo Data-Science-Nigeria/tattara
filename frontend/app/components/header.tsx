@@ -10,16 +10,12 @@ const Header = () => {
         <Logo className="h-10" />
       </div>
       <div className="flex items-center space-x-4">
-        <div className="hidden md:flex items-center space-x-4">
+        <div className="hidden items-center space-x-4 md:flex">
           <Link href="/auth/signup">
-            <div className="text-[#494A58] hover:text-green-700">
-              Admin
-            </div>
+            <div className="text-[#494A58] hover:text-green-700">Admin</div>
           </Link>
           <Link href="/auth/login">
-            <Button className="bg-[#008647] text-white px-6">
-              Login
-            </Button>
+            <Button className="bg-[#008647] px-6 text-white">Login</Button>
           </Link>
         </div>
         <MobileNav />

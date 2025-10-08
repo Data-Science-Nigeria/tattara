@@ -1,63 +1,24 @@
 'use client';
 
-import { FileText, Image, Mic, Pen, TriangleAlert } from 'lucide-react';
+import { TriangleAlert } from 'lucide-react';
 import WorkflowCard from './components/workFlowCard';
-import { useRouter } from 'next/navigation';
+
 import { useState } from 'react';
 import UpdatePasswordModal from './components/update-password-modal';
-export default function Workflows() {
-  const router = useRouter();
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const hasExistingEntry = false;
-  const workflows = [
-    {
-      icon: <FileText className="h-6 w-6" />,
-      title: 'Child Registration',
-      description:
-        'Capture essential details to create and manage a child’s health record.',
-      actionLabel: 'Fill Form',
-      onClick: () =>
-        hasExistingEntry
-          ? router.push('./data-entry?entryId=123')
-          : router.push('./data-entry?mode=form'),
-    },
-    {
-      icon: <Image className="h-6 w-6" />,
-      title: 'Child Registration',
-      description:
-        'Capture essential details to create and manage a child’s health record.',
-      actionLabel: 'Upload Picture',
-      onClick: () =>
-        hasExistingEntry
-          ? router.push('./data-entry?entryId=123')
-          : router.push('./data-entry?mode=upload'),
-    },
-    {
-      icon: <Mic className="h-6 w-6" />,
-      title: 'Child Registration',
-      description:
-        'Capture essential details to create and manage a child’s health record.',
-      actionLabel: 'Upload Audio',
-      onClick: () =>
-        hasExistingEntry
-          ? router.push('./data-entry?entryId=123')
-          : router.push('./data-entry?mode=audio'),
-    },
-    {
-      icon: <Pen className="h-6 w-6" />,
-      title: 'Child Registration',
-      description:
-        'Capture essential details to create and manage a child’s health record.',
-      actionLabel: 'Write Text',
-      onClick: () =>
-        hasExistingEntry
-          ? router.push('./data-entry?entryId=123')
-          : router.push('./data-entry?mode=text'),
-    },
-  ];
 
-  const handleSavePassword = (password: string, confirmPassword: string) => {
-    console.log('Password:', password, 'Confirm:', confirmPassword);
+interface Workflow {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  actionLabel: string;
+  onClick: () => void;
+}
+
+export default function Workflows() {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const workflows: Workflow[] = [];
+
+  const handleSavePassword = () => {
     setIsModalOpen(false);
   };
 

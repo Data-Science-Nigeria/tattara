@@ -32,31 +32,17 @@ export const useAuthStore = create<AuthState>()(
       (set) => ({
         auth: initialAuth,
 
-        setAuth: (auth, ttlInMs = 1000 * 60 * 60) => {
-          // Default TTL = 1 hour
-          const expiry = Date.now() + ttlInMs;
-          localStorage.setItem('auth_expiry', expiry.toString());
+        setAuth: (auth) => {
           set({ auth });
         },
 
         clearAuth: () => {
-          localStorage.removeItem('auth_expiry');
           set({ auth: initialAuth });
         },
       }),
       {
         name: 'auth-storage',
         partialize: (state) => ({ auth: state.auth }),
-
-        onRehydrateStorage: () => (state) => {
-          const expiry = localStorage.getItem('auth_expiry');
-          const now = Date.now();
-
-          if (expiry && now > Number(expiry)) {
-            // Token has expired
-            state?.clearAuth();
-          }
-        },
       }
     ),
     {

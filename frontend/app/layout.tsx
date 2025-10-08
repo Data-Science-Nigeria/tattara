@@ -22,12 +22,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${poppins.variable}antialiased`}>
-          
+      <body className={`${poppins.variable} antialiased`}>
         <QueryProvider>{children}</QueryProvider>
         <GlobalAlertDialog />
-        
-        </body>
+      </body>
     </html>
   );
 }

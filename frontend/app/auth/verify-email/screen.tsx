@@ -53,7 +53,7 @@ export function Screen() {
     };
 
     verify();
-  }, [token]);
+  }, [token, verifyEmailMutation]);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#F5F5FF] px-6 py-12">

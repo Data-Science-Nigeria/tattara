@@ -17,7 +17,7 @@ export const SidebarItem = ({
   onClick,
 }: SidebarItemProps) => {
   const pathname = usePathname();
-  
+
   const isActive = () => {
     if (href === '/user/overview') {
       return pathname === href || pathname.startsWith('/user/overview/');
@@ -27,7 +27,7 @@ export const SidebarItem = ({
     }
     return pathname === href;
   };
-  
+
   return (
     <div className="items-center justify-center border-b px-2 py-2">
       <Link

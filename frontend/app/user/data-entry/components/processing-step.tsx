@@ -106,7 +106,7 @@ export function ProcessingStep({
       clearInterval(timer);
       clearTimeout(processingTimer);
     };
-  }, [onProcessingComplete, processingAttempt, audio]);
+  }, [onProcessingComplete, processingAttempt, audio, formData]);
 
   const handleContinueToForm = () => {
     setTextToFormProcessing(true);

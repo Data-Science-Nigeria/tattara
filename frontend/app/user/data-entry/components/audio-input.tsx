@@ -106,6 +106,7 @@ export default function AudioRecordStep({
                   ) : (
                     <img
                       src={'/record.svg'}
+                      alt="Start recording"
                       className="h-16 w-16 sm:h-20 sm:w-20"
                     />
                   )}
@@ -118,6 +119,7 @@ export default function AudioRecordStep({
                       <button onClick={stopRecording}>
                         <img
                           src={'/stop-circle.svg'}
+                          alt="Stop recording"
                           className="h-6 w-6 sm:h-8 sm:w-8"
                         />
                       </button>
@@ -126,6 +128,7 @@ export default function AudioRecordStep({
                     <div className="flex items-center justify-center gap-2 text-base text-[#008647] sm:text-lg">
                       <img
                         src={'/microphone-2.svg'}
+                        alt="microphone"
                         className="h-5 w-5 sm:h-6 sm:w-6"
                       />
                       <span>Start Recording...</span>
@@ -153,7 +156,8 @@ export default function AudioRecordStep({
         <Button
           className="w-full bg-green-600 text-white hover:bg-green-700 sm:w-auto"
           onClick={() => {
-            const blob = (window as any).recordedAudioBlob;
+            const blob = (window as Window & { recordedAudioBlob?: Blob })
+              .recordedAudioBlob;
             if (blob && onAudioRecord) {
               onAudioRecord(blob);
             }

@@ -44,9 +44,11 @@ export function ForgotPasswordForm() {
       });
       toast.success('Reset link sent to your email.');
       router.push('/auth/reset-email-sent');
-    } catch (error: any) {
+    } catch (error: unknown) {
       setIsSubmitting(false);
-      if (error?.error_code === 'invalid_credentials') {
+      if (
+        (error as { error_code?: string })?.error_code === 'invalid_credentials'
+      ) {
         setError('email', {
           type: 'manual',
           message: 'Email not found',
@@ -105,9 +107,7 @@ export function ForgotPasswordForm() {
         </Button>
 
         <div className="flex flex-col items-center justify-center gap-1 text-center sm:flex-row sm:gap-2">
-          <span className="text-xs text-[#5C5D6C]">
-            Just remembered?
-          </span>
+          <span className="text-xs text-[#5C5D6C]">Just remembered?</span>
           <Link href="/auth/login" className="text-xs text-[#008647]">
             Login
           </Link>

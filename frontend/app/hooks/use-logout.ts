@@ -1,3 +1,4 @@
+/*
 import { useRouter } from 'next/navigation';
 import { logoutApiV1AuthLogoutPostMutation } from '@/client/@tanstack/react-query.gen';
 import { useMutation } from '@tanstack/react-query';
@@ -21,7 +22,6 @@ export const useLogout = () => {
       clearAuth();
       router.push('/auth/signin');
     } catch (error) {
-      console.log(error);
       toast.error(getApiErrorMessage(error));
     }
   };
@@ -40,3 +40,4 @@ export const useLogout = () => {
     handleLogout: confirmLogout,
   };
 };
+*/

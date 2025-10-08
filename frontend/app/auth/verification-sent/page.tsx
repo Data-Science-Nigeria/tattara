@@ -7,7 +7,7 @@ import Footer from '../../components/footer';
 import { useAuthStore } from '@/app/store/use-auth-store';
 import { useResendEmailCooldown } from '../verify-email/hooks/use-resend-email-cooldown';
 
-const page = () => {
+const Page = () => {
   const { auth } = useAuthStore();
   const {
     handleResendEmail,
@@ -24,8 +24,18 @@ const page = () => {
           <CardContent className="p-8">
             <div className="mb-4 text-center">
               <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
-                <svg className="h-8 w-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                <svg
+                  className="h-8 w-8 text-green-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                  />
                 </svg>
               </div>
               <h1 className="mb-2 text-2xl font-bold text-[#373844]">
@@ -33,9 +43,13 @@ const page = () => {
               </h1>
               <p className="text-sm text-[#5C5D6C]">
                 A verification email has been sent to your email address{' '}
-                <span className="font-semibold text-[#008647]">{auth?.email}</span>.
+                <span className="font-semibold text-[#008647]">
+                  {auth?.email}
+                </span>
+                .
                 <br />
-                Please check your inbox and follow the instructions to verify your email.
+                Please check your inbox and follow the instructions to verify
+                your email.
               </p>
             </div>
 
@@ -60,4 +74,4 @@ const page = () => {
   );
 };
 
-export default page;
+export default Page;

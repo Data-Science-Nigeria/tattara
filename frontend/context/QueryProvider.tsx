@@ -3,6 +3,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { client } from '@/client/client.gen';
+import { AuthConfigProvider } from './AuthConfigProvider';
 
 export const QueryProvider = ({ children }: { children: React.ReactNode }) => {
   const queryClient = new QueryClient({
@@ -15,6 +16,7 @@ export const QueryProvider = ({ children }: { children: React.ReactNode }) => {
     },
   });
 
+  // Initial client configuration
   client.setConfig({
     baseUrl: process.env.NEXT_PUBLIC_API_URL,
     credentials: 'include',
@@ -22,7 +24,7 @@ export const QueryProvider = ({ children }: { children: React.ReactNode }) => {
 
   return (
     <QueryClientProvider client={queryClient}>
-      {children}
+      <AuthConfigProvider>{children}</AuthConfigProvider>
       <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>
   );

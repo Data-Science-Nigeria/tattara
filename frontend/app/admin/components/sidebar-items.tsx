@@ -8,10 +8,10 @@ export const sidebarItems = [
     alt: 'Overview icon',
   },
   {
-    name: 'Profile',
-    href: '/admin/profile',
+    name: 'User Profiles',
+    href: '/admin/user-profile',
     icon: User,
-    alt: 'Profile icon',
+    alt: 'User Profiles icon',
   },
   {
     name: 'Create Workflow',

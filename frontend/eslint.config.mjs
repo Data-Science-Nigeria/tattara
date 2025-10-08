@@ -23,6 +23,7 @@ const eslintConfig = [
       'coverage/**',
       '.husky/**',
       'public/**',
+      'client/**',
       '*.config.js',
       '*.config.ts',
       '*.config.mjs',
@@ -38,7 +39,9 @@ const eslintConfig = [
       'no-unused-vars': 'off',
       '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/no-unused-vars': 'warn',
+      '@typescript-eslint/ban-ts-comment': 'warn',
       'react/react-in-jsx-scope': 'off',
+      '@typescript-eslint/ban-ts-comment': 'warn',
     },
   },
 ];

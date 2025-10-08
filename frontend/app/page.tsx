@@ -67,7 +67,7 @@ const page = () => {
           </h2>
         </div>
         <div className="mx-auto max-w-7xl px-4">
-          <div className="grid gap-8 grid-cols-1 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
             {features.map((feature, index) => (
               <Card key={index} className="border-0 bg-[#F8FAFC] shadow-sm">
                 <CardHeader>
