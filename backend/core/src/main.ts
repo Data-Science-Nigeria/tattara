@@ -9,6 +9,7 @@ import {
   TypeOrmExceptionFilter,
   GlobalExceptionFilter,
 } from './common/exceptions';
+import cookieParser from 'cookie-parser';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -27,6 +28,8 @@ async function bootstrap() {
     new GlobalExceptionFilter(),
     new TypeOrmExceptionFilter(),
   );
+
+  app.use(cookieParser());
 
   app.enableCors({
     origin: process.env.FRONTEND_URL || 'http://localhost:3000',

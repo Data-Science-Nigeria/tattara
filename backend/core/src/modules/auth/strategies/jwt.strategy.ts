@@ -3,6 +3,7 @@ import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
 import { UserService } from 'src/modules/user/user.service';
+import type { Request } from 'express';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -11,13 +12,16 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     private userService: UserService,
   ) {
     super({
-      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      jwtFromRequest: ExtractJwt.fromExtractors([
+        ExtractJwt.fromAuthHeaderAsBearerToken(),
+        (req: Request) => req?.cookies?.access_token as string,
+      ]),
       ignoreExpiration: false,
       secretOrKey: configService.get<string>('jwt.secret') || '',
     });
   }
 
-  //TODO: implemnent caching approach to better optimize getting user data
+  //TODO: implement caching approach to better optimize getting user data
   async validate(payload: { sub: string }) {
     const user = await this.userService.findById(payload.sub);
     if (!user) {
