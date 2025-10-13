@@ -22,6 +22,7 @@ export interface SchemaDatasetResponse {
 
 export interface EventPayload {
   program: string;
+  programStage: string;
   orgUnit: string;
   eventDate: string;
   status: string;

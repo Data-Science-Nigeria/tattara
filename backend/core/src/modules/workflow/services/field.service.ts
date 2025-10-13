@@ -55,13 +55,6 @@ export class FieldService {
       }
 
       const existingFieldIds = workflow.workflowFields.map(field => field.id);
-      const incomingFieldIds = fieldsData
-        .map(field => field.id)
-        .filter((id): id is string => Boolean(id));
-
-      const fieldsToDeleteIds = existingFieldIds.filter(
-        id => !incomingFieldIds.includes(id),
-      );
 
       const fieldsToUpdate: Partial<WorkflowField>[] = [];
       const fieldsToCreate: Omit<Partial<WorkflowField>, 'id'>[] = [];
@@ -74,6 +67,7 @@ export class FieldService {
         }
       });
 
+      // Update existing fields
       if (fieldsToUpdate.length > 0) {
         for (const fieldUpdate of fieldsToUpdate) {
           const { id, ...updateFields } = fieldUpdate;
@@ -85,7 +79,7 @@ export class FieldService {
         }
       }
 
-      let savedNewFields: WorkflowField[] = [];
+      // Create new fields
       if (fieldsToCreate.length > 0) {
         const newFields = fieldsToCreate.map(fieldData =>
           manager.create(WorkflowField, {
@@ -93,15 +87,13 @@ export class FieldService {
             ...fieldData,
           }),
         );
-        savedNewFields = await manager.save(newFields);
+        await manager.save(newFields);
       }
 
-      if (fieldsToDeleteIds.length > 0) {
-        await manager.delete(WorkflowField, fieldsToDeleteIds);
-        this.logger.log(`Deleted ${fieldsToDeleteIds.length} workflow fields`);
-      }
-
-      return savedNewFields;
+      return manager.find(WorkflowField, {
+        where: { workflow: { id: workflowId } },
+        order: { createdAt: 'ASC' },
+      });
     });
   }
 

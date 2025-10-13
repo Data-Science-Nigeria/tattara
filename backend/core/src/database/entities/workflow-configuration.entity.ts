@@ -32,7 +32,7 @@ export class WorkflowConfiguration {
 
   @OneToOne(
     () => ExternalConnection,
-    externalConn => externalConn.workflowConfiguration,
+    externalConn => externalConn.workflowConfigurations,
     { eager: true },
   )
   @JoinColumn({ name: 'external_connection_id' })

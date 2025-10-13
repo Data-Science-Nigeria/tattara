@@ -63,11 +63,12 @@ export class ConfigurationService {
           },
         );
 
-        const existingConfigIds = existingConfigurations.map(
-          config => config.id,
+        const existingConfigMap = new Map(
+          existingConfigurations.map(config => [config.id, config]),
         );
+
         const nonExistentIds = existingIds.filter(
-          id => !existingConfigIds.includes(id),
+          id => !existingConfigMap.has(id),
         );
 
         if (nonExistentIds.length > 0) {
@@ -76,19 +77,28 @@ export class ConfigurationService {
           );
         }
 
-        for (const configUpdate of configurationsToUpdate) {
-          const { id, externalConnectionId, ...updateFields } = configUpdate;
-          await manager.update(WorkflowConfiguration, id, {
-            ...updateFields,
-            ...(externalConnectionId
-              ? {
-                  externalConnection: {
-                    id: externalConnectionId,
-                  },
-                }
-              : {}),
-          });
-        }
+        const configurationsToSave = configurationsToUpdate.map(
+          configUpdate => {
+            const { id, externalConnectionId, configuration, ...updateFields } =
+              configUpdate;
+            const existingConfig = existingConfigMap.get(id!)!;
+
+            return manager.create(WorkflowConfiguration, {
+              ...existingConfig,
+              ...updateFields,
+              id: id!,
+              externalConnection: externalConnectionId
+                ? { id: externalConnectionId }
+                : existingConfig.externalConnection,
+              configuration: {
+                ...existingConfig.configuration,
+                ...configuration,
+              },
+            });
+          },
+        );
+
+        await manager.save(WorkflowConfiguration, configurationsToSave);
       }
 
       if (configurationsToCreate.length > 0) {

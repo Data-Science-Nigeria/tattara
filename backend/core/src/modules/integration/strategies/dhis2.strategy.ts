@@ -78,12 +78,17 @@ export class Dhis2Strategy extends ConnectorStrategy {
 
     try {
       if (type === 'program') {
-        url = `programs/${id}.json?fields=id,name,programStages[id,programStageDataElements[dataElement[id,name]]]`;
+        const fields =
+          'id,name,programStages[id,programStageDataElements[dataElement[id,name]]]';
+        const encodedFields = encodeURIComponent(fields);
+        url = `programs/${id}.json?fields=${encodedFields}`;
       } else {
-        url = `dataSets/${id}.json?fields=id,name,dataSetElements[dataElement[id,name]]`;
+        const fields = 'id,name,dataSetElements[dataElement[id,name]]';
+        const encodedFields = encodeURIComponent(fields);
+        url = `dataSets/${id}.json?fields=${encodedFields}`;
       }
 
-      url = `${config.baseUrl}/api/${url}}`;
+      url = `${config.baseUrl}/api/${url}`;
 
       const response = await firstValueFrom(
         this.httpService.get<SchemaProgramResponse[] | SchemaDatasetResponse[]>(
@@ -97,12 +102,19 @@ export class Dhis2Strategy extends ConnectorStrategy {
       );
       return response.data;
     } catch (error: unknown) {
-      if (error instanceof Error) {
-        this.logger.error('Failed to fetch schemas: ' + error.message);
-        throw new Error('Failed to fetch schemas: ' + error.message);
+      if (isAxiosError<{ error: string }>(error)) {
+        console.log('error: ', error?.response?.data);
+        if (error.response?.status === 401) {
+          this.logger.error('Connection failed: Unauthorized');
+          throw new UnauthorizedException(error.response.data.error);
+        }
       }
-      this.logger.error('Failed to fetch schemas: ' + String(error));
-      throw new Error('Failed to fetch schemas: ' + String(error));
+      if (error instanceof Error) {
+        this.logger.error('Connection failed: ' + error.message);
+        throw new Error('Connection failed: ' + error.message);
+      }
+      this.logger.error('Connection failed: ' + String(error));
+      throw new Error('Connection failed: ' + String(error));
     }
   }
 
@@ -111,25 +123,45 @@ export class Dhis2Strategy extends ConnectorStrategy {
     payload: EventPayload | DatasetPayload,
   ): Promise<Dhis2ImportSummary> {
     try {
-      const url = `${config.baseUrl}/api/dataValueSets`;
+      let url: string;
+
+      if ('program' in payload) {
+        url = `${config.baseUrl}/api/events`;
+      } else if ('dataSet' in payload) {
+        url = `${config.baseUrl}/api/dataValueSets`;
+      } else {
+        throw new Error(
+          'Unknown DHIS2 payload type: expected program or dataSet',
+        );
+      }
 
       const response = await firstValueFrom(
         this.httpService.post<Dhis2ImportSummary>(url, payload, {
-          headers: { Authorization: `ApiToken ${config.pat}` },
+          headers: {
+            Authorization: `ApiToken ${config.pat}`,
+            'Content-Type': 'application/json',
+          },
         }),
       );
+
       return response.data;
     } catch (error: unknown) {
-      if (error instanceof Error) {
-        this.logger.error('Failed to push data: ' + error.message);
-        throw new InternalServerErrorException(
-          'Failed to push data: ' + error.message,
+      if (isAxiosError<Dhis2ErrorResponse>(error)) {
+        const status = error.response?.status ?? 500;
+        const dhis2Error = error.response?.data;
+
+        this.logger.error(
+          `Failed to push data to DHIS2: ${JSON.stringify(dhis2Error)}`,
+        );
+
+        throw new HttpException(
+          dhis2Error || 'Unknown error from DHIS2 API',
+          status,
         );
       }
-      this.logger.error('Failed to push data: ' + String(error));
-      throw new InternalServerErrorException(
-        'Failed to push data: ' + String(error),
-      );
+
+      this.logger.error('Unexpected error: ' + String(error));
+      throw new InternalServerErrorException('Unexpected error occurred');
     }
   }
 
@@ -211,7 +243,7 @@ export class Dhis2Strategy extends ConnectorStrategy {
         url = `dataSets/${id}.json?fields=organisationUnits[id,displayName]]`;
       }
 
-      url = `${config.baseUrl}/api/${url}}`;
+      url = `${config.baseUrl}/api/${url}`;
 
       const response = await firstValueFrom(
         this.httpService.get<OrgUnit[]>(url, {
@@ -220,14 +252,22 @@ export class Dhis2Strategy extends ConnectorStrategy {
       );
       return response.data;
     } catch (error: unknown) {
-      if (error instanceof Error) {
+      if (isAxiosError<Dhis2ErrorResponse>(error)) {
+        const status = error.response?.status ?? 500;
+        const dhis2Error = error.response?.data;
+
         this.logger.error(
-          'Failed to fetch organization units: ' + error.message,
+          `Failed to fetch programs from DHIS2: ${JSON.stringify(dhis2Error)}`,
         );
-        throw new Error('Failed to fetch organization units: ' + error.message);
+
+        throw new HttpException(
+          dhis2Error || 'Unknown error from DHIS2 API',
+          status,
+        );
       }
-      this.logger.error('Failed to fetch organization units: ' + String(error));
-      throw new Error('Failed to fetch organization units: ' + String(error));
+
+      this.logger.error('Unexpected error: ' + String(error));
+      throw new InternalServerErrorException('Unexpected error occurred');
     }
   }
 }

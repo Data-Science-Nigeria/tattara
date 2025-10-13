@@ -11,6 +11,13 @@
           "introspectComments": true
         }
       }
+    ],
+    "assets": [
+      {
+        "include": "shared/mail/templates/**/*",
+        "outDir": "dist/shared/mail",
+        "watchAssets": true
+      }
     ]
   }
 }

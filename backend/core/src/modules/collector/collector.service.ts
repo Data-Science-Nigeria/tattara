@@ -29,6 +29,7 @@ import { IntegrationService } from '../integration/services';
 import { WorkflowService } from '../workflow/services/workflow.service';
 import { SubmitDto } from './dto/submit.dto';
 import { ProcessAiPayload, ProcessAiResponse } from './interfaces';
+import { format } from 'date-fns';
 
 @Injectable()
 export class CollectorService {
@@ -205,38 +206,38 @@ export class CollectorService {
         for (const config of workflow.workflowConfigurations) {
           let payload: unknown;
 
-          // if (config.type === IntegrationType.DHIS2) {
-          //   if (
-          //     workflow.workflowFields.length !==
-          //     extractedIntegrationData[IntegrationType.DHIS2]?.length
-          //   ) {
-          //     throw new BadRequestException(
-          //       `Field mappings for ${IntegrationType.DHIS2} missing`,
-          //     );
-          //   }
-          //   if ('program' in config.configuration) {
-          //     payload = {
-          //       ...config.configuration,
-          //       eventDate: format(new Date(), 'yyyy-MM-dd'),
-          //       status: 'COMPLETED',
-          //       dataValues: extractedIntegrationData[IntegrationType.DHIS2],
-          //     };
-          //   } else if ('dataset' in config.configuration) {
-          //     payload = {
-          //       ...config.configuration,
-          //       completeDate: format(new Date(), 'yyyy-MM-dd'),
-          //       period: format(new Date(), 'yyyyMM'),
-          //       dataValues: extractedIntegrationData[IntegrationType.DHIS2],
-          //     };
-          //   }
+          if (config.type === IntegrationType.DHIS2) {
+            if (
+              workflow.workflowFields.length !==
+              extractedIntegrationData[IntegrationType.DHIS2]?.length
+            ) {
+              throw new BadRequestException(
+                `Field mappings for ${IntegrationType.DHIS2} missing`,
+              );
+            }
+            if (
+              'program' in config.configuration &&
+              !('schema' in config.configuration)
+            ) {
+              payload = {
+                ...config.configuration,
+                program: config.configuration.program,
+                programStage: config.configuration.programStage,
+                eventDate: format(new Date(), 'yyyy-MM-dd'),
+                status: 'ACTIVE',
+                dataValues: extractedIntegrationData[IntegrationType.DHIS2],
+              };
+            } else if ('dataset' in config.configuration) {
+              payload = {
+                ...config.configuration,
+                completeDate: format(new Date(), 'yyyy-MM-dd'),
+                period: format(new Date(), 'yyyyMM'),
+                dataValues: extractedIntegrationData[IntegrationType.DHIS2],
+              };
+            }
 
-          //   const resDhis = await this.integrationService.pushData(
-          //     config,
-          //     payload,
-          //   );
-
-          //   console.log(resDhis);
-          // }
+            await this.integrationService.pushData(config, payload);
+          }
 
           if (config.type === IntegrationType.POSTGRES) {
             if (
@@ -255,8 +256,6 @@ export class CollectorService {
               };
             }
 
-            console.log('payload', payload);
-
             await this.integrationService.pushData(config, payload);
           }
         }
@@ -267,6 +266,8 @@ export class CollectorService {
           workflow,
           submittedAt: new Date(),
           data: submitData.data,
+          metadata: submitData.metadata,
+          localId: submitData.localId,
         });
 
         await manager.save(submission);

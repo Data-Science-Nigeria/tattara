@@ -1,16 +1,16 @@
 import { IntegrationType } from 'src/common/enums';
+import type { ExternalConnectionConfiguration } from 'src/common/interfaces';
 import {
-  Entity,
-  PrimaryGeneratedColumn,
   Column,
   CreateDateColumn,
-  UpdateDateColumn,
-  ManyToOne,
+  Entity,
   JoinColumn,
+  ManyToOne,
   OneToOne,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
 } from 'typeorm';
 import { User, WorkflowConfiguration } from '.';
-import type { ExternalConnectionConfiguration } from 'src/common/interfaces';
 
 @Entity('external_connections')
 export class ExternalConnection {
@@ -43,7 +43,7 @@ export class ExternalConnection {
   updatedAt: Date;
 
   @OneToOne(() => WorkflowConfiguration, wConfig => wConfig.externalConnection)
-  workflowConfiguration: WorkflowConfiguration;
+  workflowConfigurations: WorkflowConfiguration;
 
   @ManyToOne(() => User, user => user.externalConnections, {
     onDelete: 'SET NULL',
