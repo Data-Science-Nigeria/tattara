@@ -15,9 +15,10 @@ class OpenAIProvider:
         self.model = model
         self.client = OpenAIClient(api_key=api_key) if (api_key and OpenAIClient) else None
 
-    def complete(self, prompt: str, images: Optional[List[str]] = None, ocr_blocks: Optional[List[dict]] = None, locale: Optional[str] = None) -> tuple[str, Dict[str, Any]]:
+    def complete(self, prompt: str, images: Optional[List[str]] = None, ocr_blocks: Optional[List[dict]] = None, locale: Optional[str] = None, model: Optional[str] = None) -> tuple[str, Dict[str, Any]]:
+        model_used = model or self.model
         if not self.client:
-            return '{"_dev_note": "OpenAI client missing; echoing"}', {"prompt_tokens": 0, "completion_tokens": 0}
+            return '{"_dev_note": "OpenAI client missing; echoing"}', {"prompt_tokens": 0, "completion_tokens": 0, "model": model_used}
 
         content = [{"type": "text", "text": prompt}]
         if images:
@@ -27,7 +28,7 @@ class OpenAIProvider:
             content.append({"type": "text", "text": f"OCR blocks: {ocr_blocks[:10]}"})
 
         resp = self.client.chat.completions.create(
-            model=self.model,
+            model=(model or self.model),
             messages=[
                 {"role": "system", "content": "Respond ONLY with valid JSON. No markdown."},
                 {"role": "user", "content": content},
@@ -35,9 +36,17 @@ class OpenAIProvider:
             temperature=1,
         )
         text = resp.choices[0].message.content or "{}"
+        # Try to read model from the provider response if available (some SDKs include it)
+        model_from_resp = None
+        try:
+            model_from_resp = getattr(resp, "model", None)
+        except Exception:
+            model_from_resp = None
+        model_final = model_from_resp or model_used
         usage = {
             "prompt_tokens": getattr(resp, "usage", None).prompt_tokens if getattr(resp, "usage", None) else None,
             "completion_tokens": getattr(resp, "usage", None).completion_tokens if getattr(resp, "usage", None) else None,
+            "model": model_final,
         }
         return text, usage
 
