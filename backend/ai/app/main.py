@@ -1,9 +1,9 @@
-from fastapi import FastAPI, UploadFile, File, Form, HTTPException
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Query
 import json, re, unicodedata
 from typing import Optional, List, Dict, Any
 import tempfile
 from .config import settings
-from .models import TextRequest, ExtractionResponse, ExtractionMetrics
+from .models import TextRequest, ExtractionResponse, ExtractionMetrics, ModelPreference
 from .services.whisper_service import WhisperService
 from .services.vision_service import VisionService
 from .services.extraction_router import ExtractionRouter
@@ -68,7 +68,7 @@ default_openai_provider = OpenAIProvider(api_key=settings.OPENAI_API_KEY, model=
 
 
 @app.post("/process/text", response_model=ExtractionResponse, response_model_exclude_none=True, tags=["AI"])
-async def process_text(req: TextRequest):
+async def process_text(req: TextRequest, model_preference: Optional[ModelPreference] = Query(None)):
     """
     Extract Structured Fields from Raw Text
 
@@ -80,7 +80,7 @@ async def process_text(req: TextRequest):
     - form_id: Identifier of your form/template.
     - form_schema: JSON object with "fields" (id, type, required).
     - text: The raw text to analyze.
-    - provider_preference: Optional provider hint (e.g., "openai").
+    - model_preference: Optional model hint (e.g., "gpt-4o").
 
     Demo Form:
 
@@ -125,7 +125,14 @@ async def process_text(req: TextRequest):
     - 502 for provider errors
     """
     need_vision = False
-    provider_name = router.pick(req.provider_preference, need_vision)
+    # Prefer an explicit query-selection over the body value when provided
+    preferred = model_preference or req.model_preference
+    _pick = router.pick(preferred, need_vision)
+    if isinstance(_pick, tuple):
+        provider_name, model_override = _pick
+    else:
+        provider_name = _pick
+        model_override = None
 
     # Coerce/validate form_schema to the demo_form1 shape
     try:
@@ -141,7 +148,23 @@ async def process_text(req: TextRequest):
             images=None,
             ocr_blocks=None,
             locale=None,
+            model_override=model_override,
         )
+    except TypeError as e:
+        # Running process may have an older in-memory ExtractionRouter.extract that
+        # doesn't accept model_override (dev reloader inconsistencies). Retry without
+        # the kwarg to preserve service availability during reloads.
+        if "model_override" in str(e):
+            data, confidence, llm_ms, tokens_in, tokens_out, cost, model = router.extract(
+                provider_name=provider_name,
+                form_schema=schema,
+                text_blob=req.text,
+                images=None,
+                ocr_blocks=None,
+                locale=None,
+            )
+        else:
+            raise HTTPException(status_code=502, detail=f"Extraction error: {e}")
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"Extraction error: {e}")
 
@@ -188,7 +211,7 @@ async def process_audio(
     form_id: str = Form(...),
     form_schema: str = Form(...),  # JSON string
     language: Optional[str] = Form(None),
-    provider_preference: Optional[str] = Form(None),
+    model_preference: Optional[ModelPreference] = Form(None),
     audio_file: UploadFile = File(...),
 ):
     """
@@ -253,16 +276,37 @@ async def process_audio(
 
     transcript, asr_ms = whisper_service.transcribe(tmp_path, language=language)
 
-    provider_name = router.pick(provider_preference, need_vision=False)
+    _pick = router.pick(model_preference, need_vision=False)
+    if isinstance(_pick, tuple):
+        provider_name, model_override = _pick
+    else:
+        provider_name = _pick
+        model_override = None
 
-    data, confidence, llm_ms, tokens_in, tokens_out, cost, model = router.extract(
-        provider_name=provider_name,
-        form_schema=schema,
-        text_blob=transcript,
-        images=None,
-        ocr_blocks=None,
-        locale=None,
-    )
+    try:
+        data, confidence, llm_ms, tokens_in, tokens_out, cost, model = router.extract(
+            provider_name=provider_name,
+            form_schema=schema,
+            text_blob=transcript,
+            images=None,
+            ocr_blocks=None,
+            locale=None,
+            model_override=model_override,
+        )
+    except TypeError as e:
+        if "model_override" in str(e):
+            data, confidence, llm_ms, tokens_in, tokens_out, cost, model = router.extract(
+                provider_name=provider_name,
+                form_schema=schema,
+                text_blob=transcript,
+                images=None,
+                ocr_blocks=None,
+                locale=None,
+            )
+        else:
+            raise HTTPException(status_code=502, detail=f"Extraction error: {e}")
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Extraction error: {e}")
 
     # Heuristic fallback/merge
     heur = heuristic_extract_from_text(transcript or "", schema)
@@ -304,7 +348,7 @@ async def process_image(
     form_id: str = Form(...),
     form_schema: str = Form(...),
     use_vision: bool = Form(True),
-    model_preference: Optional[str] = Form(None),
+    model_preference: Optional[ModelPreference] = Form(None),
     images: List[UploadFile] = File(...),
 ):
     """OCR + Extraction (schema-agnostic heuristics + LLM merge).
@@ -344,15 +388,36 @@ async def process_image(
     header = build_extraction_header(schema)
     combined_text = f"{header}\n\n---\nSOURCE TEXT:\n{raw_ocr_text}"
 
-    provider_name = router.pick(model_preference, need_vision=use_vision)
-    data, confidence, llm_ms, tokens_in, tokens_out, cost, model = router.extract(
-        provider_name=provider_name,
-        form_schema=schema,
-        text_blob=combined_text,
-        images=None,
-        ocr_blocks=all_blocks,
-        locale=None,
-    )
+    _pick = router.pick(model_preference, need_vision=use_vision)
+    if isinstance(_pick, tuple):
+        provider_name, model_override = _pick
+    else:
+        provider_name = _pick
+        model_override = None
+    try:
+        data, confidence, llm_ms, tokens_in, tokens_out, cost, model = router.extract(
+            provider_name=provider_name,
+            form_schema=schema,
+            text_blob=combined_text,
+            images=None,
+            ocr_blocks=all_blocks,
+            locale=None,
+            model_override=model_override,
+        )
+    except TypeError as e:
+        if "model_override" in str(e):
+            data, confidence, llm_ms, tokens_in, tokens_out, cost, model = router.extract(
+                provider_name=provider_name,
+                form_schema=schema,
+                text_blob=combined_text,
+                images=None,
+                ocr_blocks=all_blocks,
+                locale=None,
+            )
+        else:
+            raise HTTPException(status_code=502, detail=f"Extraction error: {e}")
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Extraction error: {e}")
 
     # Normalise possible wrapper
     if isinstance(data, dict) and isinstance(data.get("extracted"), dict):
@@ -579,7 +644,7 @@ def heuristic_extract_from_text(text: str, form_schema: dict) -> dict:
 
     # Pass 2: fallbacks from free text
     if "patientName" in fields and not fields["patientName"]:
-        m = re.search(r"\b(Patient\s+Name|Name)\s*:\s*([A-Za-z][A-ZaZ.'-]+\s+[A-ZaZ][A-ZaZ.'-]+)", text, re.IGNORECASE)
+        m = re.search(r"\b(Patient\s+Name|Name)\s*:\s*([A-Za-z][A-Za-z.'-]+\s+[A-Za-z][A-Za-z.'-]+)", text, re.IGNORECASE)
         if m:
             fields["patientName"] = m.group(2).strip()
 
