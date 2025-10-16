@@ -3,6 +3,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   Logger,
   NotFoundException,
@@ -11,7 +12,14 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { WorkflowStatus } from 'src/common/enums';
 import { PaginationResult } from 'src/common/interfaces';
 import { Program, User, Workflow } from 'src/database/entities';
-import { DataSource, ILike, In, QueryFailedError, Repository } from 'typeorm';
+import {
+  DataSource,
+  FindOptionsWhere,
+  ILike,
+  In,
+  QueryFailedError,
+  Repository,
+} from 'typeorm';
 import { CreateWorkflowDto, UpdateWorkflowBasicDto } from '../dto';
 import { FormSchema } from 'src/modules/ai/interfaces';
 
@@ -25,13 +33,17 @@ export class WorkflowService {
     private dataSource: DataSource,
   ) {}
 
-  async createWorkflow(workflowData: CreateWorkflowDto): Promise<Workflow> {
+  async createWorkflow(
+    workflowData: CreateWorkflowDto,
+    currentUser: User,
+  ): Promise<Workflow> {
     return this.dataSource.transaction(async manager => {
       try {
         const { programId, ...data } = workflowData;
 
         const workflow = manager.create(Workflow, {
           ...data,
+          createdBy: currentUser,
         });
 
         if (programId) {
@@ -70,23 +82,49 @@ export class WorkflowService {
     });
   }
 
-  async findWorkflowsWithPagination(
+  async getWorkflows(
+    currentUser: User,
+    userId?: string | string[],
     page: number = 1,
     limit: number = 10,
   ): Promise<PaginationResult<Workflow>> {
+    const where: FindOptionsWhere<Workflow> | FindOptionsWhere<Workflow>[] = {
+      status: WorkflowStatus.ACTIVE,
+    };
+
+    if (currentUser.hasRole('admin')) {
+      if (userId) {
+        const targetUserIds = Array.isArray(userId) ? userId : [userId];
+        where.users = { id: In(targetUserIds) };
+        where.createdBy = { id: currentUser.id };
+      } else {
+        where.createdBy = { id: currentUser.id };
+      }
+    } else {
+      if (userId) {
+        const requestedIds = Array.isArray(userId) ? userId : [userId];
+        if (requestedIds.some(id => id !== currentUser.id)) {
+          throw new ForbiddenException(
+            'You can only access your own workflows',
+          );
+        }
+      }
+      where.users = { id: In([currentUser.id]) };
+    }
+
     const [workflows, total] = await this.workflowRepository.findAndCount({
+      where,
       relations: ['workflowFields', 'fieldMappings', 'workflowConfigurations'],
       skip: (page - 1) * limit,
       take: limit,
       order: { createdAt: 'DESC' },
-      where: { status: WorkflowStatus.ACTIVE },
     });
 
     return {
       data: workflows,
-      total,
       page,
       limit,
+      total,
       totalPages: Math.ceil(total / limit),
     };
   }

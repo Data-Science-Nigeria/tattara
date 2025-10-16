@@ -8,16 +8,17 @@ import {
   ManyToOne,
   OneToOne,
   PrimaryGeneratedColumn,
+  Unique,
   UpdateDateColumn,
 } from 'typeorm';
 import { User, WorkflowConfiguration } from '.';
 
 @Entity('external_connections')
+@Unique(['createdBy', 'name'])
 export class ExternalConnection {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ unique: true })
   @Column({ type: 'varchar', length: 255 })
   name: string;
 

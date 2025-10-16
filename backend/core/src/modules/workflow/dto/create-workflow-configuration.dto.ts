@@ -5,6 +5,7 @@ import {
   IsNotEmptyObject,
   IsObject,
   IsOptional,
+  IsString,
 } from 'class-validator';
 import { IntegrationType } from 'src/common/enums';
 
@@ -16,6 +17,10 @@ export class CreateWorkflowConfigurationDto {
   @IsObject()
   @IsNotEmptyObject({}, { message: 'Configuration cannot be an empty object' })
   configuration: Record<string, any>;
+
+  @IsString()
+  @IsNotEmpty()
+  externalConnectionId: string;
 
   @IsBoolean()
   @IsOptional()

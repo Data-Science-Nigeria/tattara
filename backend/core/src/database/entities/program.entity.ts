@@ -6,6 +6,7 @@ import {
   OneToMany,
   PrimaryGeneratedColumn,
   ManyToMany,
+  ManyToOne,
 } from 'typeorm';
 import { Workflow } from './workflow.entity';
 import { User } from '.';
@@ -26,6 +27,12 @@ export class Program {
 
   @ManyToMany(() => User, user => user.programs)
   users: User[];
+
+  @ManyToOne(() => User, {
+    onDelete: 'CASCADE',
+    cascade: true,
+  })
+  createdBy: User;
 
   @CreateDateColumn()
   createdAt: Date;

@@ -9,22 +9,29 @@ import {
   Put,
   Query,
 } from '@nestjs/common';
-import { Roles } from 'src/common/decorators';
+import { CurrentUser, Roles } from 'src/common/decorators';
 import { CreateWorkflowDto, UpdateWorkflowBasicDto } from '../dto';
 import { AssignUsersDto } from '../dto/assign-users.dto';
 import { WorkflowService } from '../services/workflow.service';
+import { User } from 'src/database/entities';
+import { ApiQuery } from '@nestjs/swagger';
 
 @Controller('workflows')
 export class WorkflowController {
   constructor(private readonly workflowService: WorkflowService) {}
 
   @Get()
-  @Roles('admin')
-  async findAllWorkflows(
+  @Roles('admin', 'user')
+  @ApiQuery({ name: 'userId', required: false, type: String })
+  @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
+  @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
+  async getWorkflows(
+    @CurrentUser() currentUser: User,
+    @Query('userId') userId?: string,
     @Query('page', ParseIntPipe) page: number = 1,
     @Query('limit', ParseIntPipe) limit: number = 10,
   ) {
-    return this.workflowService.findWorkflowsWithPagination(page, limit);
+    return this.workflowService.getWorkflows(currentUser, userId, page, limit);
   }
 
   @Get('/search')
@@ -70,8 +77,9 @@ export class WorkflowController {
   async createWorkflow(
     @Body()
     createWorkflowDto: CreateWorkflowDto,
+    @CurrentUser() currentUser: User,
   ) {
-    return this.workflowService.createWorkflow(createWorkflowDto);
+    return this.workflowService.createWorkflow(createWorkflowDto, currentUser);
   }
 
   @Post('/:workflowId/users')

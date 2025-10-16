@@ -118,6 +118,7 @@ export class Dhis2Strategy extends ConnectorStrategy {
     }
   }
 
+  // TODO: Handle case for multiple orgUnits
   async pushData(
     config: Dhis2ConnectionConfig,
     payload: EventPayload | DatasetPayload,
@@ -175,6 +176,8 @@ export class Dhis2Strategy extends ConnectorStrategy {
           headers: { Authorization: `ApiToken ${config.pat}` },
         }),
       );
+
+      console.log('res', response);
 
       return response.data;
     } catch (error: unknown) {

@@ -74,6 +74,12 @@ export class Workflow {
   @ManyToMany(() => User, user => user.workflows)
   users: User[];
 
+  @ManyToOne(() => User, {
+    onDelete: 'CASCADE',
+    cascade: true,
+  })
+  createdBy: User;
+
   @Column({ default: 1 })
   version: number;
 

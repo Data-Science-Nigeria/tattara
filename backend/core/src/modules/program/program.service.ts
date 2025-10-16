@@ -1,8 +1,7 @@
 import { ConflictException, Injectable } from '@nestjs/common';
-import { Program, User } from 'src/database/entities';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Workflow } from 'src/database/entities';
-import { Repository } from 'typeorm';
+import { Program, User, Workflow } from 'src/database/entities';
+import { FindOptionsWhere, In, Repository } from 'typeorm';
 
 @Injectable()
 export class ProgramService {
@@ -15,7 +14,10 @@ export class ProgramService {
     private userRepository: Repository<User>,
   ) {}
 
-  async create(programData: Partial<Program>): Promise<Program> {
+  async create(
+    programData: Partial<Program>,
+    currentUser: User,
+  ): Promise<Program> {
     const existingProgram = await this.programRepository.findOne({
       where: { name: programData.name },
     });
@@ -26,6 +28,7 @@ export class ProgramService {
 
     const program = this.programRepository.create({
       ...programData,
+      createdBy: currentUser,
     });
 
     return this.programRepository.save(program);
@@ -37,11 +40,28 @@ export class ProgramService {
     });
   }
 
-  async findAllWithPagination(
+  async getPrograms(
     page: number = 1,
     limit: number = 10,
+    currentUser: User,
+    userId?: string | string[],
   ): Promise<{ programs: Program[]; total: number }> {
+    const where: FindOptionsWhere<Program> | FindOptionsWhere<Program>[] = {};
+
+    if (currentUser.hasRole('admin')) {
+      if (userId) {
+        const targetUserIds = Array.isArray(userId) ? userId : [userId];
+        where.users = { id: In(targetUserIds) };
+        where.createdBy = { id: currentUser.id };
+      } else {
+        where.createdBy = { id: currentUser.id };
+      }
+    } else {
+      where.users = { id: In([currentUser.id]) };
+    }
+
     const [programs, total] = await this.programRepository.findAndCount({
+      where,
       relations: ['workflows', 'users'],
       skip: (page - 1) * limit,
       take: limit,

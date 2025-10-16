@@ -10,9 +10,11 @@ import {
   ParseUUIDPipe,
 } from '@nestjs/common';
 import { ProgramService } from './program.service';
-import { RequirePermissions, Roles } from 'src/common/decorators';
+import { CurrentUser, RequirePermissions, Roles } from 'src/common/decorators';
 import { AssignUsersToProgramDto, CreateProgramDto } from './dto';
 import { UpdateProgramDto } from './dto';
+import { User } from 'src/database/entities';
+import { ApiQuery } from '@nestjs/swagger';
 
 @Controller('programs')
 export class ProgramController {
@@ -23,13 +25,20 @@ export class ProgramController {
   @Get()
   @Roles('admin')
   @RequirePermissions('program:read')
-  async findAll(
+  @ApiQuery({ name: 'userId', required: false, type: String })
+  @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
+  @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
+  async getPrograms(
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10,
+    @CurrentUser() currentUser: User,
+    @Query('userId') userId?: string,
   ) {
-    const { programs, total } = await this.programService.findAllWithPagination(
+    const { programs, total } = await this.programService.getPrograms(
       page,
       limit,
+      currentUser,
+      userId,
     );
 
     return {
@@ -68,8 +77,11 @@ export class ProgramController {
   @Post()
   @Roles('admin')
   @RequirePermissions('program:create')
-  create(@Body() createProgramDto: CreateProgramDto) {
-    return this.programService.create(createProgramDto);
+  create(
+    @Body() createProgramDto: CreateProgramDto,
+    @CurrentUser() currentUser: User,
+  ) {
+    return this.programService.create(createProgramDto, currentUser);
   }
 
   /** Get a specific program by ID
