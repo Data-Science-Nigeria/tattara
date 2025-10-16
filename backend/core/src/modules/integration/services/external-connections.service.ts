@@ -44,7 +44,13 @@ export class ExternalConnectionService {
   }
 
   async findOne(id: string): Promise<ExternalConnection> {
-    return this.connectionRepo.findOneOrFail({ where: { id } });
+    const connection = await this.connectionRepo.findOne({ where: { id } });
+    if (!connection) {
+      throw new NotFoundException(
+        `External connection with ID ${id} not found`,
+      );
+    }
+    return connection;
   }
 
   async findOneByUser(id: string, user: User): Promise<ExternalConnection> {

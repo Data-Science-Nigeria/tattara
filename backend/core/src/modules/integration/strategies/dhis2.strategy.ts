@@ -1,14 +1,19 @@
+import type { Dhis2ConnectionConfig } from '@/common/interfaces';
 import { HttpService } from '@nestjs/axios';
 import {
+  BadRequestException,
+  ForbiddenException,
   HttpException,
   Injectable,
   InternalServerErrorException,
   Logger,
+  NotFoundException,
+  RequestTimeoutException,
+  ServiceUnavailableException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { isAxiosError } from 'axios';
 import { firstValueFrom } from 'rxjs';
-import type { Dhis2ConnectionConfig } from '@/common/interfaces';
 import type {
   DatasetPayload,
   Dhis2ImportSummary,
@@ -17,6 +22,7 @@ import type {
   FetchDatasetsResponse,
   FetchProgramsResponse,
   OrgUnit,
+  Pagination,
   SchemaDatasetResponse,
   SchemaProgramResponse,
 } from '../interfaces';
@@ -45,28 +51,73 @@ export class Dhis2Strategy extends ConnectorStrategy {
   async testConnection(config: Dhis2ConnectionConfig) {
     try {
       const url = `${config.baseUrl}/api/system/info`;
+
       const response = await firstValueFrom(
         this.httpService.get<Dhis2SystemInfo>(url, {
           headers: { Authorization: `ApiToken ${config.pat}` },
+          timeout: 10000,
         }),
       );
-      if (response.data) {
-        return true;
+
+      if (response.data?.version && response.data?.contextPath) {
+        return {
+          success: true,
+          message: `Connected successfully to DHIS2 (${response.data.version})`,
+          instanceName: response.data.systemName || 'Unknown DHIS2 Instance',
+        };
       }
-      return false;
+
+      throw new BadRequestException(
+        'Connected to server, but it does not appear to be a valid DHIS2 instance.',
+      );
     } catch (error: unknown) {
-      if (isAxiosError<{ error: string }>(error)) {
-        if (error.response?.status === 401) {
-          this.logger.error('Connection failed: Unauthorized');
-          throw new UnauthorizedException(error.response.data.error);
+      if (isAxiosError(error)) {
+        if (error.code === 'ENOTFOUND' || error.code === 'EAI_AGAIN') {
+          throw new BadRequestException(
+            `Cannot reach DHIS2 at "${config.baseUrl}". Please check the URL.`,
+          );
+        }
+
+        if (error.code === 'ECONNREFUSED') {
+          throw new ServiceUnavailableException(
+            `Connection refused — DHIS2 server at "${config.baseUrl}" is unreachable.`,
+          );
+        }
+
+        if (error.code === 'ETIMEDOUT') {
+          throw new RequestTimeoutException(
+            `Timed out while trying to reach DHIS2 at "${config.baseUrl}".`,
+          );
+        }
+
+        if (error.response) {
+          const status = error.response.status;
+          const message = ((error.response.data &&
+            JSON.stringify(error.response.data)) ||
+            'Unknown error from DHIS2 API') as string;
+
+          if (status === 401) {
+            throw new UnauthorizedException('Invalid API token for DHIS2.');
+          }
+
+          if (status === 403) {
+            throw new ForbiddenException(
+              'You do not have permission to access DHIS2.',
+            );
+          }
+
+          if (status === 404) {
+            throw new NotFoundException(
+              `Endpoint not found — please verify the DHIS2 URL (${config.baseUrl}).`,
+            );
+          }
+
+          throw new HttpException(message, status);
         }
       }
-      if (error instanceof Error) {
-        this.logger.error('Connection failed: ' + error.message);
-        throw new Error('Connection failed: ' + error.message);
-      }
-      this.logger.error('Connection failed: ' + String(error));
-      throw new Error('Connection failed: ' + String(error));
+
+      this.logger.error('Unexpected error: ' + String(error));
+      throw new InternalServerErrorException('Unexpected error occurred');
     }
   }
 
@@ -79,11 +130,12 @@ export class Dhis2Strategy extends ConnectorStrategy {
     try {
       if (type === 'program') {
         const fields =
-          'id,name,programStages[id,programStageDataElements[dataElement[id,name]]]';
+          'id,name,programStages[id,displayName,programStageDataElements[dataElement[id,name,valueType,displayName]]]';
         const encodedFields = encodeURIComponent(fields);
         url = `programs/${id}.json?fields=${encodedFields}`;
       } else {
-        const fields = 'id,name,dataSetElements[dataElement[id,name]]';
+        const fields =
+          'id,name,dataSetElements[dataElement[id,name,valueType,displayName]]';
         const encodedFields = encodeURIComponent(fields);
         url = `dataSets/${id}.json?fields=${encodedFields}`;
       }
@@ -102,19 +154,22 @@ export class Dhis2Strategy extends ConnectorStrategy {
       );
       return response.data;
     } catch (error: unknown) {
-      if (isAxiosError<{ error: string }>(error)) {
-        console.log('error: ', error?.response?.data);
-        if (error.response?.status === 401) {
-          this.logger.error('Connection failed: Unauthorized');
-          throw new UnauthorizedException(error.response.data.error);
-        }
+      if (isAxiosError<Dhis2ErrorResponse>(error)) {
+        const status = error.response?.status ?? 500;
+        const dhis2Error = error.response?.data;
+
+        this.logger.error(
+          `Failed to fetch schemas from DHIS2: ${JSON.stringify(dhis2Error)}`,
+        );
+
+        throw new HttpException(
+          dhis2Error || 'Unknown error from DHIS2 API',
+          status,
+        );
       }
-      if (error instanceof Error) {
-        this.logger.error('Connection failed: ' + error.message);
-        throw new Error('Connection failed: ' + error.message);
-      }
-      this.logger.error('Connection failed: ' + String(error));
-      throw new Error('Connection failed: ' + String(error));
+
+      this.logger.error('Unexpected error: ' + String(error));
+      throw new InternalServerErrorException('Unexpected error occurred');
     }
   }
 
@@ -168,16 +223,16 @@ export class Dhis2Strategy extends ConnectorStrategy {
 
   async getPrograms(
     config: Dhis2ConnectionConfig,
+    { page, pageSize }: Pagination,
   ): Promise<FetchProgramsResponse> {
     try {
-      const url = `${config.baseUrl}/api/programs`;
+      const url = `${config.baseUrl}/api/programs?page=${page}&pageSize=${pageSize}`;
+
       const response = await firstValueFrom(
         this.httpService.get<FetchProgramsResponse>(url, {
           headers: { Authorization: `ApiToken ${config.pat}` },
         }),
       );
-
-      console.log('res', response);
 
       return response.data;
     } catch (error: unknown) {
@@ -202,9 +257,10 @@ export class Dhis2Strategy extends ConnectorStrategy {
 
   async getDatasets(
     config: Dhis2ConnectionConfig,
+    { page, pageSize }: Pagination,
   ): Promise<FetchDatasetsResponse> {
     try {
-      const url = `${config.baseUrl}/api/dataSets`;
+      const url = `${config.baseUrl}/api/dataSets?page=${page}&pageSize=${pageSize}`;
 
       const response = await firstValueFrom(
         this.httpService.get<FetchDatasetsResponse>(url, {
@@ -237,30 +293,29 @@ export class Dhis2Strategy extends ConnectorStrategy {
     config: Dhis2ConnectionConfig,
     { id, type }: { id: string; type: 'program' | 'dataset' },
   ): Promise<OrgUnit[]> {
-    let url: string;
-
     try {
-      if (type === 'program') {
-        url = `programs/${id}.json?fields=organisationUnits`;
-      } else {
-        url = `dataSets/${id}.json?fields=organisationUnits[id,displayName]]`;
-      }
-
-      url = `${config.baseUrl}/api/${url}`;
+      const fieldsParam = encodeURIComponent(
+        'displayName,id,organisationUnits[id,displayName,parent[id,displayName]]',
+      );
+      const url =
+        type === 'program'
+          ? `${config.baseUrl}/api/programs/${id}.json?fields=${fieldsParam}`
+          : `${config.baseUrl}/api/dataSets/${id}.json?fields=${fieldsParam}`;
 
       const response = await firstValueFrom(
-        this.httpService.get<OrgUnit[]>(url, {
+        this.httpService.get<{ organisationUnits: OrgUnit[] }>(url, {
           headers: { Authorization: `ApiToken ${config.pat}` },
         }),
       );
-      return response.data;
+
+      return response.data.organisationUnits ?? [];
     } catch (error: unknown) {
       if (isAxiosError<Dhis2ErrorResponse>(error)) {
         const status = error.response?.status ?? 500;
         const dhis2Error = error.response?.data;
 
         this.logger.error(
-          `Failed to fetch programs from DHIS2: ${JSON.stringify(dhis2Error)}`,
+          `Failed to fetch org units from DHIS2: ${JSON.stringify(dhis2Error)}`,
         );
 
         throw new HttpException(
