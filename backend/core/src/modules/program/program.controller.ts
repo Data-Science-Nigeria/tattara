@@ -10,10 +10,10 @@ import {
   ParseUUIDPipe,
 } from '@nestjs/common';
 import { ProgramService } from './program.service';
-import { CurrentUser, RequirePermissions, Roles } from 'src/common/decorators';
+import { CurrentUser, RequirePermissions, Roles } from '@/common/decorators';
 import { AssignUsersToProgramDto, CreateProgramDto } from './dto';
 import { UpdateProgramDto } from './dto';
-import { User } from 'src/database/entities';
+import { User } from '@/database/entities';
 import { ApiQuery } from '@nestjs/swagger';
 
 @Controller('programs')

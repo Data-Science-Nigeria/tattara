@@ -1,4 +1,4 @@
-import { FileUploads } from 'src/database/entities';
+import { FileUploads } from '@/database/entities';
 
 export interface FileStorageStrategy {
   upload(file: Express.Multer.File): Promise<FileUploads>;

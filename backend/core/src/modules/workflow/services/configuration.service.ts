@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Workflow, WorkflowConfiguration } from 'src/database/entities';
+import { Workflow, WorkflowConfiguration } from '@/database/entities';
 import { DataSource, In, Repository } from 'typeorm';
 import { UpdateConfigurationDto } from '../dto';
 

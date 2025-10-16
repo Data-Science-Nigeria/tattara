@@ -1,5 +1,5 @@
-import { IntegrationType } from 'src/common/enums';
-import type { ExternalConnectionConfiguration } from 'src/common/interfaces';
+import { IntegrationType } from '@/common/enums';
+import type { ExternalConnectionConfiguration } from '@/common/interfaces';
 import {
   Column,
   CreateDateColumn,

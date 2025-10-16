@@ -6,7 +6,7 @@ import {
   ParseUUIDPipe,
   Put,
 } from '@nestjs/common';
-import { Roles } from 'src/common/decorators';
+import { Roles } from '@/common/decorators';
 import { UpsertFieldMappingsDto } from '../dto';
 import { FieldMappingService } from '../services/field-mapping.service';
 

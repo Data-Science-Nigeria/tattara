@@ -8,7 +8,7 @@ import {
   Unique,
 } from 'typeorm';
 import { Workflow, WorkflowField } from '.';
-import { IntegrationType } from 'src/common/enums';
+import { IntegrationType } from '@/common/enums';
 
 @Entity('field_mappings')
 @Unique(['workflow', 'workflowField', 'targetType'])

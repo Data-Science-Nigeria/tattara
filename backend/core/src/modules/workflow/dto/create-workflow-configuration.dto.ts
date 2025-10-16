@@ -7,7 +7,7 @@ import {
   IsOptional,
   IsString,
 } from 'class-validator';
-import { IntegrationType } from 'src/common/enums';
+import { IntegrationType } from '@/common/enums';
 
 export class CreateWorkflowConfigurationDto {
   @IsEnum(IntegrationType)

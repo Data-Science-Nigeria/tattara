@@ -7,7 +7,7 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { User, Workflow } from '.';
-import { SubmissionStatus } from 'src/common/enums';
+import { SubmissionStatus } from '@/common/enums';
 
 interface Metadata {
   source: string;

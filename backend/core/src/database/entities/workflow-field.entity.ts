@@ -1,4 +1,4 @@
-import { FieldType } from 'src/common/enums';
+import { FieldType } from '@/common/enums';
 import {
   Column,
   CreateDateColumn,

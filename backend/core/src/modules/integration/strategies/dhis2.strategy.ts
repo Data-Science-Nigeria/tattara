@@ -8,7 +8,7 @@ import {
 } from '@nestjs/common';
 import { isAxiosError } from 'axios';
 import { firstValueFrom } from 'rxjs';
-import type { Dhis2ConnectionConfig } from 'src/common/interfaces';
+import type { Dhis2ConnectionConfig } from '@/common/interfaces';
 import type {
   DatasetPayload,
   Dhis2ImportSummary,

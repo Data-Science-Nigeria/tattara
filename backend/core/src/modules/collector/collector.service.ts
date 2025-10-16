@@ -9,9 +9,9 @@ import {
   IntegrationType,
   ProcessingType,
   SubmissionStatus,
-} from 'src/common/enums';
-import { ExtractedData } from 'src/common/interfaces';
-import { buildZodSchema, formatZodErrors } from 'src/common/utils';
+} from '@/common/enums';
+import { ExtractedData } from '@/common/interfaces';
+import { buildZodSchema, formatZodErrors } from '@/common/utils';
 import {
   AiProcessingLog,
   ExternalConnection,
@@ -20,7 +20,7 @@ import {
   User,
   Workflow,
   WorkflowField,
-} from 'src/database/entities';
+} from '@/database/entities';
 import { DataSource, Repository } from 'typeorm';
 import { AiService } from '../ai/ai.service';
 import { ExtractionResponse } from '../ai/interfaces';

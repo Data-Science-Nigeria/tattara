@@ -7,7 +7,7 @@ import {
   Workflow,
   WorkflowConfiguration,
   WorkflowField,
-} from 'src/database/entities';
+} from '@/database/entities';
 import { FieldController } from './controllers/field.controller';
 import { ConfigurationController } from './controllers/configuration.controller';
 import { FieldMappingController } from './controllers/field-mapping.controller';

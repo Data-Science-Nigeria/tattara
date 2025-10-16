@@ -10,7 +10,7 @@ module.exports = new DataSource({
   password: process.env.DATABASE_PASSWORD,
   database: process.env.DATABASE_NAME,
   entities: ['dist/**/*.entity{.ts,.js}'],
-  migrations: ['dist/src/database/migrations/*{.ts,.js}'],
+  migrations: ['dist/database/migrations/*{.ts,.js}'],
   synchronize: false,
   logging: true,
   namingStrategy: new SnakeNamingStrategy(),

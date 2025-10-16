@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { ExternalConnection, User } from 'src/database/entities';
+import { ExternalConnection, User } from '@/database/entities';
 
 @Injectable()
 export class ExternalConnectionService {

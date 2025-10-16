@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { IntegrationType } from 'src/common/enums';
+import { IntegrationType } from '@/common/enums';
 import type {
   Dhis2ConnectionConfig,
   ExternalConnectionConfiguration,
-} from 'src/common/interfaces';
-import { WorkflowConfiguration } from 'src/database/entities';
+} from '@/common/interfaces';
+import { WorkflowConfiguration } from '@/database/entities';
 import { ExternalConnectionService } from '.';
 import { ConnectorStrategy } from '../interfaces/connector.strategy';
 import { Dhis2Strategy } from '../strategies/dhis2.strategy';

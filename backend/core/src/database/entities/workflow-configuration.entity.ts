@@ -8,8 +8,8 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { IntegrationType } from 'src/common/enums';
-import type { WorkflowConfigurationData } from 'src/common/interfaces';
+import { IntegrationType } from '@/common/enums';
+import type { WorkflowConfigurationData } from '@/common/interfaces';
 import { ExternalConnection, Workflow } from '.';
 
 @Entity('workflow_configurations')

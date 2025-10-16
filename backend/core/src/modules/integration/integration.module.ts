@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { ExternalConnection } from 'src/database/entities';
+import { ExternalConnection } from '@/database/entities';
 import { ExternalConnectionService, IntegrationService } from './services';
 import {
   ExternalConnectionsController,

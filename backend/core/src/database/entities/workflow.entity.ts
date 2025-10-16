@@ -1,4 +1,4 @@
-import { Mode, WorkflowStatus } from 'src/common/enums';
+import { Mode, WorkflowStatus } from '@/common/enums';
 import {
   Column,
   CreateDateColumn,

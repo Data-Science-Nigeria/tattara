@@ -5,8 +5,8 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { removeUndefinedProperties } from 'src/common/utils';
-import { Workflow, WorkflowField } from 'src/database/entities';
+import { removeUndefinedProperties } from '@/common/utils';
+import { Workflow, WorkflowField } from '@/database/entities';
 import { DataSource, Repository } from 'typeorm';
 
 @Injectable()

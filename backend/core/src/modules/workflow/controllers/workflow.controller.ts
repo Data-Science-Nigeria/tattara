@@ -9,11 +9,11 @@ import {
   Put,
   Query,
 } from '@nestjs/common';
-import { CurrentUser, Roles } from 'src/common/decorators';
+import { CurrentUser, Roles } from '@/common/decorators';
 import { CreateWorkflowDto, UpdateWorkflowBasicDto } from '../dto';
 import { AssignUsersDto } from '../dto/assign-users.dto';
 import { WorkflowService } from '../services/workflow.service';
-import { User } from 'src/database/entities';
+import { User } from '@/database/entities';
 import { ApiQuery } from '@nestjs/swagger';
 
 @Controller('workflows')

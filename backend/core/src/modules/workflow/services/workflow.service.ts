@@ -9,9 +9,9 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { WorkflowStatus } from 'src/common/enums';
-import { PaginationResult } from 'src/common/interfaces';
-import { Program, User, Workflow } from 'src/database/entities';
+import { WorkflowStatus } from '@/common/enums';
+import { PaginationResult } from '@/common/interfaces';
+import { Program, User, Workflow } from '@/database/entities';
 import {
   DataSource,
   FindOptionsWhere,
@@ -21,7 +21,7 @@ import {
   Repository,
 } from 'typeorm';
 import { CreateWorkflowDto, UpdateWorkflowBasicDto } from '../dto';
-import { FormSchema } from 'src/modules/ai/interfaces';
+import { FormSchema } from '@/modules/ai/interfaces';
 
 @Injectable()
 export class WorkflowService {

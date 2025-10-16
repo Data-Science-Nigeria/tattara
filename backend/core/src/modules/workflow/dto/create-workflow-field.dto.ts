@@ -8,7 +8,7 @@ import {
   IsOptional,
   IsString,
 } from 'class-validator';
-import { FieldType } from 'src/common/enums';
+import { FieldType } from '@/common/enums';
 
 export class CreateWorkflowFieldDto {
   @IsString()

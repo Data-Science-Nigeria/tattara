@@ -7,7 +7,7 @@ import {
   ParseUUIDPipe,
   Put,
 } from '@nestjs/common';
-import { Roles } from 'src/common/decorators';
+import { Roles } from '@/common/decorators';
 import { ConfigurationService } from '../services/configuration.service';
 import { UpdateConfigurationDto } from '../dto';
 
