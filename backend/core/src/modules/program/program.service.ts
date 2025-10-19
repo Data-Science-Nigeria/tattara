@@ -18,14 +18,6 @@ export class ProgramService {
     programData: Partial<Program>,
     currentUser: User,
   ): Promise<Program> {
-    const existingProgram = await this.programRepository.findOne({
-      where: { name: programData.name },
-    });
-
-    if (existingProgram) {
-      throw new ConflictException('Program with this name already exists');
-    }
-
     const program = this.programRepository.create({
       ...programData,
       createdBy: currentUser,

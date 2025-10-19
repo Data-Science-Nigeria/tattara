@@ -11,7 +11,13 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { WorkflowStatus } from '@/common/enums';
 import { PaginationResult } from '@/common/interfaces';
-import { Program, User, Workflow } from '@/database/entities';
+import {
+  ExternalConnection,
+  Program,
+  User,
+  Workflow,
+  WorkflowConfiguration,
+} from '@/database/entities';
 import {
   DataSource,
   FindOptionsWhere,
@@ -39,7 +45,7 @@ export class WorkflowService {
   ): Promise<Workflow> {
     return this.dataSource.transaction(async manager => {
       try {
-        const { programId, ...data } = workflowData;
+        const { programId, workflowConfigurations, ...data } = workflowData;
 
         const workflow = manager.create(Workflow, {
           ...data,
@@ -50,15 +56,34 @@ export class WorkflowService {
           const program = await manager.findOne(Program, {
             where: { id: programId },
           });
-
-          if (!program) {
+          if (!program)
             throw new NotFoundException(
               `Program with ID '${programId}' not found`,
             );
-          }
-
           workflow.program = program;
         }
+
+        const configurations: WorkflowConfiguration[] = [];
+        for (const configDto of workflowConfigurations) {
+          const externalConnection = await manager.findOne(ExternalConnection, {
+            where: { id: configDto.externalConnectionId },
+          });
+
+          if (!externalConnection) {
+            throw new NotFoundException(
+              `External Connection with ID '${configDto.externalConnectionId}' not found`,
+            );
+          }
+
+          const configEntity = manager.create(WorkflowConfiguration, {
+            ...configDto,
+            externalConnection,
+          });
+
+          configurations.push(configEntity);
+        }
+
+        workflow.workflowConfigurations = configurations;
 
         return await manager.save(workflow);
       } catch (error) {
@@ -73,6 +98,7 @@ export class WorkflowService {
             `Workflow with name '${workflowData.name}' already exists`,
           );
         }
+
         this.logger.error(
           `Failed to create workflow: ${error.message}`,
           error.stack,

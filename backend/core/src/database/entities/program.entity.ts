@@ -7,16 +7,18 @@ import {
   PrimaryGeneratedColumn,
   ManyToMany,
   ManyToOne,
+  Unique,
 } from 'typeorm';
 import { Workflow } from './workflow.entity';
 import { User } from '.';
 
 @Entity('programs')
+@Unique(['createdBy', 'name'])
 export class Program {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ unique: true })
+  @Column()
   name: string;
 
   @Column()
