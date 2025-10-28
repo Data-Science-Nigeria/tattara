@@ -6,7 +6,7 @@ import {
   Entity,
   JoinColumn,
   ManyToOne,
-  OneToOne,
+  OneToMany,
   PrimaryGeneratedColumn,
   Unique,
   UpdateDateColumn,
@@ -43,7 +43,7 @@ export class ExternalConnection {
   @UpdateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   updatedAt: Date;
 
-  @OneToOne(() => WorkflowConfiguration, wConfig => wConfig.externalConnection)
+  @OneToMany(() => WorkflowConfiguration, wConfig => wConfig.externalConnection)
   workflowConfigurations: WorkflowConfiguration;
 
   @ManyToOne(() => User, user => user.externalConnections, {

@@ -77,11 +77,8 @@ export class ProgramController {
   @Post()
   @Roles('admin')
   @RequirePermissions('program:create')
-  create(
-    @Body() createProgramDto: CreateProgramDto,
-    @CurrentUser() currentUser: User,
-  ) {
-    return this.programService.create(createProgramDto, currentUser);
+  create(@Body() createProgramDto: CreateProgramDto) {
+    return this.programService.create(createProgramDto);
   }
 
   /** Get a specific program by ID

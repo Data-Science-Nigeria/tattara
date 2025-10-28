@@ -2,21 +2,8 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { SeedService } from './seeds/seed.service';
-import {
-  User,
-  Role,
-  Permission,
-  Program,
-  Workflow,
-  FieldMapping,
-  FileUploads,
-  WorkflowField,
-  WorkflowConfiguration,
-  Submission,
-  AiProcessingLog,
-  ExternalConnection,
-} from './entities';
 import { SnakeNamingStrategy } from 'typeorm-naming-strategies';
+import { User, Role, Permission } from './entities';
 
 @Module({
   imports: [
@@ -29,22 +16,7 @@ import { SnakeNamingStrategy } from 'typeorm-naming-strategies';
         username: configService.get('database.username'),
         password: configService.get('database.password'),
         database: configService.get('database.database'),
-        entities: [
-          User,
-          Role,
-          Permission,
-          Program,
-          Workflow,
-          WorkflowField,
-          FieldMapping,
-          FileUploads,
-          WorkflowField,
-          FieldMapping,
-          WorkflowConfiguration,
-          Submission,
-          AiProcessingLog,
-          ExternalConnection,
-        ],
+        entities: [__dirname + '/entities/*.entity{.ts,.js}'],
         synchronize: false,
         logging: false,
         namingStrategy: new SnakeNamingStrategy(),

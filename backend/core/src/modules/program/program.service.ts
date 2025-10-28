@@ -1,26 +1,39 @@
-import { ConflictException, Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
+import { BaseRepository } from '@/common/repositories/base.repository';
 import { Program, User, Workflow } from '@/database/entities';
-import { FindOptionsWhere, In, Repository } from 'typeorm';
+import { RequestContext } from '@/shared/request-context/request-context.service';
+import { ConflictException, Injectable } from '@nestjs/common';
+import { DataSource, FindOptionsWhere, In } from 'typeorm';
 
 @Injectable()
 export class ProgramService {
-  constructor(
-    @InjectRepository(Program)
-    private programRepository: Repository<Program>,
-    @InjectRepository(Workflow)
-    private workflowRepository: Repository<Workflow>,
-    @InjectRepository(User)
-    private userRepository: Repository<User>,
-  ) {}
+  private readonly workflowRepository: BaseRepository<Workflow>;
+  private readonly userRepository: BaseRepository<User>;
+  private readonly programRepository: BaseRepository<Program>;
 
-  async create(
-    programData: Partial<Program>,
-    currentUser: User,
-  ): Promise<Program> {
+  constructor(
+    private dataSource: DataSource,
+    private readonly requestContext: RequestContext,
+  ) {
+    this.programRepository = new BaseRepository<Program>(
+      Program,
+      dataSource,
+      this.requestContext,
+    );
+    this.workflowRepository = new BaseRepository<Workflow>(
+      Workflow,
+      dataSource,
+      this.requestContext,
+    );
+    this.userRepository = new BaseRepository<User>(
+      User,
+      dataSource,
+      this.requestContext,
+    );
+  }
+
+  async create(programData: Partial<Program>): Promise<Program> {
     const program = this.programRepository.create({
       ...programData,
-      createdBy: currentUser,
     });
 
     return this.programRepository.save(program);
@@ -40,16 +53,13 @@ export class ProgramService {
   ): Promise<{ programs: Program[]; total: number }> {
     const where: FindOptionsWhere<Program> | FindOptionsWhere<Program>[] = {};
 
-    if (currentUser.hasRole('admin')) {
+    if (currentUser.hasRole('user')) {
+      where.users = { id: In([currentUser.id]) };
+    } else {
       if (userId) {
         const targetUserIds = Array.isArray(userId) ? userId : [userId];
         where.users = { id: In(targetUserIds) };
-        where.createdBy = { id: currentUser.id };
-      } else {
-        where.createdBy = { id: currentUser.id };
       }
-    } else {
-      where.users = { id: In([currentUser.id]) };
     }
 
     const [programs, total] = await this.programRepository.findAndCount({

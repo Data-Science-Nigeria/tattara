@@ -1,25 +1,41 @@
+import { BaseRepository } from '@/common/repositories/base.repository';
+import { User, Workflow, WorkflowConfiguration } from '@/database/entities';
+import { RequestContext } from '@/shared/request-context/request-context.service';
 import {
   BadRequestException,
   Injectable,
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Workflow, WorkflowConfiguration } from '@/database/entities';
-import { DataSource, In, Repository } from 'typeorm';
+import { DataSource, FindOptionsWhere, In } from 'typeorm';
 import { UpdateConfigurationDto } from '../dto';
 
 @Injectable()
 export class ConfigurationService {
   private readonly logger = new Logger(ConfigurationService.name);
+  private readonly workflowRepository: BaseRepository<Workflow>;
+  private readonly workflowConfigurationRepository: BaseRepository<WorkflowConfiguration>;
 
   constructor(
-    @InjectRepository(Workflow)
-    private workflowRepository: Repository<Workflow>,
-    @InjectRepository(WorkflowConfiguration)
-    private workflowConfigurationRepository: Repository<WorkflowConfiguration>,
+    // @InjectRepository(Workflow)
+    // private workflowRepository: Repository<Workflow>,
+    // @InjectRepository(WorkflowConfiguration)
+    // private workflowConfigurationRepository: Repository<WorkflowConfiguration>,
     private dataSource: DataSource,
-  ) {}
+    private readonly requestContext: RequestContext,
+  ) {
+    this.workflowRepository = new BaseRepository<Workflow>(
+      Workflow,
+      this.dataSource,
+      this.requestContext,
+    );
+    this.workflowConfigurationRepository =
+      new BaseRepository<WorkflowConfiguration>(
+        WorkflowConfiguration,
+        this.dataSource,
+        this.requestContext,
+      );
+  }
 
   async upsertWorkflowConfigurations(
     workflowId: string,
@@ -30,8 +46,22 @@ export class ConfigurationService {
     }
 
     return this.dataSource.transaction(async manager => {
-      const workflow = await manager.findOne(Workflow, {
-        where: { id: workflowId },
+      const workflowRepo = BaseRepository.fromManager(
+        Workflow,
+        manager,
+        this.requestContext,
+      );
+
+      const workflowConfigRepo = BaseRepository.fromManager(
+        WorkflowConfiguration,
+        manager,
+        this.requestContext,
+      );
+
+      const workflow = await workflowRepo.findOne({
+        where: {
+          id: workflowId,
+        },
       });
 
       if (!workflow) {
@@ -53,15 +83,13 @@ export class ConfigurationService {
 
       if (configurationsToUpdate.length > 0) {
         const existingIds = configurationsToUpdate.map(config => config.id!);
-        const existingConfigurations = await manager.find(
-          WorkflowConfiguration,
-          {
-            where: {
-              id: In(existingIds),
-              workflow: { id: workflowId },
-            },
+
+        const existingConfigurations = await workflowConfigRepo.find({
+          where: {
+            id: In(existingIds),
+            workflow: { id: workflowId },
           },
-        );
+        });
 
         const existingConfigMap = new Map(
           existingConfigurations.map(config => [config.id, config]),
@@ -98,7 +126,7 @@ export class ConfigurationService {
           },
         );
 
-        await manager.save(WorkflowConfiguration, configurationsToSave);
+        await workflowConfigRepo.save(configurationsToSave);
       }
 
       if (configurationsToCreate.length > 0) {
@@ -115,12 +143,12 @@ export class ConfigurationService {
               : {}),
           }),
         );
-        await manager.save(newConfigurations);
+        console.log('Saving configurations:', newConfigurations);
+        await workflowConfigRepo.save(newConfigurations);
       }
 
-      return manager.find(WorkflowConfiguration, {
+      return workflowConfigRepo.find({
         where: { workflow: { id: workflowId } },
-        order: { createdAt: 'ASC' },
       });
     });
   }
@@ -128,9 +156,17 @@ export class ConfigurationService {
   async getWorkflowConfigurations(
     workflowId: string,
   ): Promise<WorkflowConfiguration[]> {
+    const where: FindOptionsWhere<Workflow> | FindOptionsWhere<Workflow>[] = {
+      id: workflowId,
+    };
+
     const workflow = await this.workflowRepository.findOne({
-      where: { id: workflowId },
-      relations: ['workflowConfigurations'],
+      where,
+      relations: [
+        'workflowConfigurations',
+        'workflowConfigurations.workflow',
+        'workflowConfigurations.externalConnection',
+      ],
     });
 
     if (!workflow) {
@@ -140,9 +176,18 @@ export class ConfigurationService {
     return workflow.workflowConfigurations || [];
   }
 
-  async removeWorkflowConfiguration(configurationId: string): Promise<void> {
-    const result =
-      await this.workflowConfigurationRepository.delete(configurationId);
+  async removeWorkflowConfiguration(
+    configurationId: string,
+    currentUser: User,
+  ): Promise<void> {
+    const result = await this.workflowConfigurationRepository.delete({
+      id: configurationId,
+      ...(currentUser.hasRole('super-admin')
+        ? {}
+        : {
+            workflow: { createdBy: { id: currentUser.id } },
+          }),
+    });
 
     if (result.affected === 0) {
       throw new NotFoundException(

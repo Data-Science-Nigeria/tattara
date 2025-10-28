@@ -1,18 +1,21 @@
+import { IntegrationType } from '@/common/enums';
+import type { WorkflowConfigurationData } from '@/common/interfaces';
 import {
   Column,
   CreateDateColumn,
   Entity,
   JoinColumn,
   ManyToOne,
-  OneToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { IntegrationType } from '@/common/enums';
-import type { WorkflowConfigurationData } from '@/common/interfaces';
-import { ExternalConnection, Workflow } from '.';
+import { ExternalConnection, User, Workflow } from '.';
 
-@Entity('workflow_configurations')
+@Entity('workflow_configurations', {
+  orderBy: {
+    createdAt: 'DESC',
+  },
+})
 export class WorkflowConfiguration {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -30,10 +33,10 @@ export class WorkflowConfiguration {
   })
   type: IntegrationType;
 
-  @OneToOne(
+  @ManyToOne(
     () => ExternalConnection,
     externalConn => externalConn.workflowConfigurations,
-    { eager: true },
+    { eager: true, onDelete: 'CASCADE' },
   )
   @JoinColumn({ name: 'external_connection_id' })
   externalConnection: ExternalConnection;
@@ -43,6 +46,12 @@ export class WorkflowConfiguration {
 
   @Column({ type: 'boolean', default: true })
   isActive: boolean;
+
+  @ManyToOne(() => User, {
+    onDelete: 'CASCADE',
+    cascade: true,
+  })
+  createdBy: User;
 
   @CreateDateColumn()
   createdAt: Date;

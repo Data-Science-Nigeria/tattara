@@ -7,9 +7,11 @@ import {
   ParseUUIDPipe,
   Put,
 } from '@nestjs/common';
-import { Roles } from '@/common/decorators';
+import { CurrentUser, Roles } from '@/common/decorators';
 import { ConfigurationService } from '../services/configuration.service';
-import { UpdateConfigurationDto } from '../dto';
+import { UpdateConfigurationDto, WorkflowConfigSummaryDto } from '../dto';
+import { User } from '@/database/entities';
+import { plainToInstance } from 'class-transformer';
 
 @Controller('workflows')
 export class ConfigurationController {
@@ -20,15 +22,24 @@ export class ConfigurationController {
   async getWorkflowConfigurations(
     @Param('workflowId', new ParseUUIDPipe()) workflowId: string,
   ) {
-    return this.configurationService.getWorkflowConfigurations(workflowId);
+    const workflowConfig =
+      await this.configurationService.getWorkflowConfigurations(workflowId);
+
+    return plainToInstance(WorkflowConfigSummaryDto, workflowConfig, {
+      excludeExtraneousValues: true,
+    });
   }
 
   @Delete('/configurations/:configId')
   @Roles('admin')
   async removeWorkflowConfiguration(
     @Param('configId', new ParseUUIDPipe()) configId: string,
+    @CurrentUser() currentUser: User,
   ) {
-    await this.configurationService.removeWorkflowConfiguration(configId);
+    await this.configurationService.removeWorkflowConfiguration(
+      configId,
+      currentUser,
+    );
     return { message: 'Configuration removed successfully' };
   }
 

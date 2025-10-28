@@ -1,5 +1,6 @@
 import {
   Body,
+  ClassSerializerInterceptor,
   Controller,
   Get,
   Param,
@@ -8,15 +9,22 @@ import {
   Post,
   Put,
   Query,
+  UseInterceptors,
 } from '@nestjs/common';
+import { plainToInstance } from 'class-transformer';
 import { CurrentUser, Roles } from '@/common/decorators';
-import { CreateWorkflowDto, UpdateWorkflowBasicDto } from '../dto';
+import {
+  CreateWorkflowDto,
+  UpdateWorkflowBasicDto,
+  WorkflowResponseDto,
+} from '../dto';
 import { AssignUsersDto } from '../dto/assign-users.dto';
 import { WorkflowService } from '../services/workflow.service';
 import { User } from '@/database/entities';
 import { ApiQuery } from '@nestjs/swagger';
 
 @Controller('workflows')
+@UseInterceptors(ClassSerializerInterceptor)
 export class WorkflowController {
   constructor(private readonly workflowService: WorkflowService) {}
 
@@ -49,7 +57,11 @@ export class WorkflowController {
   async findWorkflowById(
     @Param('workflowId', new ParseUUIDPipe()) workflowId: string,
   ) {
-    return this.workflowService.findWorkflowById(workflowId);
+    const workflow = await this.workflowService.findWorkflowById(workflowId);
+
+    return plainToInstance(WorkflowResponseDto, workflow, {
+      excludeExtraneousValues: true,
+    });
   }
 
   @Put('/:workflowId')

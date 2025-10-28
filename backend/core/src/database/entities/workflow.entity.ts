@@ -17,7 +17,11 @@ import { FieldMapping } from './field-mapping.entity';
 import { WorkflowConfiguration } from './workflow-configuration.entity';
 import { User } from './user.entity';
 
-@Entity('workflows')
+@Entity('workflows', {
+  orderBy: {
+    createdAt: 'DESC',
+  },
+})
 @Unique(['createdBy', 'name'])
 export class Workflow {
   @PrimaryGeneratedColumn('uuid')

@@ -1,16 +1,8 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 
-import {
-  BadRequestException,
-  ConflictException,
-  ForbiddenException,
-  Injectable,
-  Logger,
-  NotFoundException,
-} from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
 import { WorkflowStatus } from '@/common/enums';
 import { PaginationResult } from '@/common/interfaces';
+import { BaseRepository } from '@/common/repositories/base.repository';
 import {
   ExternalConnection,
   Program,
@@ -18,26 +10,44 @@ import {
   Workflow,
   WorkflowConfiguration,
 } from '@/database/entities';
+import { FormSchema } from '@/modules/ai/interfaces';
+import { RequestContext } from '@/shared/request-context/request-context.service';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import {
   DataSource,
+  EntityManager,
   FindOptionsWhere,
   ILike,
   In,
   QueryFailedError,
-  Repository,
 } from 'typeorm';
 import { CreateWorkflowDto, UpdateWorkflowBasicDto } from '../dto';
-import { FormSchema } from '@/modules/ai/interfaces';
 
 @Injectable()
 export class WorkflowService {
   private readonly logger = new Logger(WorkflowService.name);
+  private readonly workflowRepository: BaseRepository<Workflow>;
 
   constructor(
-    @InjectRepository(Workflow)
-    private workflowRepository: Repository<Workflow>,
     private dataSource: DataSource,
-  ) {}
+    private readonly requestContext: RequestContext,
+  ) {
+    this.workflowRepository = new BaseRepository<Workflow>(
+      Workflow,
+      this.dataSource,
+      this.requestContext,
+    );
+  }
+
+  private getWorkflowRepo(manager: EntityManager) {
+    return BaseRepository.fromManager(Workflow, manager, this.requestContext);
+  }
 
   async createWorkflow(
     workflowData: CreateWorkflowDto,
@@ -47,15 +57,41 @@ export class WorkflowService {
       try {
         const { programId, workflowConfigurations, ...data } = workflowData;
 
-        const workflow = manager.create(Workflow, {
+        const workflowRepo = this.getWorkflowRepo(manager);
+        const workflowConfigRepo = BaseRepository.fromManager(
+          WorkflowConfiguration,
+          manager,
+          this.requestContext,
+        );
+        const programRepo = BaseRepository.fromManager(
+          Program,
+          manager,
+          this.requestContext,
+        );
+        const externalConnectionRepo = BaseRepository.fromManager(
+          ExternalConnection,
+          manager,
+          this.requestContext,
+        );
+
+        // const workflow = manager.create(Workflow, {
+        //   ...data,
+        //   createdBy: currentUser,
+        // });
+
+        const workflow = workflowRepo.create({
           ...data,
           createdBy: currentUser,
         });
 
         if (programId) {
-          const program = await manager.findOne(Program, {
+          // const program = await manager.findOne(Program, {
+          //   where: { id: programId },
+          // });
+          const program = await programRepo.findOne({
             where: { id: programId },
           });
+
           if (!program)
             throw new NotFoundException(
               `Program with ID '${programId}' not found`,
@@ -65,7 +101,11 @@ export class WorkflowService {
 
         const configurations: WorkflowConfiguration[] = [];
         for (const configDto of workflowConfigurations) {
-          const externalConnection = await manager.findOne(ExternalConnection, {
+          // const externalConnection = await manager.findOne(ExternalConnection, {
+          //   where: { id: configDto.externalConnectionId },
+          // });
+
+          const externalConnection = await externalConnectionRepo.findOne({
             where: { id: configDto.externalConnectionId },
           });
 
@@ -75,7 +115,12 @@ export class WorkflowService {
             );
           }
 
-          const configEntity = manager.create(WorkflowConfiguration, {
+          // const configEntity = manager.create(WorkflowConfiguration, {
+          //   ...configDto,
+          //   externalConnection,
+          // });
+
+          const configEntity = workflowConfigRepo.create({
             ...configDto,
             externalConnection,
           });
@@ -85,17 +130,18 @@ export class WorkflowService {
 
         workflow.workflowConfigurations = configurations;
 
-        return await manager.save(workflow);
+        // return await manager.save(workflow);
+        return await workflowRepo.save(workflow);
       } catch (error) {
         if (
           error instanceof QueryFailedError &&
           (error as any).code === '23505'
         ) {
           this.logger.warn(
-            `Workflow creation failed - name already exists: ${workflowData.name}`,
+            `Workflow name must be unique. A workflow with the name '${workflowData.name}' already exists.`,
           );
           throw new ConflictException(
-            `Workflow with name '${workflowData.name}' already exists`,
+            `Workflow name must be unique. A workflow with the name '${workflowData.name}' already exists.`,
           );
         }
 
@@ -118,32 +164,26 @@ export class WorkflowService {
       status: WorkflowStatus.ACTIVE,
     };
 
-    if (currentUser.hasRole('admin')) {
+    if (currentUser.hasRole('user')) {
+      where.users = { id: In([currentUser.id]) };
+    } else {
       if (userId) {
         const targetUserIds = Array.isArray(userId) ? userId : [userId];
         where.users = { id: In(targetUserIds) };
-        where.createdBy = { id: currentUser.id };
-      } else {
-        where.createdBy = { id: currentUser.id };
       }
-    } else {
-      if (userId) {
-        const requestedIds = Array.isArray(userId) ? userId : [userId];
-        if (requestedIds.some(id => id !== currentUser.id)) {
-          throw new ForbiddenException(
-            'You can only access your own workflows',
-          );
-        }
-      }
-      where.users = { id: In([currentUser.id]) };
     }
 
     const [workflows, total] = await this.workflowRepository.findAndCount({
       where,
-      relations: ['workflowFields', 'fieldMappings', 'workflowConfigurations'],
+      relations: [
+        'workflowFields',
+        'fieldMappings',
+        'workflowConfigurations',
+        'createdBy',
+        'program',
+      ],
       skip: (page - 1) * limit,
       take: limit,
-      order: { createdAt: 'DESC' },
     });
 
     return {
@@ -162,7 +202,11 @@ export class WorkflowService {
         'workflowFields',
         'fieldMappings',
         'workflowConfigurations',
+        'workflowConfigurations.workflow',
         'workflowFields.fieldMappings',
+        'createdBy',
+        'users',
+        'program',
       ],
     });
 
@@ -232,7 +276,9 @@ export class WorkflowService {
     updateData: UpdateWorkflowBasicDto,
   ): Promise<Workflow> {
     return this.dataSource.transaction(async manager => {
-      const workflow = await manager.findOne(Workflow, {
+      const workflowRepo = this.getWorkflowRepo(manager);
+
+      const workflow = await workflowRepo.findOne({
         where: { id: workflowId },
       });
 
@@ -244,7 +290,8 @@ export class WorkflowService {
 
       try {
         Object.assign(workflow, updateData);
-        return await manager.save(workflow);
+        // return await manager.save(workflow);
+        return await workflowRepo.save(workflow);
       } catch (error) {
         if (error.code === '23505') {
           throw new ConflictException(
@@ -273,7 +320,9 @@ export class WorkflowService {
     userIds: string[],
   ): Promise<Workflow> {
     return this.dataSource.transaction(async manager => {
-      const workflow = await manager.findOne(Workflow, {
+      const workflowRepo = this.getWorkflowRepo(manager);
+
+      const workflow = await workflowRepo.findOne({
         where: { id: workflowId },
         relations: ['users'],
         select: ['id', 'users'],

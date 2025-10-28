@@ -21,7 +21,7 @@ export class Submission {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @ManyToOne(() => User, user => user.aiProcessingLogs, {
+  @ManyToOne(() => User, user => user.submissions, {
     onDelete: 'CASCADE',
     onUpdate: 'CASCADE',
   })

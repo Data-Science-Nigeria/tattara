@@ -9,7 +9,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { Workflow } from '.';
+import { User, Workflow } from '.';
 import { FieldMapping } from './field-mapping.entity';
 
 @Entity('workflow_fields')
@@ -51,6 +51,12 @@ export class WorkflowField {
 
   @Column()
   displayOrder: number;
+
+  @ManyToOne(() => User, {
+    onDelete: 'CASCADE',
+    cascade: true,
+  })
+  createdBy: User;
 
   @CreateDateColumn()
   createdAt: Date;

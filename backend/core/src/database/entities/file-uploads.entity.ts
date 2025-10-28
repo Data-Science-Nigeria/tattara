@@ -52,7 +52,15 @@ export class FileUploads {
   @CreateDateColumn()
   createdAt: Date;
 
+  // TODO: remove user relation; createdBy does the same job;
+  // TODO: but make sure to change all references
   @ManyToOne(() => User)
   @JoinColumn({ name: 'user_id' })
   user: User;
+
+  @ManyToOne(() => User, {
+    onDelete: 'CASCADE',
+    cascade: true,
+  })
+  createdBy: User;
 }
