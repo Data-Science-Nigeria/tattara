@@ -4,8 +4,8 @@ export class OneToManyExternalconnWorkflowConfig1761611824648 implements Migrati
     name = 'OneToManyExternalconnWorkflowConfig1761611824648'
 
     public async up(queryRunner: QueryRunner): Promise<void> {
-        await queryRunner.query(`ALTER TABLE "workflow_configurations" DROP CONSTRAINT "FK_fb7f1c80cb4e4bed3ead465e9d7"`);
-        await queryRunner.query(`ALTER TABLE "workflow_configurations" DROP CONSTRAINT "UQ_fb7f1c80cb4e4bed3ead465e9d7"`);
+        await queryRunner.query(`ALTER TABLE "workflow_configurations" DROP CONSTRAINT IF EXISTS "FK_fb7f1c80cb4e4bed3ead465e9d7"`);
+        await queryRunner.query(`ALTER TABLE "workflow_configurations" DROP CONSTRAINT IF EXISTS "UQ_fb7f1c80cb4e4bed3ead465e9d7"`);
         await queryRunner.query(`ALTER TABLE "workflow_configurations" ADD CONSTRAINT "FK_fb7f1c80cb4e4bed3ead465e9d7" FOREIGN KEY ("external_connection_id") REFERENCES "external_connections"("id") ON DELETE CASCADE ON UPDATE NO ACTION`);
     }
 
