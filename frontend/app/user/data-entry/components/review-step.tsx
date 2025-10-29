@@ -14,7 +14,18 @@ import {
 } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Calendar, CheckCircle } from 'lucide-react';
-import type { ProcessingResult } from '@/app/user/image/page';
+interface ProcessingResult {
+  data?: {
+    firstName?: string;
+    lastName?: string;
+    age?: string;
+    gender?: string;
+    dateOfSymptoms?: string;
+    testResults?: string;
+    mosquitoSpecies?: string;
+    symptoms?: string[];
+  };
+}
 
 interface ReviewStepProps {
   result: ProcessingResult;
@@ -44,7 +55,7 @@ export function ReviewStep({ result, onReset }: ReviewStepProps) {
       ...prev,
       symptoms: checked
         ? [...prev.symptoms, symptom]
-        : prev.symptoms.filter((s) => s !== symptom),
+        : prev.symptoms.filter((s: string) => s !== symptom),
     }));
   };
 

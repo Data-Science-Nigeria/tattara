@@ -41,7 +41,7 @@ const eslintConfig = [
       '@typescript-eslint/no-unused-vars': 'warn',
       '@typescript-eslint/ban-ts-comment': 'warn',
       'react/react-in-jsx-scope': 'off',
-      '@typescript-eslint/ban-ts-comment': 'warn',
+      '@next/next/no-img-element': 'warn',
     },
   },
 ];

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { userControllerRegisterSingleUserMutation } from '@/client/@tanstack/react-query.gen';
 import { toast } from 'sonner';
+import { Eye, EyeOff } from 'lucide-react';
 
 interface AddUserModalProps {
   isOpen: boolean;
@@ -24,6 +25,7 @@ export default function AddUserModal({
     password: '',
   });
   const [error, setError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
   const createUser = useMutation({
     ...userControllerRegisterSingleUserMutation(),
@@ -151,16 +153,25 @@ export default function AddUserModal({
             <label className="mb-1 block text-sm font-medium text-gray-700">
               Password
             </label>
-            <input
-              type="password"
-              placeholder="Enter password"
-              value={newUser.password}
-              onChange={(e) =>
-                setNewUser({ ...newUser, password: e.target.value })
-              }
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-green-500 focus:outline-none"
-              required
-            />
+            <div className="relative">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                placeholder="Enter password"
+                value={newUser.password}
+                onChange={(e) =>
+                  setNewUser({ ...newUser, password: e.target.value })
+                }
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 pr-10 focus:ring-2 focus:ring-green-500 focus:outline-none"
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute top-1/2 right-3 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+              </button>
+            </div>
           </div>
         </div>
 

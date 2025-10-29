@@ -6,6 +6,8 @@ import type {
   AuthControllerRegisterResponses,
   AuthControllerLoginData,
   AuthControllerLoginResponses,
+  AuthControllerLogoutData,
+  AuthControllerLogoutResponses,
   AuthControllerVerifyEmailData,
   AuthControllerVerifyEmailResponses,
   AuthControllerResendVerificationData,
@@ -34,8 +36,8 @@ import type {
   UserControllerBulkCreateResponses,
   UserControllerGetAllPermissionsData,
   UserControllerGetAllPermissionsResponses,
-  ProgramControllerFindAllData,
-  ProgramControllerFindAllResponses,
+  ProgramControllerGetProgramsData,
+  ProgramControllerGetProgramsResponses,
   ProgramControllerCreateData,
   ProgramControllerCreateResponses,
   ProgramControllerRemoveData,
@@ -52,8 +54,8 @@ import type {
   ProgramControllerGetAllProgramsForUserResponses,
   ProgramControllerAddUsersToProgramData,
   ProgramControllerAddUsersToProgramResponses,
-  WorkflowControllerFindAllWorkflowsData,
-  WorkflowControllerFindAllWorkflowsResponses,
+  WorkflowControllerGetWorkflowsData,
+  WorkflowControllerGetWorkflowsResponses,
   WorkflowControllerCreateWorkflowData,
   WorkflowControllerCreateWorkflowResponses,
   WorkflowControllerSearchWorkflowsData,
@@ -161,6 +163,22 @@ export const authControllerLogin = <ThrowOnError extends boolean = false>(
       'Content-Type': 'application/json',
       ...options.headers,
     },
+  });
+};
+
+/**
+ * Logout the currently authenticated user
+ */
+export const authControllerLogout = <ThrowOnError extends boolean = false>(
+  options?: Options<AuthControllerLogoutData, ThrowOnError>
+) => {
+  return (options?.client ?? _heyApiClient).post<
+    AuthControllerLogoutResponses,
+    unknown,
+    ThrowOnError
+  >({
+    url: '/api/v1/auth/logout',
+    ...options,
   });
 };
 
@@ -403,11 +421,13 @@ export const userControllerGetAllPermissions = <
 /**
  * Get all programs with pagination
  */
-export const programControllerFindAll = <ThrowOnError extends boolean = false>(
-  options: Options<ProgramControllerFindAllData, ThrowOnError>
+export const programControllerGetPrograms = <
+  ThrowOnError extends boolean = false,
+>(
+  options?: Options<ProgramControllerGetProgramsData, ThrowOnError>
 ) => {
-  return (options.client ?? _heyApiClient).get<
-    ProgramControllerFindAllResponses,
+  return (options?.client ?? _heyApiClient).get<
+    ProgramControllerGetProgramsResponses,
     unknown,
     ThrowOnError
   >({
@@ -560,13 +580,13 @@ export const programControllerAddUsersToProgram = <
   });
 };
 
-export const workflowControllerFindAllWorkflows = <
+export const workflowControllerGetWorkflows = <
   ThrowOnError extends boolean = false,
 >(
-  options: Options<WorkflowControllerFindAllWorkflowsData, ThrowOnError>
+  options?: Options<WorkflowControllerGetWorkflowsData, ThrowOnError>
 ) => {
-  return (options.client ?? _heyApiClient).get<
-    WorkflowControllerFindAllWorkflowsResponses,
+  return (options?.client ?? _heyApiClient).get<
+    WorkflowControllerGetWorkflowsResponses,
     unknown,
     ThrowOnError
   >({

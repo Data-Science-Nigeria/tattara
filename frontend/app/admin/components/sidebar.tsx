@@ -6,7 +6,7 @@ import { LogOut, PanelLeft, PanelRight } from 'lucide-react';
 import Logo from '../../components/logo';
 import Avatar from '../../components/avatar';
 import { useAuthStore } from '../../store/use-auth-store';
-//import { useLogout } from '../../hooks/use-logout';
+import { useLogout } from '../../hooks/use-logout';
 
 interface SidebarProps {
   isOpen?: boolean;
@@ -14,7 +14,7 @@ interface SidebarProps {
 }
 
 const Sidebar = ({ isOpen = false, onToggle = () => {} }: SidebarProps) => {
-  //const { handleLogout } = useLogout();
+  const { handleLogout } = useLogout();
   const { auth } = useAuthStore();
 
   const surname = auth.lastName || 'Admin';
@@ -38,7 +38,7 @@ const Sidebar = ({ isOpen = false, onToggle = () => {} }: SidebarProps) => {
 
       {/* Sidebar */}
       <aside
-        className={`fixed top-0 left-0 z-40 flex h-screen flex-col overflow-y-auto border-r border-gray-100 bg-white transition-all duration-300 ease-in-out ${
+        className={`scrollbar-hide fixed top-0 left-0 z-40 flex h-screen flex-col overflow-y-auto border-r border-gray-100 bg-white transition-all duration-300 ease-in-out ${
           isOpen
             ? 'xs:w-64 w-full sm:w-72 md:w-[280px] lg:w-[280px]'
             : 'w-16 lg:w-[280px]'
@@ -82,7 +82,7 @@ const Sidebar = ({ isOpen = false, onToggle = () => {} }: SidebarProps) => {
 
         {/* Menu Items */}
         <div
-          className={`mt-6 flex-1 space-y-3 md:mt-6 ${
+          className={`custom-scrollbar mt-6 flex-1 space-y-3 overflow-y-auto md:mt-6 ${
             isOpen
               ? 'px-4 md:px-0'
               : 'flex flex-col items-center px-2 lg:block lg:space-y-3 lg:px-4'
@@ -114,7 +114,7 @@ const Sidebar = ({ isOpen = false, onToggle = () => {} }: SidebarProps) => {
         >
           <div className={isOpen ? 'block' : 'hidden lg:block'}>
             <button
-              //  onClick={handleLogout}
+              onClick={handleLogout}
               className="flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-medium text-red-500 hover:bg-red-50"
             >
               <LogOut size={18} />
@@ -123,7 +123,7 @@ const Sidebar = ({ isOpen = false, onToggle = () => {} }: SidebarProps) => {
           </div>
           <div className={isOpen ? 'hidden' : 'block lg:hidden'}>
             <button
-              //  onClick={handleLogout}
+              onClick={handleLogout}
               className="rounded-md p-3 text-red-500 hover:bg-red-50"
             >
               <LogOut size={18} />

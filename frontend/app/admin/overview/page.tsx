@@ -22,7 +22,7 @@ import {
   TooltipTrigger,
 } from '../../../components/ui/tooltip';
 import { useQuery } from '@tanstack/react-query';
-import { programControllerFindAllOptions } from '@/client/@tanstack/react-query.gen';
+import { programControllerGetProgramsOptions } from '@/client/@tanstack/react-query.gen';
 
 interface Program {
   id: string;
@@ -63,7 +63,7 @@ const Programs = () => {
   }, []);
 
   const { data: programsData, isLoading } = useQuery({
-    ...programControllerFindAllOptions({
+    ...programControllerGetProgramsOptions({
       query: { page: currentPage, limit: itemsPerPage },
     }),
     refetchInterval: 3000, // Auto-refresh every 3 seconds

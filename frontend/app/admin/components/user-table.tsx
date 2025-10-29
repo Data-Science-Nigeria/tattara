@@ -1,15 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import {
-  ChevronDown,
-  Download,
-  Edit,
-  UserX,
-  Trash2,
-  MoreHorizontal,
-  Plus,
-} from 'lucide-react';
+import { ChevronDown, Download } from 'lucide-react';
 import SearchInput from './search-input';
 import { exportToJSON, exportToCSV, exportToPDF } from '../utils/export-utils';
 
@@ -60,17 +52,6 @@ export default function UserTable({
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [selectedDate, setSelectedDate] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-  const [activeDropdown, setActiveDropdown] = useState<number | null>(null);
-  const [dropdownCoords, setDropdownCoords] = useState({ top: 0, right: 0 });
-
-  const handleDropdownClick = (index: number, event: React.MouseEvent) => {
-    const rect = (event.target as HTMLElement).getBoundingClientRect();
-    setDropdownCoords({
-      top: rect.top - 140,
-      right: window.innerWidth - rect.right,
-    });
-    setActiveDropdown(activeDropdown === index ? null : index);
-  };
 
   const getCurrentDate = () => {
     const today = new Date();
@@ -233,7 +214,7 @@ export default function UserTable({
                 </div>
               </th>
               <th className="px-6 py-4 text-left font-semibold text-gray-700">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 whitespace-nowrap">
                   Created By
                   <div className="relative">
                     <svg
@@ -279,15 +260,12 @@ export default function UserTable({
                   </div>
                 </div>
               </th>
-              <th className="px-6 py-4 text-left font-semibold text-gray-700">
-                Actions
-              </th>
             </tr>
           </thead>
           <tbody>
             {isLoading ? (
               <tr>
-                <td colSpan={5} className="px-6 py-4 text-center text-gray-500">
+                <td colSpan={4} className="px-6 py-4 text-center text-gray-500">
                   <div className="flex items-center justify-center py-4">
                     <div className="h-6 w-6 animate-spin rounded-full border-b-2 border-[#008647]"></div>
                     <span className="ml-2">Loading users...</span>
@@ -296,7 +274,7 @@ export default function UserTable({
               </tr>
             ) : currentData.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-6 py-4 text-center text-gray-500">
+                <td colSpan={4} className="px-6 py-4 text-center text-gray-500">
                   No users found
                 </td>
               </tr>
@@ -314,51 +292,6 @@ export default function UserTable({
                   </td>
                   <td className="px-6 py-4 text-gray-700">
                     {item.createdBy || 'N/A'}
-                  </td>
-                  <td className="relative px-6 py-4 text-gray-700">
-                    <div className="relative">
-                      <button
-                        onClick={(e) => handleDropdownClick(index, e)}
-                        className="rounded p-1 hover:bg-gray-100"
-                      >
-                        <MoreHorizontal className="h-4 w-4" />
-                      </button>
-
-                      {activeDropdown === index && (
-                        <div
-                          className="fixed z-50 w-48 rounded-lg border bg-white shadow-lg"
-                          style={{
-                            top: `${dropdownCoords.top}px`,
-                            right: `${dropdownCoords.right}px`,
-                          }}
-                        >
-                          <div>
-                            <button
-                              onClick={() =>
-                                (window.location.href =
-                                  '/admin/create-workflow/select-form')
-                              }
-                              className="flex w-full items-center gap-2 rounded-t-lg px-3 py-2 text-left text-gray-600 hover:bg-green-600 hover:text-white"
-                            >
-                              <Plus className="h-4 w-4" />
-                              Create Workflow
-                            </button>
-                            <button className="flex w-full items-center gap-2 bg-green-600 px-3 py-2 text-left text-white hover:bg-green-700">
-                              <Edit className="h-4 w-4" />
-                              Edit user
-                            </button>
-                            <button className="flex w-full items-center gap-2 px-3 py-2 text-left text-gray-600 hover:bg-green-600 hover:text-white">
-                              <UserX className="h-4 w-4" />
-                              Suspend user
-                            </button>
-                            <button className="flex w-full items-center gap-2 rounded-b-lg px-3 py-2 text-left text-red-600 hover:bg-red-600 hover:text-white">
-                              <Trash2 className="h-4 w-4" />
-                              Delete user
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
                   </td>
                 </tr>
               ))

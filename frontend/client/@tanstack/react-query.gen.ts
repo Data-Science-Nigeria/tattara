@@ -4,6 +4,7 @@ import {
   type Options,
   authControllerRegister,
   authControllerLogin,
+  authControllerLogout,
   authControllerVerifyEmail,
   authControllerResendVerification,
   authControllerForgotPassword,
@@ -18,7 +19,7 @@ import {
   userControllerRegisterSingleUser,
   userControllerBulkCreate,
   userControllerGetAllPermissions,
-  programControllerFindAll,
+  programControllerGetPrograms,
   programControllerCreate,
   programControllerRemove,
   programControllerFindOne,
@@ -27,7 +28,7 @@ import {
   programControllerAddWorkflowToProgram,
   programControllerGetAllProgramsForUser,
   programControllerAddUsersToProgram,
-  workflowControllerFindAllWorkflows,
+  workflowControllerGetWorkflows,
   workflowControllerCreateWorkflow,
   workflowControllerSearchWorkflows,
   workflowControllerFindWorkflowById,
@@ -66,6 +67,7 @@ import type {
   AuthControllerRegisterResponse,
   AuthControllerLoginData,
   AuthControllerLoginResponse,
+  AuthControllerLogoutData,
   AuthControllerVerifyEmailData,
   AuthControllerResendVerificationData,
   AuthControllerForgotPasswordData,
@@ -81,7 +83,7 @@ import type {
   UserControllerRegisterSingleUserData,
   UserControllerBulkCreateData,
   UserControllerGetAllPermissionsData,
-  ProgramControllerFindAllData,
+  ProgramControllerGetProgramsData,
   ProgramControllerCreateData,
   ProgramControllerCreateResponse,
   ProgramControllerRemoveData,
@@ -94,7 +96,7 @@ import type {
   ProgramControllerGetAllProgramsForUserData,
   ProgramControllerAddUsersToProgramData,
   ProgramControllerAddUsersToProgramResponse,
-  WorkflowControllerFindAllWorkflowsData,
+  WorkflowControllerGetWorkflowsData,
   WorkflowControllerCreateWorkflowData,
   WorkflowControllerCreateWorkflowResponse,
   WorkflowControllerSearchWorkflowsData,
@@ -118,7 +120,9 @@ import type {
   IntegrationControllerTestConnectionResponse,
   IntegrationControllerFetchSchemasData,
   IntegrationControllerGetProgramsData,
+  IntegrationControllerGetProgramsResponse,
   IntegrationControllerGetDatasetsData,
+  IntegrationControllerGetDatasetsResponse,
   IntegrationControllerGetOrgUnitsData,
   ExternalConnectionsControllerFindAllData,
   ExternalConnectionsControllerCreateData,
@@ -173,6 +177,33 @@ export const authControllerLoginMutation = (
   > = {
     mutationFn: async (fnOptions) => {
       const { data } = await authControllerLogin({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+/**
+ * Logout the currently authenticated user
+ */
+export const authControllerLogoutMutation = (
+  options?: Partial<Options<AuthControllerLogoutData>>
+): UseMutationOptions<
+  unknown,
+  DefaultError,
+  Options<AuthControllerLogoutData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    unknown,
+    DefaultError,
+    Options<AuthControllerLogoutData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await authControllerLogout({
         ...options,
         ...fnOptions,
         throwOnError: true,
@@ -694,19 +725,19 @@ export const userControllerGetAllPermissionsOptions = (
   });
 };
 
-export const programControllerFindAllQueryKey = (
-  options: Options<ProgramControllerFindAllData>
-) => createQueryKey('programControllerFindAll', options);
+export const programControllerGetProgramsQueryKey = (
+  options?: Options<ProgramControllerGetProgramsData>
+) => createQueryKey('programControllerGetPrograms', options);
 
 /**
  * Get all programs with pagination
  */
-export const programControllerFindAllOptions = (
-  options: Options<ProgramControllerFindAllData>
+export const programControllerGetProgramsOptions = (
+  options?: Options<ProgramControllerGetProgramsData>
 ) => {
   return queryOptions({
     queryFn: async ({ queryKey, signal }) => {
-      const { data } = await programControllerFindAll({
+      const { data } = await programControllerGetPrograms({
         ...options,
         ...queryKey[0],
         signal,
@@ -714,29 +745,29 @@ export const programControllerFindAllOptions = (
       });
       return data;
     },
-    queryKey: programControllerFindAllQueryKey(options),
+    queryKey: programControllerGetProgramsQueryKey(options),
   });
 };
 
-export const programControllerFindAllInfiniteQueryKey = (
-  options: Options<ProgramControllerFindAllData>
-): QueryKey<Options<ProgramControllerFindAllData>> =>
-  createQueryKey('programControllerFindAll', options, true);
+export const programControllerGetProgramsInfiniteQueryKey = (
+  options?: Options<ProgramControllerGetProgramsData>
+): QueryKey<Options<ProgramControllerGetProgramsData>> =>
+  createQueryKey('programControllerGetPrograms', options, true);
 
 /**
  * Get all programs with pagination
  */
-export const programControllerFindAllInfiniteOptions = (
-  options: Options<ProgramControllerFindAllData>
+export const programControllerGetProgramsInfiniteOptions = (
+  options?: Options<ProgramControllerGetProgramsData>
 ) => {
   return infiniteQueryOptions<
     unknown,
     DefaultError,
     InfiniteData<unknown>,
-    QueryKey<Options<ProgramControllerFindAllData>>,
+    QueryKey<Options<ProgramControllerGetProgramsData>>,
     | number
     | Pick<
-        QueryKey<Options<ProgramControllerFindAllData>>[0],
+        QueryKey<Options<ProgramControllerGetProgramsData>>[0],
         'body' | 'headers' | 'path' | 'query'
       >
   >(
@@ -745,7 +776,7 @@ export const programControllerFindAllInfiniteOptions = (
       queryFn: async ({ pageParam, queryKey, signal }) => {
         // @ts-ignore
         const page: Pick<
-          QueryKey<Options<ProgramControllerFindAllData>>[0],
+          QueryKey<Options<ProgramControllerGetProgramsData>>[0],
           'body' | 'headers' | 'path' | 'query'
         > =
           typeof pageParam === 'object'
@@ -756,7 +787,7 @@ export const programControllerFindAllInfiniteOptions = (
                 },
               };
         const params = createInfiniteParams(queryKey, page);
-        const { data } = await programControllerFindAll({
+        const { data } = await programControllerGetPrograms({
           ...options,
           ...params,
           signal,
@@ -764,7 +795,7 @@ export const programControllerFindAllInfiniteOptions = (
         });
         return data;
       },
-      queryKey: programControllerFindAllInfiniteQueryKey(options),
+      queryKey: programControllerGetProgramsInfiniteQueryKey(options),
     }
   );
 };
@@ -976,16 +1007,16 @@ export const programControllerAddUsersToProgramMutation = (
   return mutationOptions;
 };
 
-export const workflowControllerFindAllWorkflowsQueryKey = (
-  options: Options<WorkflowControllerFindAllWorkflowsData>
-) => createQueryKey('workflowControllerFindAllWorkflows', options);
+export const workflowControllerGetWorkflowsQueryKey = (
+  options?: Options<WorkflowControllerGetWorkflowsData>
+) => createQueryKey('workflowControllerGetWorkflows', options);
 
-export const workflowControllerFindAllWorkflowsOptions = (
-  options: Options<WorkflowControllerFindAllWorkflowsData>
+export const workflowControllerGetWorkflowsOptions = (
+  options?: Options<WorkflowControllerGetWorkflowsData>
 ) => {
   return queryOptions({
     queryFn: async ({ queryKey, signal }) => {
-      const { data } = await workflowControllerFindAllWorkflows({
+      const { data } = await workflowControllerGetWorkflows({
         ...options,
         ...queryKey[0],
         signal,
@@ -993,26 +1024,26 @@ export const workflowControllerFindAllWorkflowsOptions = (
       });
       return data;
     },
-    queryKey: workflowControllerFindAllWorkflowsQueryKey(options),
+    queryKey: workflowControllerGetWorkflowsQueryKey(options),
   });
 };
 
-export const workflowControllerFindAllWorkflowsInfiniteQueryKey = (
-  options: Options<WorkflowControllerFindAllWorkflowsData>
-): QueryKey<Options<WorkflowControllerFindAllWorkflowsData>> =>
-  createQueryKey('workflowControllerFindAllWorkflows', options, true);
+export const workflowControllerGetWorkflowsInfiniteQueryKey = (
+  options?: Options<WorkflowControllerGetWorkflowsData>
+): QueryKey<Options<WorkflowControllerGetWorkflowsData>> =>
+  createQueryKey('workflowControllerGetWorkflows', options, true);
 
-export const workflowControllerFindAllWorkflowsInfiniteOptions = (
-  options: Options<WorkflowControllerFindAllWorkflowsData>
+export const workflowControllerGetWorkflowsInfiniteOptions = (
+  options?: Options<WorkflowControllerGetWorkflowsData>
 ) => {
   return infiniteQueryOptions<
     unknown,
     DefaultError,
     InfiniteData<unknown>,
-    QueryKey<Options<WorkflowControllerFindAllWorkflowsData>>,
+    QueryKey<Options<WorkflowControllerGetWorkflowsData>>,
     | number
     | Pick<
-        QueryKey<Options<WorkflowControllerFindAllWorkflowsData>>[0],
+        QueryKey<Options<WorkflowControllerGetWorkflowsData>>[0],
         'body' | 'headers' | 'path' | 'query'
       >
   >(
@@ -1021,7 +1052,7 @@ export const workflowControllerFindAllWorkflowsInfiniteOptions = (
       queryFn: async ({ pageParam, queryKey, signal }) => {
         // @ts-ignore
         const page: Pick<
-          QueryKey<Options<WorkflowControllerFindAllWorkflowsData>>[0],
+          QueryKey<Options<WorkflowControllerGetWorkflowsData>>[0],
           'body' | 'headers' | 'path' | 'query'
         > =
           typeof pageParam === 'object'
@@ -1032,7 +1063,7 @@ export const workflowControllerFindAllWorkflowsInfiniteOptions = (
                 },
               };
         const params = createInfiniteParams(queryKey, page);
-        const { data } = await workflowControllerFindAllWorkflows({
+        const { data } = await workflowControllerGetWorkflows({
           ...options,
           ...params,
           signal,
@@ -1040,7 +1071,7 @@ export const workflowControllerFindAllWorkflowsInfiniteOptions = (
         });
         return data;
       },
-      queryKey: workflowControllerFindAllWorkflowsInfiniteQueryKey(options),
+      queryKey: workflowControllerGetWorkflowsInfiniteQueryKey(options),
     }
   );
 };
@@ -1518,6 +1549,54 @@ export const integrationControllerGetProgramsOptions = (
   });
 };
 
+export const integrationControllerGetProgramsInfiniteQueryKey = (
+  options: Options<IntegrationControllerGetProgramsData>
+): QueryKey<Options<IntegrationControllerGetProgramsData>> =>
+  createQueryKey('integrationControllerGetPrograms', options, true);
+
+export const integrationControllerGetProgramsInfiniteOptions = (
+  options: Options<IntegrationControllerGetProgramsData>
+) => {
+  return infiniteQueryOptions<
+    IntegrationControllerGetProgramsResponse,
+    DefaultError,
+    InfiniteData<IntegrationControllerGetProgramsResponse>,
+    QueryKey<Options<IntegrationControllerGetProgramsData>>,
+    | number
+    | Pick<
+        QueryKey<Options<IntegrationControllerGetProgramsData>>[0],
+        'body' | 'headers' | 'path' | 'query'
+      >
+  >(
+    // @ts-ignore
+    {
+      queryFn: async ({ pageParam, queryKey, signal }) => {
+        // @ts-ignore
+        const page: Pick<
+          QueryKey<Options<IntegrationControllerGetProgramsData>>[0],
+          'body' | 'headers' | 'path' | 'query'
+        > =
+          typeof pageParam === 'object'
+            ? pageParam
+            : {
+                query: {
+                  page: pageParam,
+                },
+              };
+        const params = createInfiniteParams(queryKey, page);
+        const { data } = await integrationControllerGetPrograms({
+          ...options,
+          ...params,
+          signal,
+          throwOnError: true,
+        });
+        return data;
+      },
+      queryKey: integrationControllerGetProgramsInfiniteQueryKey(options),
+    }
+  );
+};
+
 export const integrationControllerGetDatasetsQueryKey = (
   options: Options<IntegrationControllerGetDatasetsData>
 ) => createQueryKey('integrationControllerGetDatasets', options);
@@ -1537,6 +1616,54 @@ export const integrationControllerGetDatasetsOptions = (
     },
     queryKey: integrationControllerGetDatasetsQueryKey(options),
   });
+};
+
+export const integrationControllerGetDatasetsInfiniteQueryKey = (
+  options: Options<IntegrationControllerGetDatasetsData>
+): QueryKey<Options<IntegrationControllerGetDatasetsData>> =>
+  createQueryKey('integrationControllerGetDatasets', options, true);
+
+export const integrationControllerGetDatasetsInfiniteOptions = (
+  options: Options<IntegrationControllerGetDatasetsData>
+) => {
+  return infiniteQueryOptions<
+    IntegrationControllerGetDatasetsResponse,
+    DefaultError,
+    InfiniteData<IntegrationControllerGetDatasetsResponse>,
+    QueryKey<Options<IntegrationControllerGetDatasetsData>>,
+    | number
+    | Pick<
+        QueryKey<Options<IntegrationControllerGetDatasetsData>>[0],
+        'body' | 'headers' | 'path' | 'query'
+      >
+  >(
+    // @ts-ignore
+    {
+      queryFn: async ({ pageParam, queryKey, signal }) => {
+        // @ts-ignore
+        const page: Pick<
+          QueryKey<Options<IntegrationControllerGetDatasetsData>>[0],
+          'body' | 'headers' | 'path' | 'query'
+        > =
+          typeof pageParam === 'object'
+            ? pageParam
+            : {
+                query: {
+                  page: pageParam,
+                },
+              };
+        const params = createInfiniteParams(queryKey, page);
+        const { data } = await integrationControllerGetDatasets({
+          ...options,
+          ...params,
+          signal,
+          throwOnError: true,
+        });
+        return data;
+      },
+      queryKey: integrationControllerGetDatasetsInfiniteQueryKey(options),
+    }
+  );
 };
 
 export const integrationControllerGetOrgUnitsQueryKey = (

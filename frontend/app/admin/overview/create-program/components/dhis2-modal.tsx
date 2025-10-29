@@ -11,6 +11,9 @@ interface DHIS2Instance {
   name: string;
   type: 'dhis2' | 'postgres';
   isActive: boolean;
+  configuration: {
+    baseUrl: string;
+  };
 }
 
 interface DHIS2ModalProps {
@@ -30,9 +33,14 @@ export function DHIS2Modal({ isOpen, onClose, onConfirm }: DHIS2ModalProps) {
     enabled: isOpen,
   });
 
-  const dhis2Instances: DHIS2Instance[] = Array.isArray(connections)
-    ? connections.filter(
-        (conn: DHIS2Instance) => conn.type === 'dhis2' && conn.isActive
+  interface ConnectionsResponse {
+    data?: DHIS2Instance[];
+  }
+
+  const dhis2Instances: DHIS2Instance[] = (connections as ConnectionsResponse)
+    ?.data
+    ? (connections as ConnectionsResponse).data!.filter(
+        (conn) => conn.type === 'dhis2' && conn.isActive
       )
     : [];
 
@@ -149,8 +157,14 @@ export function DHIS2Modal({ isOpen, onClose, onConfirm }: DHIS2ModalProps) {
                     {isLoading
                       ? 'Loading instances...'
                       : selectedInstance
-                        ? dhis2Instances.find((i) => i.id === selectedInstance)
-                            ?.name
+                        ? (() => {
+                            const instance = dhis2Instances.find(
+                              (i) => i.id === selectedInstance
+                            );
+                            return instance
+                              ? `${instance.name} - ${instance.configuration.baseUrl}`
+                              : 'Unknown instance';
+                          })()
                         : dhis2Instances.length > 0
                           ? 'Select instance'
                           : 'No DHIS2 instances available'}
@@ -170,7 +184,10 @@ export function DHIS2Modal({ isOpen, onClose, onConfirm }: DHIS2ModalProps) {
                           }}
                           className="w-full px-3 py-2 text-left text-sm first:rounded-t-lg last:rounded-b-lg hover:bg-gray-50"
                         >
-                          {instance.name}
+                          <div className="font-medium">{instance.name}</div>
+                          <div className="text-xs text-gray-500">
+                            {instance.configuration.baseUrl}
+                          </div>
                         </button>
                       ))
                     ) : (

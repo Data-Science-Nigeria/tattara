@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { Search } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
-import { userControllerFindAllOptions } from '@/client/@tanstack/react-query.gen';
+import { userControllerFindAllForLoggedInUserOptions } from '@/client/@tanstack/react-query.gen';
 import UserProfileTable from './components/user-profile-table';
 
 interface User {
@@ -23,18 +23,36 @@ export default function UserProfilesPage() {
   const limit = 10;
 
   const { data: usersData, isLoading } = useQuery({
-    ...userControllerFindAllOptions({
+    ...userControllerFindAllForLoggedInUserOptions({
       query: { page: currentPage, limit },
     }),
   });
 
-  interface ApiResponse {
-    data?: User[];
-    total?: number;
+  interface UsersResponse {
+    data:
+      | {
+          users: User[];
+          pagination?: {
+            total: number;
+          };
+        }
+      | User[];
   }
 
-  const users = (usersData as ApiResponse)?.data || [];
-  const totalUsers = (usersData as ApiResponse)?.total || 0;
+  // Fix data extraction based on API response structure
+  const responseData = (usersData as UsersResponse)?.data;
+  const users = Array.isArray(responseData)
+    ? responseData
+    : responseData &&
+        'users' in responseData &&
+        Array.isArray(responseData.users)
+      ? responseData.users
+      : [];
+  const totalUsers =
+    (responseData &&
+      'pagination' in responseData &&
+      responseData.pagination?.total) ||
+    users.length;
   const totalPages = Math.ceil(totalUsers / limit);
 
   const filteredUsers = users.filter(

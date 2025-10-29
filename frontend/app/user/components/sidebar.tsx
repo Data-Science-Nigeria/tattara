@@ -6,6 +6,7 @@ import { LogOut, PanelLeft, PanelRight } from 'lucide-react';
 import Logo from '../../components/logo';
 import Avatar from '../../components/avatar';
 import { useAuthStore } from '../../store/use-auth-store';
+import { useLogout } from '../../hooks/use-logout';
 
 interface SidebarProps {
   isOpen?: boolean;
@@ -13,6 +14,7 @@ interface SidebarProps {
 }
 
 const Sidebar = ({ isOpen = false, onToggle = () => {} }: SidebarProps) => {
+  const { handleLogout } = useLogout();
   const { auth } = useAuthStore();
 
   const surname = auth.lastName || 'User';
@@ -49,8 +51,12 @@ const Sidebar = ({ isOpen = false, onToggle = () => {} }: SidebarProps) => {
               <Logo className="h-12 w-auto md:h-16" />
             </div>
             <button
-              onClick={onToggle}
-              className="rounded-md p-2 text-gray-500 hover:bg-gray-100 lg:hidden"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (onToggle) onToggle();
+              }}
+              className="relative z-50 rounded-md p-2 text-gray-500 hover:bg-gray-100 lg:hidden"
             >
               {isOpen ? (
                 <PanelLeft className="h-5 w-5" />
@@ -101,13 +107,19 @@ const Sidebar = ({ isOpen = false, onToggle = () => {} }: SidebarProps) => {
           }`}
         >
           <div className={isOpen ? 'block' : 'hidden lg:block'}>
-            <button className="flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-medium text-red-500 hover:bg-red-50">
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-medium text-red-500 hover:bg-red-50"
+            >
               <LogOut size={18} />
               <span>Log Out</span>
             </button>
           </div>
           <div className={isOpen ? 'hidden' : 'block lg:hidden'}>
-            <button className="rounded-md p-3 text-red-500 hover:bg-red-50">
+            <button
+              onClick={handleLogout}
+              className="rounded-md p-3 text-red-500 hover:bg-red-50"
+            >
               <LogOut size={18} />
             </button>
           </div>

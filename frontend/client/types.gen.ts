@@ -105,7 +105,7 @@ export type ExternalConnection = {
   };
   createdAt: string;
   updatedAt: string;
-  workflowConfiguration: WorkflowConfiguration;
+  workflowConfigurations: WorkflowConfiguration;
   createdBy: User;
 };
 
@@ -134,6 +134,7 @@ export type Workflow = {
   fieldMappings: Array<FieldMapping>;
   workflowConfigurations: Array<WorkflowConfiguration>;
   users: Array<User>;
+  createdBy: User;
   version: number;
   createdAt: string;
   updatedAt: string;
@@ -145,6 +146,7 @@ export type Program = {
   description: string;
   workflows: Array<Workflow>;
   users: Array<User>;
+  createdBy: User;
   createdAt: string;
   updatedAt: string;
 };
@@ -263,6 +265,7 @@ export type CreateWorkflowConfigurationDto = {
   configuration: {
     [key: string]: unknown;
   };
+  externalConnectionId: string;
   isActive?: boolean;
 };
 
@@ -281,9 +284,10 @@ export type AssignUsersDto = {
 };
 
 export type Field = {
-  fieldName: string;
-  label: string;
-  fieldType:
+  id?: string;
+  fieldName?: string;
+  label?: string;
+  fieldType?:
     | 'text'
     | 'number'
     | 'date'
@@ -303,8 +307,7 @@ export type Field = {
   aiMapping?: {
     [key: string]: unknown;
   };
-  displayOrder: number;
-  id?: string;
+  displayOrder?: number;
 };
 
 export type UpsertWorkflowFieldsDto = {
@@ -339,7 +342,7 @@ export type SubmitDto = {
     [key: string]: unknown;
   };
   localId?: string;
-  aiProcessingLogId: string;
+  aiProcessingLogId?: string;
 };
 
 export type ConnectionDto = {
@@ -388,6 +391,17 @@ export type AuthControllerLoginResponses = {
 
 export type AuthControllerLoginResponse =
   AuthControllerLoginResponses[keyof AuthControllerLoginResponses];
+
+export type AuthControllerLogoutData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/api/v1/auth/logout';
+};
+
+export type AuthControllerLogoutResponses = {
+  201: unknown;
+};
 
 export type AuthControllerVerifyEmailData = {
   body: VerifyEmailDto;
@@ -558,17 +572,18 @@ export type UserControllerGetAllPermissionsResponses = {
 export type UserControllerGetAllPermissionsResponse =
   UserControllerGetAllPermissionsResponses[keyof UserControllerGetAllPermissionsResponses];
 
-export type ProgramControllerFindAllData = {
+export type ProgramControllerGetProgramsData = {
   body?: never;
   path?: never;
-  query: {
-    page: number;
-    limit: number;
+  query?: {
+    page?: number;
+    limit?: number;
+    userId?: string;
   };
   url: '/api/v1/programs';
 };
 
-export type ProgramControllerFindAllResponses = {
+export type ProgramControllerGetProgramsResponses = {
   200: unknown;
 };
 
@@ -692,17 +707,18 @@ export type ProgramControllerAddUsersToProgramResponses = {
 export type ProgramControllerAddUsersToProgramResponse =
   ProgramControllerAddUsersToProgramResponses[keyof ProgramControllerAddUsersToProgramResponses];
 
-export type WorkflowControllerFindAllWorkflowsData = {
+export type WorkflowControllerGetWorkflowsData = {
   body?: never;
   path?: never;
-  query: {
-    page: number;
-    limit: number;
+  query?: {
+    userId?: string;
+    page?: number;
+    limit?: number;
   };
   url: '/api/v1/workflows';
 };
 
-export type WorkflowControllerFindAllWorkflowsResponses = {
+export type WorkflowControllerGetWorkflowsResponses = {
   200: unknown;
 };
 
@@ -965,7 +981,10 @@ export type IntegrationControllerGetProgramsData = {
   path: {
     connectionId: string;
   };
-  query?: never;
+  query: {
+    page: number;
+    pageSize: number;
+  };
   url: '/api/v1/integration/dhis2/programs/{connectionId}';
 };
 
@@ -983,7 +1002,10 @@ export type IntegrationControllerGetDatasetsData = {
   path: {
     connectionId: string;
   };
-  query?: never;
+  query: {
+    page: number;
+    pageSize: number;
+  };
   url: '/api/v1/integration/dhis2/datasets/{connectionId}';
 };
 

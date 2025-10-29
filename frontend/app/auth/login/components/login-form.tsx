@@ -179,6 +179,7 @@ export function LoginForm() {
               {...register('email')}
               placeholder="Enter your Email Address"
               className="mt-1 w-full rounded border bg-[#F2F3FF] p-2 pr-10 placeholder:text-sm placeholder:text-[#525F76] focus:border-[#03390F] focus:ring-[#03390F] focus:outline-none"
+              suppressHydrationWarning
             />
             <img
               src={'/sms.svg'}
