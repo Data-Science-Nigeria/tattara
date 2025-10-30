@@ -141,7 +141,7 @@ export class ProgramController {
   @RequirePermissions('program:update')
   addUsersToProgram(
     @Param('id', new ParseUUIDPipe()) programId: string,
-    @Body('userIds') dto: AssignUsersToProgramDto,
+    @Body() dto: AssignUsersToProgramDto,
   ) {
     return this.programService.assignUsersToProgram(dto.userIds, programId);
   }

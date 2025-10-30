@@ -101,13 +101,15 @@ export class BaseRepository<T extends ObjectLiteral> extends Repository<T> {
   private applyScope(qb: SelectQueryBuilder<T>, skipScope = false): void {
     if (skipScope || this.requestContext.isSuperAdmin()) return;
 
+    const isAdmin = this.requestContext.isAdmin();
+
     const userId = this.requestContext.getUserId();
 
     const hasCreatorField = this.metadata.findColumnWithPropertyName(
       this.creatorPropertyName,
     );
 
-    if (userId && hasCreatorField) {
+    if (userId && hasCreatorField && isAdmin) {
       qb.andWhere(`${qb.alias}.${this.creatorColumnName} = :userId`, {
         userId,
       });
@@ -273,8 +275,6 @@ export class BaseRepository<T extends ObjectLiteral> extends Repository<T> {
         }
       }
     }
-
-    console.log('Saving entities:', entities);
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return super.save(entities as any, options);

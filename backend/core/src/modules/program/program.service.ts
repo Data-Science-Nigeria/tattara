@@ -54,20 +54,20 @@ export class ProgramService {
     const alias = 'program';
     const qb = this.programRepository.withScope(alias);
 
-    qb.leftJoinAndSelect(`${alias}.workflows`, 'workflows').leftJoinAndSelect(
-      `${alias}.users`,
-      'users',
-    );
+    qb.leftJoinAndSelect(`${alias}.workflows`, 'workflows');
 
     if (currentUser.hasRole('user') && !currentUser.hasRole('admin')) {
       qb.innerJoin(`${alias}.users`, 'user').andWhere('user.id = :userId', {
         userId: currentUser.id,
       });
+    } else if (userId) {
+      const targetUserIds = Array.isArray(userId) ? userId : [userId];
+      qb.innerJoin(`${alias}.users`, 'user').andWhere(
+        'user.id IN (:...targetUserIds)',
+        { targetUserIds },
+      );
     } else {
-      if (userId) {
-        const targetUserIds = Array.isArray(userId) ? userId : [userId];
-        qb.andWhere('users.id IN (:...targetUserIds)', { targetUserIds });
-      }
+      qb.leftJoinAndSelect(`${alias}.users`, 'users');
     }
 
     qb.orderBy(`${alias}.createdAt`, 'DESC')
@@ -75,6 +75,8 @@ export class ProgramService {
       .take(limit);
 
     const [programs, total] = await qb.getManyAndCount();
+
+    console.log('Generated SQL:', qb.getSql());
 
     return { programs, total };
   }
@@ -169,13 +171,18 @@ export class ProgramService {
   }
 
   async getAllProgramsForUser(userId: string): Promise<Program[]> {
-    return this.programRepository.find({
-      relations: ['users', 'workflows'],
-      where: {
-        users: {
-          id: userId,
-        },
-      },
+    const alias = 'program';
+    const qb = this.programRepository.withScope(alias);
+
+    qb.leftJoinAndSelect(`${alias}.workflows`, 'workflows').leftJoinAndSelect(
+      `${alias}.users`,
+      'users',
+    );
+
+    qb.innerJoin(`${alias}.users`, 'user').andWhere('user.id = :userId', {
+      userId,
     });
+
+    return qb.getMany();
   }
 }

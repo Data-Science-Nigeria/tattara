@@ -39,7 +39,22 @@ export class WorkflowController {
     @Query('page', ParseIntPipe) page: number = 1,
     @Query('limit', ParseIntPipe) limit: number = 10,
   ) {
-    return this.workflowService.getWorkflows(currentUser, userId, page, limit);
+    const { workflows, total } = await this.workflowService.getWorkflows(
+      currentUser,
+      userId,
+      page,
+      limit,
+    );
+
+    return {
+      data: plainToInstance(WorkflowResponseDto, workflows, {
+        excludeExtraneousValues: true,
+      }),
+      page,
+      limit,
+      total,
+      pages: Math.ceil(total / limit),
+    };
   }
 
   @Get('/search')
