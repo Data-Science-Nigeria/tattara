@@ -22,7 +22,6 @@ import {
 import {
   DataSource,
   EntityManager,
-  FindOptionsWhere,
   ILike,
   In,
   QueryFailedError,
