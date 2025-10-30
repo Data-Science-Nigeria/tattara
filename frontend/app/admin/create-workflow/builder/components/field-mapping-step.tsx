@@ -64,13 +64,8 @@ export default function FieldMappingStep({
   });
 
   useEffect(() => {
-    console.log('Schema data received:', schemaData);
-    console.log('Error:', error);
-    console.log('Loading:', isLoading);
-
     if (schemaData) {
       const schema = (schemaData as { data: SchemaData })?.data;
-      console.log('Parsed schema:', schema);
 
       if (schema?.programStages) {
         const elements: DataElement[] = [];
@@ -86,7 +81,6 @@ export default function FieldMappingStep({
             });
           }
         });
-        console.log('Extracted data elements:', elements);
         setDhis2DataElements(elements);
       } else if (schema?.dataElements) {
         // Handle direct data elements structure
@@ -95,11 +89,7 @@ export default function FieldMappingStep({
           name: element.name || element.displayName,
           valueType: element.valueType,
         }));
-        console.log('Direct data elements found:', elements);
         setDhis2DataElements(elements);
-      } else {
-        console.log('No programStages or dataElements found in schema');
-        console.log('Available schema keys:', Object.keys(schema || {}));
       }
     }
   }, [schemaData, error, isLoading]);

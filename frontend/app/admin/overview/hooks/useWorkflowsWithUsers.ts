@@ -23,16 +23,11 @@ export function useWorkflowsWithUsers(workflows: Workflow[]) {
     .filter((query) => query.data)
     .map((query) => {
       const data = (query.data as { data?: Workflow })?.data;
-      console.log('Individual workflow data:', data);
-      console.log('Full workflow object keys:', Object.keys(data || {}));
       return data;
     })
     .filter(Boolean) as Workflow[];
 
   const isLoading = workflowQueries.some((query) => query.isLoading);
-
-  console.log('Custom hook - workflows input:', workflows);
-  console.log('Custom hook - workflowsWithUsers output:', workflowsWithUsers);
 
   return { workflowsWithUsers, isLoading };
 }

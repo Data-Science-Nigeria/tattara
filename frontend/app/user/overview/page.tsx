@@ -60,8 +60,6 @@ export default function Workflows() {
     retry: 1,
   });
 
-  console.log('User ID:', userId);
-
   const getIconForWorkflow = (
     enabledModes: Array<'audio' | 'text' | 'form' | 'image'>
   ) => {
@@ -69,7 +67,7 @@ export default function Workflows() {
     if (enabledModes.includes('image')) return Image;
     if (enabledModes.includes('form')) return ClipboardList;
     if (enabledModes.includes('text')) return FileText;
-    return FileText; // default
+    return FileText;
   };
 
   // Filter workflows for current user
@@ -79,11 +77,6 @@ export default function Workflows() {
   });
   const activeWorkflows = userWorkflows.filter((w) => w.status === 'active');
   const finalWorkflows = activeWorkflows;
-
-  console.log('All workflows:', allWorkflows);
-  console.log('User assigned workflows:', userWorkflows);
-  console.log('Active workflows:', activeWorkflows);
-  console.log('Final workflows to show:', finalWorkflows);
 
   // Pagination logic
   const totalWorkflows = finalWorkflows.length;

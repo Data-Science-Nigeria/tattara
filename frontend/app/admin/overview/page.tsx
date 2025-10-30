@@ -78,17 +78,23 @@ const Programs = () => {
   }
 
   interface ApiResponse {
-    data?: {
-      programs?: ApiProgram[];
-      pagination?: { total: number; pages: number };
+    success: boolean;
+    data: {
+      data: ApiProgram[];
+      page: number;
+      limit: number;
+      total: number;
+      pages: number;
     };
+    timestamp: string;
   }
 
   // Extract programs and pagination from API response
-  const programsArray = (programsData as ApiResponse)?.data?.programs || [];
-  const pagination = (programsData as ApiResponse)?.data?.pagination || {
-    total: 0,
-    pages: 1,
+  const apiData = (programsData as unknown as ApiResponse)?.data;
+  const programsArray = apiData?.data || [];
+  const pagination = {
+    total: apiData?.total || 0,
+    pages: apiData?.pages || 1,
   };
 
   const getIconForProgram = (programName: string) => {

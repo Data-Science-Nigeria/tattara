@@ -14,8 +14,14 @@ import ConnectionsList from './components/connections-list';
 import ConnectionFormModal from './components/connection-form-modal';
 import TestConnectionModal from '../dhis2-integration/components/test-connection-modal';
 
+type ApiResponse<T> = {
+  success: boolean;
+  data: T;
+  timestamp: string;
+};
 export default function ExternalConnections() {
   const queryClient = useQueryClient();
+
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [editingConnection, setEditingConnection] =
     useState<ExternalConnection | null>(null);
@@ -29,18 +35,23 @@ export default function ExternalConnections() {
   );
   const [showTestModal, setShowTestModal] = useState(false);
 
-  const { data: connectionsResponse, isLoading } = useQuery({
+  const {
+    data: connections,
+    isLoading,
+    error,
+  } = useQuery({
     ...externalConnectionsControllerFindAllOptions(),
+    retry: false,
   });
 
-  const connections =
-    (connectionsResponse as unknown as ExternalConnection[]) || [];
+  const connectionsArray =
+    (connections as unknown as ApiResponse<ExternalConnection[]>)?.data || [];
 
   const createMutation = useMutation({
     ...externalConnectionsControllerCreateMutation(),
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ['externalConnectionsControllerFindAll'],
+        queryKey: externalConnectionsControllerFindAllOptions().queryKey,
       });
       resetForm();
       setShowCreateForm(false);
@@ -51,7 +62,7 @@ export default function ExternalConnections() {
     ...externalConnectionsControllerUpdateMutation(),
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ['externalConnectionsControllerFindAll'],
+        queryKey: externalConnectionsControllerFindAllOptions().queryKey,
       });
       resetForm();
       setEditingConnection(null);
@@ -62,7 +73,7 @@ export default function ExternalConnections() {
     ...externalConnectionsControllerRemoveMutation(),
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ['externalConnectionsControllerFindAll'],
+        queryKey: externalConnectionsControllerFindAllOptions().queryKey,
       });
     },
   });
@@ -135,7 +146,7 @@ export default function ExternalConnections() {
       </div>
 
       <ConnectionsList
-        connections={connections}
+        connections={connectionsArray}
         isLoading={isLoading}
         onEdit={handleEdit}
         onDelete={(id) => setDeleteConnectionId(id)}

@@ -38,8 +38,7 @@ export default function CreateWorkflow() {
 
   const archiveMutation = useMutation({
     ...workflowControllerArchiveWorkflowMutation(),
-    onSuccess: (data) => {
-      console.log('Archive success:', data);
+    onSuccess: () => {
       queryClient.invalidateQueries({
         predicate: (query) =>
           (query.queryKey[0] as { _id?: string })?._id ===
@@ -47,8 +46,7 @@ export default function CreateWorkflow() {
       });
       setArchivingId(null);
     },
-    onError: (error) => {
-      console.error('Archive error:', error);
+    onError: () => {
       setArchivingId(null);
     },
   });
@@ -72,7 +70,6 @@ export default function CreateWorkflow() {
   };
 
   const handleArchive = (workflowId: string) => {
-    console.log('Archiving workflow:', workflowId);
     setArchivingId(workflowId);
     archiveMutation.mutate({ path: { workflowId } });
   };

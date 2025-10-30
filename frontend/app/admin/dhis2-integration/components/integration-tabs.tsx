@@ -111,7 +111,7 @@ export default function IntegrationTabs({
   } = useQuery({
     ...integrationControllerFetchSchemasOptions({
       path: { connectionId },
-      query: { type: { value: selectedType } as _Object, id: selectedId },
+      query: { type: selectedType as unknown as _Object, id: selectedId },
     }),
     enabled: activeTab === 'schemas' && !!selectedId,
     retry: false,
@@ -124,7 +124,7 @@ export default function IntegrationTabs({
   } = useQuery({
     ...integrationControllerGetOrgUnitsOptions({
       path: { connectionId },
-      query: { type: { value: selectedType } as _Object, id: selectedId },
+      query: { type: selectedType as unknown as _Object, id: selectedId },
     }),
     enabled: activeTab === 'orgunits' && !!selectedId,
     retry: false,

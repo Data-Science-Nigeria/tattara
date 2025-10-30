@@ -57,6 +57,7 @@ export type FieldMapping = {
   target: {
     [key: string]: unknown;
   };
+  createdBy: User;
   createdAt: string;
 };
 
@@ -86,6 +87,7 @@ export type WorkflowField = {
     [key: string]: unknown;
   };
   displayOrder: number;
+  createdBy: User;
   createdAt: string;
   updatedAt: string;
   fieldMappings: Array<FieldMapping>;
@@ -118,6 +120,7 @@ export type WorkflowConfiguration = {
     [key: string]: unknown;
   };
   isActive: boolean;
+  createdBy: User;
   createdAt: string;
   updatedAt: string;
 };
@@ -177,6 +180,33 @@ export type AiProcessingLog = {
   completedAt: string;
 };
 
+export type Submission = {
+  id: string;
+  user: User;
+  workflow: Workflow;
+  localId: string;
+  data: {
+    [key: string]: unknown;
+  };
+  metadata: {
+    [key: string]: unknown;
+  };
+  status:
+    | 'pending'
+    | 'processing'
+    | 'completed'
+    | 'failed'
+    | 'draft'
+    | 'submitted'
+    | 'synced'
+    | 'archived';
+  validationErrors: {
+    [key: string]: unknown;
+  };
+  createdAt: string;
+  submittedAt: string;
+};
+
 export type User = {
   id: string;
   email: string;
@@ -196,6 +226,7 @@ export type User = {
   createdBy?: User;
   createdUsers: Array<User>;
   aiProcessingLogs: Array<AiProcessingLog>;
+  submissions: Array<Submission>;
   externalConnections: Array<ExternalConnection>;
   createdAt: string;
   updatedAt: string;
@@ -225,6 +256,74 @@ export type CreateProgramDto = {
 
 export type UpdateProgramDto = {
   [key: string]: unknown;
+};
+
+export type ProgramSummaryDto = {
+  id: string;
+  name: string;
+};
+
+export type ExternalConnectionSummaryDto = {
+  id: string;
+};
+
+export type WorkflowConfigSummaryDto = {
+  id: string;
+  name: string;
+  type: string;
+  isActive: boolean;
+  configuration: {
+    [key: string]: unknown;
+  };
+  createdAt: string;
+  externalConnection?: ExternalConnectionSummaryDto;
+  workflow?: Workflow;
+};
+
+export type WorkflowFieldSummaryDto = {
+  id: string;
+  fieldName: string;
+  label: string;
+  fieldType: string;
+  options: Array<string>;
+  isRequired: boolean;
+  displayOrder: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type FieldMappingSummaryDto = {
+  id: string;
+  targetType: string;
+  target: {
+    [key: string]: unknown;
+  };
+  createdAt: string;
+};
+
+export type UserSummaryDto = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+};
+
+export type WorkflowResponseDto = {
+  id: string;
+  name: string;
+  description: string;
+  status: string;
+  supportedLanguages: Array<string>;
+  enabledModes: Array<string>;
+  version: string;
+  createdAt: string;
+  updatedAt: string;
+  program?: ProgramSummaryDto;
+  workflowConfigurations: Array<WorkflowConfigSummaryDto>;
+  workflowFields: Array<WorkflowFieldSummaryDto>;
+  fieldMappings: Array<FieldMappingSummaryDto>;
+  createdBy: UserSummaryDto;
+  users: Array<UserSummaryDto>;
 };
 
 export type UpdateWorkflowBasicDto = {
@@ -761,7 +860,7 @@ export type WorkflowControllerFindWorkflowByIdData = {
 };
 
 export type WorkflowControllerFindWorkflowByIdResponses = {
-  200: Workflow;
+  200: WorkflowResponseDto;
 };
 
 export type WorkflowControllerFindWorkflowByIdResponse =
@@ -848,7 +947,7 @@ export type ConfigurationControllerGetWorkflowConfigurationsData = {
 };
 
 export type ConfigurationControllerGetWorkflowConfigurationsResponses = {
-  200: Array<WorkflowConfiguration>;
+  200: Array<WorkflowConfigSummaryDto>;
 };
 
 export type ConfigurationControllerGetWorkflowConfigurationsResponse =

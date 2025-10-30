@@ -7,6 +7,12 @@ import type { ExternalConnection } from '@/client/types.gen';
 import ConnectionSelector from './components/connection-selector';
 import IntegrationTabs from './components/integration-tabs';
 
+type ApiResponse<T> = {
+  success: boolean;
+  data: T;
+  timestamp: string;
+};
+
 export default function DHIS2Integration() {
   const [selectedConnectionId, setSelectedConnectionId] = useState<
     string | null
@@ -17,7 +23,8 @@ export default function DHIS2Integration() {
   });
 
   const connections =
-    (connectionsResponse as unknown as ExternalConnection[]) || [];
+    (connectionsResponse as unknown as ApiResponse<ExternalConnection[]>)
+      ?.data || [];
 
   return (
     <div className="space-y-6 p-8">

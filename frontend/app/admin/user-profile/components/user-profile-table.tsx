@@ -78,7 +78,6 @@ export default function UserProfileTable({
                 <td colSpan={6} className="px-6 py-4 text-center text-gray-500">
                   <div className="flex items-center justify-center py-4">
                     <div className="h-6 w-6 animate-spin rounded-full border-b-2 border-[#008647]"></div>
-                    <span className="ml-2">Loading users...</span>
                   </div>
                 </td>
               </tr>

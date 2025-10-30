@@ -62,8 +62,6 @@ export default function FieldMapping() {
     ...externalConnectionsControllerFindAllOptions(),
   });
 
-  console.log('Connections data:', connectionsData);
-
   const upsertMappingMutation = useMutation({
     ...fieldMappingControllerUpsertFieldMappingsMutation(),
     onSuccess: () => {
@@ -75,33 +73,23 @@ export default function FieldMapping() {
   useEffect(() => {
     if (workflowData) {
       const workflow = (workflowData as { data?: Workflow })?.data;
-      console.log('Workflow data:', workflow);
       setFields(workflow?.workflowFields || []);
 
       const dhis2Config = workflow?.workflowConfigurations?.find(
         (config) => config.type === 'dhis2'
       );
-      console.log('DHIS2 config found:', dhis2Config);
 
       if (dhis2Config) {
-        console.log('Full DHIS2 config:', JSON.stringify(dhis2Config, null, 2));
-
         // Get the external connection ID from the DHIS2 config
         const connectionId =
           dhis2Config.externalConnectionId ||
           dhis2Config.configuration?.externalConnectionId;
 
-        if (!connectionId) {
-          console.warn(
-            'No external connection ID found in DHIS2 config - user will need to select manually'
-          );
-        } else {
+        if (connectionId) {
           setSelectedConnection(connectionId);
         }
 
         const programId = dhis2Config.configuration?.programId || '';
-
-        console.log('Program ID:', programId);
         setSelectedProgram(programId);
       }
     }
@@ -109,11 +97,9 @@ export default function FieldMapping() {
     if (connectionsData) {
       const connections =
         (connectionsData as { data?: Connection[] })?.data || [];
-      console.log('All connections:', connections);
       const dhis2Connections = connections.filter(
         (conn) => conn.type === 'dhis2'
       );
-      console.log('DHIS2 connections:', dhis2Connections);
       setAvailableConnections(dhis2Connections);
     }
   }, [workflowData, connectionsData]);

@@ -58,7 +58,6 @@ export default function TestWorkflow() {
 
   const handleTest = () => {
     alert('Test completed! Data would be processed and sent to DHIS2.');
-    console.log('Test data:', testData);
   };
 
   if (isLoading) {

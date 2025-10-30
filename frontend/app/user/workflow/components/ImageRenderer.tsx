@@ -96,7 +96,6 @@ export default function ImageRenderer({ workflow }: ImageRendererProps) {
         }
       }, 100);
     } catch (error) {
-      console.error('Camera access failed:', error);
       alert(
         'Camera access denied or not available. Please use "Browse Files" instead.'
       );
@@ -112,27 +111,20 @@ export default function ImageRenderer({ workflow }: ImageRendererProps) {
   }, [stream]);
 
   const capturePhoto = useCallback(() => {
-    console.log('Capture photo clicked');
-
     if (!videoRef.current || !canvasRef.current) {
-      console.error('Video or canvas ref not available');
       return;
     }
 
     const video = videoRef.current;
     const canvas = canvasRef.current;
 
-    console.log('Video dimensions:', video.videoWidth, video.videoHeight);
-
     if (video.videoWidth === 0 || video.videoHeight === 0) {
-      console.error('Video not ready');
       alert('Camera not ready. Please wait a moment and try again.');
       return;
     }
 
     const context = canvas.getContext('2d');
     if (!context) {
-      console.error('Canvas context not available');
       return;
     }
 
@@ -140,19 +132,15 @@ export default function ImageRenderer({ workflow }: ImageRendererProps) {
     canvas.height = video.videoHeight;
 
     context.drawImage(video, 0, 0);
-    console.log('Image drawn to canvas');
 
     canvas.toBlob(
       (blob) => {
         if (blob) {
-          console.log('Blob created:', blob.size, 'bytes');
           const file = new File([blob], 'camera-photo.jpg', {
             type: 'image/jpeg',
           });
           handleFileSelect(file);
           closeCamera();
-        } else {
-          console.error('Failed to create blob');
         }
       },
       'image/jpeg',
@@ -187,7 +175,6 @@ export default function ImageRenderer({ workflow }: ImageRendererProps) {
       };
       reader.readAsDataURL(selectedFile);
     } catch (error) {
-      console.error('Failed to submit image:', error);
       alert('Failed to submit image. Please try again.');
     } finally {
       setIsSubmitting(false);
@@ -281,10 +268,7 @@ export default function ImageRenderer({ workflow }: ImageRendererProps) {
                 </button>
 
                 <button
-                  onClick={() => {
-                    console.log('Camera button clicked');
-                    openCamera();
-                  }}
+                  onClick={openCamera}
                   className="flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-white hover:bg-green-700"
                 >
                   <Camera className="h-4 w-4" />

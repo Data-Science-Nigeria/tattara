@@ -27,8 +27,6 @@ export default function ProfilePage() {
   }
 
   const { data } = useQuery(authControllerGetProfileOptions());
-
-  // Fix data extraction based on API response structure
   const profile = (data as ProfileResponse)?.data;
 
   const handleEditGender = () => {
@@ -42,8 +40,6 @@ export default function ProfilePage() {
   };
 
   const handleSaveGender = () => {
-    // TODO: Implement save functionality with API call
-    console.log('Saving gender:', genderValue);
     setIsEditingGender(false);
   };
 
