@@ -2,7 +2,7 @@ import { BaseRepository } from '@/common/repositories/base.repository';
 import { Program, User, Workflow } from '@/database/entities';
 import { RequestContext } from '@/shared/request-context/request-context.service';
 import { ConflictException, Injectable } from '@nestjs/common';
-import { DataSource, FindOptionsWhere, In } from 'typeorm';
+import { DataSource } from 'typeorm';
 
 @Injectable()
 export class ProgramService {
@@ -51,24 +51,30 @@ export class ProgramService {
     currentUser: User,
     userId?: string | string[],
   ): Promise<{ programs: Program[]; total: number }> {
-    const where: FindOptionsWhere<Program> | FindOptionsWhere<Program>[] = {};
+    const alias = 'program';
+    const qb = this.programRepository.withScope(alias);
 
-    if (currentUser.hasRole('user')) {
-      where.users = { id: In([currentUser.id]) };
+    qb.leftJoinAndSelect(`${alias}.workflows`, 'workflows').leftJoinAndSelect(
+      `${alias}.users`,
+      'users',
+    );
+
+    if (currentUser.hasRole('user') && !currentUser.hasRole('admin')) {
+      qb.innerJoin(`${alias}.users`, 'user').andWhere('user.id = :userId', {
+        userId: currentUser.id,
+      });
     } else {
       if (userId) {
         const targetUserIds = Array.isArray(userId) ? userId : [userId];
-        where.users = { id: In(targetUserIds) };
+        qb.andWhere('users.id IN (:...targetUserIds)', { targetUserIds });
       }
     }
 
-    const [programs, total] = await this.programRepository.findAndCount({
-      where,
-      relations: ['workflows', 'users'],
-      skip: (page - 1) * limit,
-      take: limit,
-      order: { createdAt: 'DESC' },
-    });
+    qb.orderBy(`${alias}.createdAt`, 'DESC')
+      .skip((page - 1) * limit)
+      .take(limit);
+
+    const [programs, total] = await qb.getManyAndCount();
 
     return { programs, total };
   }

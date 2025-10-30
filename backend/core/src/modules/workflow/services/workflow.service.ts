@@ -160,31 +160,35 @@ export class WorkflowService {
     page: number = 1,
     limit: number = 10,
   ): Promise<PaginationResult<Workflow>> {
-    const where: FindOptionsWhere<Workflow> | FindOptionsWhere<Workflow>[] = {
-      status: WorkflowStatus.ACTIVE,
-    };
+    const alias = 'workflow';
+    const qb = this.workflowRepository.withScope(alias);
 
-    if (currentUser.hasRole('user')) {
-      where.users = { id: In([currentUser.id]) };
-    } else {
-      if (userId) {
-        const targetUserIds = Array.isArray(userId) ? userId : [userId];
-        where.users = { id: In(targetUserIds) };
-      }
+    qb.leftJoinAndSelect(`${alias}.workflowFields`, 'workflowFields')
+      .leftJoinAndSelect(`${alias}.fieldMappings`, 'fieldMappings')
+      .leftJoinAndSelect(
+        `${alias}.workflowConfigurations`,
+        'workflowConfigurations',
+      )
+      .leftJoinAndSelect(`${alias}.createdBy`, 'createdBy')
+      .leftJoinAndSelect(`${alias}.program`, 'program')
+      .andWhere(`${alias}.status = :status`, { status: WorkflowStatus.ACTIVE });
+
+    if (currentUser.hasRole('user') && !currentUser.hasRole('admin')) {
+      qb.innerJoin(`${alias}.users`, 'user').andWhere('user.id = :userId', {
+        userId: currentUser.id,
+      });
+    } else if (userId) {
+      const targetUserIds = Array.isArray(userId) ? userId : [userId];
+      qb.innerJoin(`${alias}.users`, 'user').andWhere(
+        'user.id IN (:...userIds)',
+        { userIds: targetUserIds },
+      );
     }
 
-    const [workflows, total] = await this.workflowRepository.findAndCount({
-      where,
-      relations: [
-        'workflowFields',
-        'fieldMappings',
-        'workflowConfigurations',
-        'createdBy',
-        'program',
-      ],
-      skip: (page - 1) * limit,
-      take: limit,
-    });
+    const [workflows, total] = await qb
+      .skip((page - 1) * limit)
+      .take(limit)
+      .getManyAndCount();
 
     return {
       data: workflows,

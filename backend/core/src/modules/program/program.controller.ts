@@ -15,6 +15,8 @@ import { AssignUsersToProgramDto, CreateProgramDto } from './dto';
 import { UpdateProgramDto } from './dto';
 import { User } from '@/database/entities';
 import { ApiQuery } from '@nestjs/swagger';
+import { plainToInstance } from 'class-transformer';
+import { ProgramResponseDto } from './dto/program-response.dto';
 
 @Controller('programs')
 export class ProgramController {
@@ -42,33 +44,13 @@ export class ProgramController {
     );
 
     return {
-      programs: programs.map(program => ({
-        id: program.id,
-        name: program.name,
-        description: program.description,
-        createdAt: program.createdAt,
-        updatedAt: program.updatedAt,
-        workflows: program.workflows.map(workflow => ({
-          id: workflow.id,
-          name: workflow.name,
-          description: workflow.description,
-          createdAt: workflow.createdAt,
-          updatedAt: workflow.updatedAt,
-        })),
-        users:
-          program.users?.map(user => ({
-            id: user.id,
-            email: user.email,
-            firstName: user.firstName,
-            lastName: user.lastName,
-          })) || [],
-      })),
-      pagination: {
-        page,
-        limit,
-        total,
-        pages: Math.ceil(total / limit),
-      },
+      data: plainToInstance(ProgramResponseDto, programs, {
+        excludeExtraneousValues: true,
+      }),
+      page,
+      limit,
+      total,
+      pages: Math.ceil(total / limit),
     };
   }
 
