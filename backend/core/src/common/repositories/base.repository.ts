@@ -101,13 +101,15 @@ export class BaseRepository<T extends ObjectLiteral> extends Repository<T> {
   private applyScope(qb: SelectQueryBuilder<T>, skipScope = false): void {
     if (skipScope || this.requestContext.isSuperAdmin()) return;
 
+    const isAdmin = this.requestContext.isAdmin();
+
     const userId = this.requestContext.getUserId();
 
     const hasCreatorField = this.metadata.findColumnWithPropertyName(
       this.creatorPropertyName,
     );
 
-    if (userId && hasCreatorField) {
+    if (userId && hasCreatorField && isAdmin) {
       qb.andWhere(`${qb.alias}.${this.creatorColumnName} = :userId`, {
         userId,
       });
@@ -188,12 +190,11 @@ export class BaseRepository<T extends ObjectLiteral> extends Repository<T> {
   }
 
   /**
-   * Overridden findAndCount() — scoped for pagination.
+   * Overridden findAndCount() — role-aware and scoped for pagination.
    */
   async findAndCount(options?: FindManyOptions<T>): Promise<[T[], number]> {
     const alias = this.metadata.name.toLowerCase();
     const qb = this.createQueryBuilder(alias);
-
     if (options?.where) {
       if (
         typeof options.where === 'string' ||
@@ -204,16 +205,12 @@ export class BaseRepository<T extends ObjectLiteral> extends Repository<T> {
         qb.where(options.where);
       }
     }
-
     if (options?.relations?.length) {
       this.applyRelationsRecursively(qb, alias, options.relations as string[]);
     }
-
     if (options?.take) qb.take(options.take);
     if (options?.skip) qb.skip(options.skip);
-
     this.applyScope(qb);
-
     try {
       return await qb.getManyAndCount();
     } catch (error) {
@@ -278,8 +275,6 @@ export class BaseRepository<T extends ObjectLiteral> extends Repository<T> {
         }
       }
     }
-
-    console.log('Saving entities:', entities);
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return super.save(entities as any, options);
