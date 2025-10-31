@@ -67,6 +67,14 @@ export default function Card() {
     }>;
   }
 
+  interface ApiUser {
+    id: string;
+    firstName?: string;
+    lastName?: string;
+    email: string;
+    name?: string;
+  }
+
   interface HookWorkflow {
     id: string;
     name: string;
@@ -81,33 +89,20 @@ export default function Card() {
   const hookWorkflows: HookWorkflow[] = basicWorkflows.map((w) => ({
     id: w.id,
     name: w.name,
-    users:
-      w.users?.map((u) => ({
-        id: u.id,
-        name: `${u.firstName || ''} ${u.lastName || ''}`.trim() || u.email,
-      })) || [],
+    users: [], // Start with empty users, will be populated by useWorkflowsWithUsers
   }));
 
   // Fetch detailed workflow data with users
   const { workflowsWithUsers, isLoading: workflowsLoading } =
     useWorkflowsWithUsers(hookWorkflows);
 
-  // Convert back to WorkflowData format for components
-  const workflows: WorkflowData[] =
-    workflowsWithUsers.length > 0
-      ? workflowsWithUsers.map((w) => ({
-          ...w,
-          status: 'active' as const,
-          enabledModes: ['text'] as Array<'audio' | 'text' | 'form' | 'image'>,
-          users:
-            w.users?.map((u) => ({
-              id: u.id,
-              firstName: u.name.split(' ')[0] || '',
-              lastName: u.name.split(' ').slice(1).join(' ') || '',
-              email: u.name.includes('@') ? u.name : `${u.name}@example.com`,
-            })) || [],
-        }))
-      : basicWorkflows;
+  // Use workflowsWithUsers directly since it already has the user data
+  const workflows: WorkflowData[] = workflowsWithUsers.map((w: any) => ({
+    ...w,
+    status: 'active' as const,
+    enabledModes: w.enabledModes || ['text'],
+    users: w.users || [],
+  }));
 
   interface Program {
     name?: string;
@@ -244,9 +239,7 @@ export default function Card() {
             data={workflows.flatMap(
               (workflow: WorkflowData) =>
                 workflow.users?.map((user) => ({
-                  name:
-                    `${user.firstName || ''} ${user.lastName || ''}`.trim() ||
-                    user.email,
+                  name: `${user.firstName} ${user.lastName}`.trim() || user.email,
                   program: workflow.name,
                   completedOn:
                     user.completedAt || workflow.completedAt || 'N/A',

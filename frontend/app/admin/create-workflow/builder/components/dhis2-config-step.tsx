@@ -40,7 +40,7 @@ export default function DHIS2ConfigStep({
   const { data: orgUnitsData } = useQuery({
     ...integrationControllerGetOrgUnitsOptions({
       path: { connectionId: selectedConnection },
-      query: { type: { value: 'program' } as _Object, id: selectedProgram },
+      query: { type: 'program' as unknown as _Object, id: selectedProgram },
     }),
     enabled: !!selectedConnection && !!selectedProgram,
   });

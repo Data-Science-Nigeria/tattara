@@ -4,6 +4,7 @@ import React, { useState, useRef, useCallback } from 'react';
 import { Camera, Upload, X, Eye, Square } from 'lucide-react';
 import { useMutation } from '@tanstack/react-query';
 import { collectorControllerSubmitDataMutation } from '@/client/@tanstack/react-query.gen';
+import AiReview from './AiReview';
 
 interface ImageRendererProps {
   workflow: {
@@ -23,6 +24,8 @@ export default function ImageRenderer({ workflow }: ImageRendererProps) {
   const [dragActive, setDragActive] = useState(false);
   const [showCamera, setShowCamera] = useState(false);
   const [stream, setStream] = useState<MediaStream | null>(null);
+  const [aiReviewData, setAiReviewData] = useState<any>(null);
+  const [aiProcessingLogId, setAiProcessingLogId] = useState<string>('');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -148,6 +151,19 @@ export default function ImageRenderer({ workflow }: ImageRendererProps) {
     );
   }, [handleFileSelect, closeCamera]);
 
+  const handleAiReviewComplete = (reviewData: any, processingLogId: string) => {
+    setAiReviewData(reviewData);
+    setAiProcessingLogId(processingLogId);
+  };
+
+  const handleReset = () => {
+    setSelectedFile(null);
+    setPreviewUrl(null);
+    setAiReviewData(null);
+    setAiProcessingLogId('');
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
   const handleSubmit = async () => {
     if (!selectedFile) return;
 
@@ -167,6 +183,7 @@ export default function ImageRenderer({ workflow }: ImageRendererProps) {
               type: 'image',
               fileName: selectedFile.name,
             },
+            aiProcessingLogId: aiProcessingLogId,
           },
         });
 
@@ -181,14 +198,19 @@ export default function ImageRenderer({ workflow }: ImageRendererProps) {
     }
   };
 
-  const removeFile = () => {
-    setSelectedFile(null);
-    setPreviewUrl(null);
-    if (fileInputRef.current) fileInputRef.current.value = '';
-  };
+
 
   return (
     <div className="rounded-lg bg-white p-6 shadow-md">
+      <div className="mb-4 flex justify-end">
+        <button
+          type="button"
+          onClick={handleReset}
+          className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+        >
+          Reset
+        </button>
+      </div>
       <div className="space-y-6">
         {showCamera ? (
           <div className="space-y-4">
@@ -296,7 +318,7 @@ export default function ImageRenderer({ workflow }: ImageRendererProps) {
           <div className="space-y-4">
             <div className="relative rounded-lg border border-gray-200 p-4">
               <button
-                onClick={removeFile}
+                onClick={handleReset}
                 className="absolute top-2 right-2 rounded-full bg-red-100 p-1 text-red-600 hover:bg-red-200"
               >
                 <X className="h-4 w-4" />
@@ -345,21 +367,15 @@ export default function ImageRenderer({ workflow }: ImageRendererProps) {
           </div>
         )}
 
-        <div className="flex justify-end gap-4">
-          <button
-            onClick={() => (window.location.href = '/user/overview')}
-            className="rounded-lg border border-gray-300 px-6 py-2 text-gray-700 hover:bg-gray-50"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleSubmit}
-            disabled={!selectedFile || isSubmitting}
-            className="rounded-lg bg-green-600 px-6 py-2 text-white hover:bg-green-700 disabled:opacity-50"
-          >
-            {isSubmitting ? 'Submitting...' : 'Submit Image'}
-          </button>
-        </div>
+        <AiReview 
+          workflowId={workflow.id}
+          formData={{ image: selectedFile ? selectedFile.name : '', fileName: selectedFile?.name || '' }}
+          fields={[]}
+          aiReviewData={aiReviewData}
+          onReviewComplete={handleAiReviewComplete}
+          onSubmit={handleSubmit}
+          isSubmitting={isSubmitting}
+        />
       </div>
     </div>
   );

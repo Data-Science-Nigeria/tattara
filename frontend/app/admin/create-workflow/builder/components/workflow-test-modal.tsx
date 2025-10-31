@@ -2,6 +2,7 @@
 
 import { X, Play } from 'lucide-react';
 import { useState } from 'react';
+import { validateFieldValue } from '@/lib/field-validation';
 
 interface Field {
   id: string;
@@ -38,10 +39,19 @@ export default function WorkflowTestModal({
   const [testData, setTestData] = useState<Record<string, string | boolean>>(
     {}
   );
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   if (!isOpen) return null;
 
   const handleInputChange = (fieldId: string, value: string | boolean) => {
+    const field = fields.find(f => f.id === fieldId);
+    if (field) {
+      const validation = validateFieldValue(value, field.fieldType);
+      setFieldErrors(prev => ({
+        ...prev,
+        [fieldId]: validation.isValid ? '' : validation.error || ''
+      }));
+    }
     setTestData((prev) => ({ ...prev, [fieldId]: value }));
   };
 
@@ -64,7 +74,11 @@ export default function WorkflowTestModal({
                     onChange={(e) =>
                       handleInputChange(field.id, e.target.value)
                     }
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-green-500 focus:outline-none"
+                    className={`w-full rounded-lg border px-3 py-2 focus:outline-none ${
+                      fieldErrors[field.id] 
+                        ? 'border-red-500 focus:border-red-500' 
+                        : 'border-gray-300 focus:border-green-500'
+                    }`}
                     rows={3}
                   />
                 ) : field.fieldType === 'select' ? (
@@ -73,9 +87,34 @@ export default function WorkflowTestModal({
                     onChange={(e) =>
                       handleInputChange(field.id, e.target.value)
                     }
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-green-500 focus:outline-none"
+                    className={`w-full rounded-lg border px-3 py-2 focus:outline-none ${
+                      fieldErrors[field.id] 
+                        ? 'border-red-500 focus:border-red-500' 
+                        : 'border-gray-300 focus:border-green-500'
+                    }`}
                   >
                     <option value="">Select...</option>
+                    {field.options?.map((option: string) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                ) : field.fieldType === 'multiselect' ? (
+                  <select
+                    multiple
+                    value={((testData[field.id] as string) || '').split(',').filter(Boolean)}
+                    onChange={(e) => {
+                      const values = Array.from(e.target.selectedOptions, option => option.value);
+                      handleInputChange(field.id, values.join(','));
+                    }}
+                    className={`w-full rounded-lg border px-3 py-2 focus:outline-none ${
+                      fieldErrors[field.id] 
+                        ? 'border-red-500 focus:border-red-500' 
+                        : 'border-gray-300 focus:border-green-500'
+                    }`}
+                    size={Math.min(field.options?.length || 3, 5)}
+                  >
                     {field.options?.map((option: string) => (
                       <option key={option} value={option}>
                         {option}
@@ -98,14 +137,31 @@ export default function WorkflowTestModal({
                         ? 'number'
                         : field.fieldType === 'date'
                           ? 'date'
-                          : 'text'
+                          : field.fieldType === 'datetime'
+                            ? 'datetime-local'
+                            : field.fieldType === 'email'
+                              ? 'email'
+                              : field.fieldType === 'url'
+                                ? 'url'
+                                : field.fieldType === 'phone'
+                                  ? 'tel'
+                                  : 'text'
                     }
                     value={(testData[field.id] as string) || ''}
                     onChange={(e) =>
                       handleInputChange(field.id, e.target.value)
                     }
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-green-500 focus:outline-none"
+                    className={`w-full rounded-lg border px-3 py-2 focus:outline-none ${
+                      fieldErrors[field.id] 
+                        ? 'border-red-500 focus:border-red-500' 
+                        : 'border-gray-300 focus:border-green-500'
+                    }`}
                   />
+                )}
+                {fieldErrors[field.id] && (
+                  <p className="mt-1 text-sm text-red-600">
+                    {fieldErrors[field.id]}
+                  </p>
                 )}
               </div>
             ))}
