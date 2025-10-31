@@ -26,7 +26,7 @@ export default function SelectProgram() {
     }),
   });
 
-  const programs = (programsData as ProgramsResponse)?.data?.programs || [];
+  const programs = (programsData as any)?.data?.data || [];
 
   const handleNext = () => {
     if (selectedProgram) {
@@ -83,7 +83,7 @@ export default function SelectProgram() {
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-          {programs.map((program) => (
+          {programs.map((program: Program) => (
             <div key={program.id} className="relative">
               <input
                 type="radio"

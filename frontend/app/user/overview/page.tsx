@@ -33,9 +33,15 @@ interface ProfileResponse {
 }
 
 interface WorkflowsResponse {
+  success: boolean;
   data: {
     data: ApiWorkflow[];
+    page: number;
+    limit: number;
+    total: number;
+    pages: number;
   };
+  timestamp: string;
 }
 
 export default function Workflows() {
@@ -47,14 +53,14 @@ export default function Workflows() {
   const userProfile = (profileData as ProfileResponse)?.data;
   const userId = userProfile?.id;
 
-  // Get all workflows and filter for user
+  // Get workflows assigned to user
   const {
     data: workflowsData,
     isLoading,
     error,
   } = useQuery({
     ...workflowControllerGetWorkflowsOptions({
-      query: { page: 1, limit: 100 },
+      query: { page: 1, limit: 100, userId: userId },
     }),
     enabled: !!userId,
     retry: 1,
@@ -70,12 +76,9 @@ export default function Workflows() {
     return FileText;
   };
 
-  // Filter workflows for current user
-  const allWorkflows = (workflowsData as WorkflowsResponse)?.data?.data || [];
-  const userWorkflows = allWorkflows.filter((workflow) => {
-    return workflow.users?.some((user: { id: string }) => user.id === userId);
-  });
-  const activeWorkflows = userWorkflows.filter((w) => w.status === 'active');
+  // Extract workflows from API response
+  const allUserWorkflows = (workflowsData as WorkflowsResponse)?.data?.data || [];
+  const activeWorkflows = allUserWorkflows.filter((w) => w.status === 'active');
   const finalWorkflows = activeWorkflows;
 
   // Pagination logic

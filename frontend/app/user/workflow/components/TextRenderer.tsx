@@ -2,10 +2,8 @@
 
 import React, { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
-import {
-  collectorControllerProcessAiMutation,
-  collectorControllerSubmitDataMutation,
-} from '@/client/@tanstack/react-query.gen';
+import { collectorControllerSubmitDataMutation } from '@/client/@tanstack/react-query.gen';
+import AiReview from './AiReview';
 
 interface TextRendererProps {
   workflow: {
@@ -18,45 +16,27 @@ interface TextRendererProps {
   };
 }
 
-interface ProcessedData {
-  [key: string]: unknown;
-}
+
 
 export default function TextRenderer({ workflow }: TextRendererProps) {
   const [textInput, setTextInput] = useState('');
-  const [processedData, setProcessedData] = useState<ProcessedData | null>(
-    null
-  );
-  const [isProcessing, setIsProcessing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const processAiMutation = useMutation({
-    ...collectorControllerProcessAiMutation(),
-  });
+  const [aiReviewData, setAiReviewData] = useState<any>(null);
+  const [aiProcessingLogId, setAiProcessingLogId] = useState<string>('');
 
   const submitMutation = useMutation({
     ...collectorControllerSubmitDataMutation(),
   });
 
-  const handleProcess = async () => {
-    if (!textInput.trim()) return;
+  const handleAiReviewComplete = (reviewData: any, processingLogId: string) => {
+    setAiReviewData(reviewData);
+    setAiProcessingLogId(processingLogId);
+  };
 
-    setIsProcessing(true);
-    try {
-      const result = await processAiMutation.mutateAsync({
-        body: {
-          workflowId: workflow.id,
-          processingType: 'text',
-          text: textInput,
-        },
-      });
-      setProcessedData(result);
-    } catch (error) {
-      console.error('Failed to process text:', error);
-      alert('Failed to process text. Please try again.');
-    } finally {
-      setIsProcessing(false);
-    }
+  const handleReset = () => {
+    setTextInput('');
+    setAiReviewData(null);
+    setAiProcessingLogId('');
   };
 
   const handleSubmit = async () => {
@@ -65,13 +45,12 @@ export default function TextRenderer({ workflow }: TextRendererProps) {
       await submitMutation.mutateAsync({
         body: {
           workflowId: workflow.id,
-          data: {
-            text: textInput,
-          },
+          data: { text: textInput },
           metadata: {
             type: 'text',
             length: textInput.length,
           },
+          aiProcessingLogId: aiProcessingLogId,
         },
       });
 
@@ -87,6 +66,15 @@ export default function TextRenderer({ workflow }: TextRendererProps) {
 
   return (
     <div className="rounded-lg bg-white p-6 shadow-md">
+      <div className="mb-4 flex justify-end">
+        <button
+          type="button"
+          onClick={handleReset}
+          className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+        >
+          Reset
+        </button>
+      </div>
       <div className="space-y-6">
         {workflow.prompt && (
           <div className="rounded-lg bg-blue-50 p-4">
@@ -114,48 +102,15 @@ export default function TextRenderer({ workflow }: TextRendererProps) {
           )}
         </div>
 
-        {workflow.aiProcessing && !processedData && (
-          <div className="flex justify-center">
-            <button
-              onClick={handleProcess}
-              disabled={!textInput.trim() || isProcessing}
-              className="rounded-lg bg-blue-600 px-6 py-2 text-white hover:bg-blue-700 disabled:opacity-50"
-            >
-              {isProcessing ? 'Processing...' : 'Process with AI'}
-            </button>
-          </div>
-        )}
-
-        {processedData && (
-          <div className="rounded-lg bg-green-50 p-4">
-            <h3 className="mb-2 font-medium text-green-900">
-              Processed Result:
-            </h3>
-            <pre className="whitespace-pre-wrap text-green-800">
-              {JSON.stringify(processedData, null, 2)}
-            </pre>
-          </div>
-        )}
-
-        <div className="flex justify-end gap-4">
-          <button
-            onClick={() => (window.location.href = '/user/overview')}
-            className="rounded-lg border border-gray-300 px-6 py-2 text-gray-700 hover:bg-gray-50"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleSubmit}
-            disabled={
-              !textInput.trim() ||
-              isSubmitting ||
-              (workflow.aiProcessing && !processedData)
-            }
-            className="rounded-lg bg-green-600 px-6 py-2 text-white hover:bg-green-700 disabled:opacity-50"
-          >
-            {isSubmitting ? 'Submitting...' : 'Submit'}
-          </button>
-        </div>
+        <AiReview 
+          workflowId={workflow.id}
+          formData={{ text: textInput }}
+          fields={[]}
+          aiReviewData={aiReviewData}
+          onReviewComplete={handleAiReviewComplete}
+          onSubmit={handleSubmit}
+          isSubmitting={isSubmitting}
+        />
       </div>
     </div>
   );

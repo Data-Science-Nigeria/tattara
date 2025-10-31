@@ -4,6 +4,7 @@ import React, { useState, useRef } from 'react';
 import { Mic, Square, Play, Pause } from 'lucide-react';
 import { useMutation } from '@tanstack/react-query';
 import { collectorControllerSubmitDataMutation } from '@/client/@tanstack/react-query.gen';
+import AiReview from './AiReview';
 
 interface AudioRendererProps {
   workflow: {
@@ -23,6 +24,8 @@ export default function AudioRenderer({ workflow }: AudioRendererProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [aiReviewData, setAiReviewData] = useState<any>(null);
+  const [aiProcessingLogId, setAiProcessingLogId] = useState<string>('');
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -94,12 +97,24 @@ export default function AudioRenderer({ workflow }: AudioRendererProps) {
     }
   };
 
+  const handleAiReviewComplete = (reviewData: any, processingLogId: string) => {
+    setAiReviewData(reviewData);
+    setAiProcessingLogId(processingLogId);
+  };
+
+  const handleReset = () => {
+    setAudioBlob(null);
+    setAudioUrl(null);
+    setRecordingTime(0);
+    setAiReviewData(null);
+    setAiProcessingLogId('');
+  };
+
   const handleSubmit = async () => {
     if (!audioBlob) return;
 
     setIsSubmitting(true);
     try {
-      // Convert blob to base64 for submission
       const reader = new FileReader();
       reader.onloadend = async () => {
         const base64Audio = reader.result as string;
@@ -116,7 +131,7 @@ export default function AudioRenderer({ workflow }: AudioRendererProps) {
               type: 'audio',
               recordingTime,
             },
-            aiProcessingLogId: 'temp-id',
+            aiProcessingLogId: aiProcessingLogId,
           },
         });
 
@@ -140,6 +155,15 @@ export default function AudioRenderer({ workflow }: AudioRendererProps) {
 
   return (
     <div className="rounded-lg bg-white p-6 shadow-md">
+      <div className="mb-4 flex justify-end">
+        <button
+          type="button"
+          onClick={handleReset}
+          className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+        >
+          Reset
+        </button>
+      </div>
       <div className="space-y-6">
         <div className="text-center">
           <div className="mb-4">
@@ -229,21 +253,15 @@ export default function AudioRenderer({ workflow }: AudioRendererProps) {
           </div>
         )}
 
-        <div className="flex justify-end gap-4">
-          <button
-            onClick={() => (window.location.href = '/user/overview')}
-            className="rounded-lg border border-gray-300 px-6 py-2 text-gray-700 hover:bg-gray-50"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleSubmit}
-            disabled={!audioBlob || isSubmitting}
-            className="rounded-lg bg-green-600 px-6 py-2 text-white hover:bg-green-700 disabled:opacity-50"
-          >
-            {isSubmitting ? 'Submitting...' : 'Submit Recording'}
-          </button>
-        </div>
+        <AiReview 
+          workflowId={workflow.id}
+          formData={{ audio: audioBlob ? 'audio-data' : '', duration: recordingTime }}
+          fields={[]}
+          aiReviewData={aiReviewData}
+          onReviewComplete={handleAiReviewComplete}
+          onSubmit={handleSubmit}
+          isSubmitting={isSubmitting}
+        />
       </div>
     </div>
   );

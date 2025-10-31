@@ -151,26 +151,6 @@ const Programs = () => {
               </p>
             </div>
           </div>
-
-          <div className="mt-4 flex flex-col gap-2 sm:mt-6 sm:flex-row sm:items-center">
-            <div className="flex flex-shrink-0 -space-x-2">
-              {program.participants.map(
-                (participant: string, index: number) => (
-                  <div
-                    key={`${program.id}-participant-${index}`}
-                    className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-white bg-gray-300 sm:h-8 sm:w-8"
-                  >
-                    <div className=""></div>
-                  </div>
-                )
-              )}
-            </div>
-            <span className="text-xs break-words text-gray-500 sm:text-sm">
-              {program.participants.length > 0
-                ? `${program.participants.join(', ')} are in this program`
-                : 'No participants assigned'}
-            </span>
-          </div>
         </div>
       </Link>
     );
