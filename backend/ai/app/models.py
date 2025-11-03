@@ -12,6 +12,13 @@ class ModelPreference(str, Enum):
     groq_qwen3_32b = "groq-qwen3-32b"
 
 
+class LanguagePreference(str, Enum):
+    English = "English"
+    Igbo = "Igbo"
+    Hausa = "Hausa"
+    Yoruba = "Yoruba"
+
+
 class ExtractionMetrics(BaseModel):
     asr_seconds: Optional[float] = None
     vision_seconds: Optional[float] = None
@@ -31,6 +38,9 @@ class ExtractionResponse(BaseModel):
     spans: Dict[str, Any] = Field(default_factory=dict)
     missing_required: List[str] = Field(default_factory=list)
     metrics: Optional[ExtractionMetrics] = None
+    # Optional fields used by endpoints
+    confidence: Optional[Dict[str, float]] = None
+    meta: Optional[Dict[str, Any]] = None
 
 
 class TextRequest(BaseModel):

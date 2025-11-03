@@ -3,8 +3,10 @@ import json, re, unicodedata
 from typing import Optional, List, Dict, Any
 import tempfile
 from .config import settings
-from .models import TextRequest, ExtractionResponse, ExtractionMetrics, ModelPreference
+from .models import TextRequest, ExtractionResponse, ExtractionMetrics, ModelPreference, LanguagePreference
 from .services.whisper_service import WhisperService
+from .services.spitch_service import SpitchService
+from .services.translation_service import TranslationService
 from .services.vision_service import VisionService
 from .services.extraction_router import ExtractionRouter
 from .services.validator import SchemaValidator
@@ -62,6 +64,7 @@ def health():
 whisper_service = WhisperService()
 vision_service = VisionService()
 router = ExtractionRouter()
+translator = TranslationService(router)
 
 # provider instances for image forwarding (uses settings values)
 default_openai_provider = OpenAIProvider(api_key=settings.OPENAI_API_KEY, model=settings.OPENAI_MODEL)
@@ -210,7 +213,7 @@ async def process_text(req: TextRequest, model_preference: Optional[ModelPrefere
 async def process_audio(
     form_id: str = Form(...),
     form_schema: str = Form(...),  # JSON string
-    language: Optional[str] = Form(None),
+    language: LanguagePreference = Form(LanguagePreference.English, description="ASR language: English, Igbo, Hausa, Yoruba"),
     model_preference: Optional[ModelPreference] = Form(None),
     audio_file: UploadFile = File(...),
 ):
@@ -274,7 +277,27 @@ async def process_audio(
         tmp.write(content)
         tmp_path = tmp.name
 
-    transcript, asr_ms = whisper_service.transcribe(tmp_path, language=language)
+    # Transcription: Spitch for selected languages; Whisper for English
+    try:
+        if language != LanguagePreference.English:
+            # Map friendly label to Spitch language code
+            lang_map = {"Igbo": "ig", "Hausa": "ha", "Yoruba": "yo"}
+            src_code = lang_map.get(language.value)
+            if not src_code:
+                raise HTTPException(status_code=400, detail=f"Unsupported language: {language.value}")
+            transcript, asr_ms = SpitchService.transcribe(tmp_path, src_code)
+            asr_provider = "spitch"
+            lang_used = language.value
+        else:
+            transcript, asr_ms = whisper_service.transcribe(tmp_path, language=None)
+            asr_provider = "whisper"
+            lang_used = "English"
+    except Exception as e:
+        # No fallback for Igbo/Hausa/Yoruba
+        if language != LanguagePreference.English:
+            raise HTTPException(status_code=502, detail=f"Spitch ASR error: {e}")
+        # For auto, just surface the original error
+        raise HTTPException(status_code=502, detail=f"ASR error: {e}")
 
     _pick = router.pick(model_preference, need_vision=False)
     if isinstance(_pick, tuple):
@@ -282,6 +305,37 @@ async def process_audio(
     else:
         provider_name = _pick
         model_override = None
+
+    # Translate to English using Spitch when a specific non-auto language is chosen
+    if language != LanguagePreference.English:
+        try:
+            lang_map = {"Igbo": "ig", "Hausa": "ha", "Yoruba": "yo"}
+            src_code = lang_map.get(language.value)
+            translated_text, _tr_ms = SpitchService.translate(transcript, source=src_code, target="en")
+            if translated_text:
+                transcript = translated_text
+        except Exception as e:
+            # No fallback – Spitch must be used for translation for ig/ha/yo
+            raise HTTPException(status_code=502, detail=f"Spitch translation error: {e}")
+
+    # --- Costing for ASR and Translation ---
+    asr_cost = 0.0
+    translation_cost = 0.0
+    try:
+        if asr_provider == "spitch":
+            # $0.00042 per second for transcription
+            asr_cost = ((asr_ms or 0) / 1000.0) * getattr(settings, "SPITCH_PRICE_TRANSCRIPTION_PER_SEC", 0.0)
+            # $1 per 10,000 words for translation (count on English transcript)
+            word_count = len((transcript or "").split())
+            translation_cost = (word_count / 10000.0) * getattr(settings, "SPITCH_PRICE_TRANSLATION_PER_10K_WORDS", 0.0)
+        elif asr_provider == "whisper" and getattr(settings, "WHISPER_MODE", "api") == "api":
+            # Whisper API: $0.17 per hour
+            hours = (asr_ms or 0) / 1000.0 / 3600.0
+            asr_cost = hours * getattr(settings, "WHISPER_API_PRICE_PER_HOUR", 0.0)
+    except Exception:
+        # Never fail the request due to cost math; leave additional costs as zero on error
+        asr_cost = asr_cost or 0.0
+        translation_cost = translation_cost or 0.0
 
     try:
         data, confidence, llm_ms, tokens_in, tokens_out, cost, model = router.extract(
@@ -321,6 +375,7 @@ async def process_audio(
 
     total_ms = (asr_ms or 0) + (llm_ms or 0)
 
+    total_cost = (cost or 0.0) + asr_cost + translation_cost
     metrics = ExtractionMetrics(
         asr_seconds=round((asr_ms or 0) / 1000, 2),
         vision_seconds=round(0 / 1000, 2),
@@ -328,7 +383,7 @@ async def process_audio(
         total_seconds=round(total_ms / 1000, 2),
         tokens_in=tokens_in,
         tokens_out=tokens_out,
-        cost_usd=round(cost, 6),
+        cost_usd=round(total_cost, 6),
         provider=provider_name,
         model=model,
     )
@@ -340,6 +395,15 @@ async def process_audio(
         spans={},
         missing_required=missing,
         metrics=metrics,
+        meta={
+            "asr_provider": asr_provider,
+            "language": lang_used,
+            "cost_breakdown": {
+                "asr_cost_usd": round(asr_cost, 6),
+                "translation_cost_usd": round(translation_cost, 6),
+                "llm_cost_usd": round(cost or 0.0, 6),
+            },
+        },
     )
 
 
