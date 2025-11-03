@@ -18,6 +18,8 @@ import { User, Role, Permission } from './entities';
         database: configService.get('database.database'),
         entities: [__dirname + '/entities/*.entity{.ts,.js}'],
         synchronize: false,
+        dropSchema: false,
+        migrationsRun: false,
         logging: false,
         namingStrategy: new SnakeNamingStrategy(),
       }),

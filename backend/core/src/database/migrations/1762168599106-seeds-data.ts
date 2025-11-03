@@ -1,6 +1,6 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class SeedsData1758785420691 implements MigrationInterface {
+export class SeedsData1762168599106 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
     // Insert permissions
     const permissions = [
