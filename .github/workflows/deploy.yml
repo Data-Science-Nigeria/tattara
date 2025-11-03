@@ -107,10 +107,16 @@ jobs:
           # Check migration exit code
           MIGRATE_EXIT_CODE=$(docker compose ps -q migrate | xargs docker inspect -f "{{.State.ExitCode}}")
           if [ "$MIGRATE_EXIT_CODE" != "0" ]; then
-            echo "Migration failed with exit code $MIGRATE_EXIT_CODE"
+            echo "⚠️ Migration container exited with code $MIGRATE_EXIT_CODE"
             docker compose logs migrate
-            exit 1
+            if docker compose logs migrate | grep -q "No migrations are pending"; then
+              echo "✅ No migrations pending — continuing."
+            else
+              echo "❌ Migration failed."
+              exit 1
+            fi
           fi
+
 
           echo "Migrations completed successfully"
 
