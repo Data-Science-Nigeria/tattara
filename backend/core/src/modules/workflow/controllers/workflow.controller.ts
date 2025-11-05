@@ -88,7 +88,7 @@ export class WorkflowController {
     return this.workflowService.updateWorkflowBasicInfo(workflowId, updateData);
   }
 
-  @Put('/:workflowId')
+  @Put('/:workflowId/archive')
   @Roles('admin')
   async archiveWorkflow(
     @Param('workflowId', new ParseUUIDPipe()) workflowId: string,
