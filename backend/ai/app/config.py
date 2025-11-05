@@ -21,6 +21,14 @@ class Settings(BaseSettings):
 	# Vision/OCR
 	OCR_ENABLED: bool = True
 
+	# Spitch ASR (multilingual)
+	SPITCH_API_KEY: str | None = None
+
+	# Spitch & Whisper pricing
+	SPITCH_PRICE_TRANSCRIPTION_PER_SEC: float = 0.00042  # $ per second
+	SPITCH_PRICE_TRANSLATION_PER_10K_WORDS: float = 1.0   # $ per 10,000 words
+	WHISPER_API_PRICE_PER_HOUR: float = 0.17             # $ per hour (API mode)
+
 	# Tokens & cost (simple example; replace with live pricing table)
 	# Default provider-level fallbacks (kept for compatibility)
 	PRICE_OPENAI_PER_1K_INPUT: float = 0.00025

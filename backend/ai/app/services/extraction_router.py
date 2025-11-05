@@ -110,6 +110,7 @@ class ExtractionRouter:
         model_used = model_from_usage or model_override or getattr(provider, "model", None) or "unknown"
 
         # Compute cost using per-model pricing where available, otherwise use provider defaults
+        cost: float = 0.0
         model_key = (model_used or "").lower()
         pricing = None
         try:
@@ -126,5 +127,16 @@ class ExtractionRouter:
 
         if pricing:
             cost = (tokens_in / 1000.0) * pricing.get("input", 0.0) + (tokens_out / 1000.0) * pricing.get("output", 0.0)
+        else:
+            # fallback to provider-level defaults
+            if provider_name == "openai":
+                cin = getattr(settings, "PRICE_OPENAI_PER_1K_INPUT", 0.0)
+                cout = getattr(settings, "PRICE_OPENAI_PER_1K_OUTPUT", 0.0)
+            elif provider_name == "groq":
+                cin = getattr(settings, "PRICE_GROQ_PER_1K_INPUT", 0.0)
+                cout = getattr(settings, "PRICE_GROQ_PER_1K_OUTPUT", 0.0)
+            else:
+                cin = cout = 0.0
+            cost = (tokens_in / 1000.0) * cin + (tokens_out / 1000.0) * cout
         
         return data, confidence, llm_ms, tokens_in, tokens_out, cost, model_used
