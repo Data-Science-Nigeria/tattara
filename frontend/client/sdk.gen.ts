@@ -577,6 +577,10 @@ export const programControllerAddUsersToProgram = <
   >({
     url: '/api/v1/programs/{id}/users',
     ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
   });
 };
 

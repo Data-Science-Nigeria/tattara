@@ -10,6 +10,7 @@ import {
   externalConnectionsControllerUpdateMutation,
 } from '@/client/@tanstack/react-query.gen';
 import type { ExternalConnection } from '@/client/types.gen';
+import { client } from '@/client/client.gen';
 import ConnectionsList from './components/connections-list';
 import ConnectionFormModal from './components/connection-form-modal';
 import TestConnectionModal from '../dhis2-integration/components/test-connection-modal';
@@ -55,7 +56,27 @@ export default function ExternalConnections() {
   });
 
   const updateMutation = useMutation({
-    ...externalConnectionsControllerUpdateMutation(),
+    mutationFn: async ({
+      id,
+      data,
+    }: {
+      id: string;
+      data: {
+        name: string;
+        isActive: boolean;
+        configuration: { baseUrl: string; pat: string };
+      };
+    }) => {
+      const response = await client.patch({
+        url: `/api/v1/external-connections/${id}`,
+        body: data,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        throwOnError: true,
+      });
+      return response.data;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: externalConnectionsControllerFindAllOptions().queryKey,
@@ -97,8 +118,14 @@ export default function ExternalConnections() {
 
   const handleSubmit = () => {
     if (editingConnection) {
+      const updatePayload = {
+        name,
+        isActive: true,
+        configuration: { baseUrl, pat },
+      };
       updateMutation.mutate({
-        path: { id: editingConnection.id },
+        id: editingConnection.id,
+        data: updatePayload,
       });
     } else {
       const createPayload = {

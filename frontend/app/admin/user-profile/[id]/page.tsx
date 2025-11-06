@@ -70,7 +70,6 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
       <div className="flex min-h-screen items-center justify-center">
         <div className="text-center">
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-green-500 border-t-transparent"></div>
-          <p className="mt-2 text-gray-600">Loading user profile...</p>
         </div>
       </div>
     );

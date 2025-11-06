@@ -258,6 +258,10 @@ export type UpdateProgramDto = {
   [key: string]: unknown;
 };
 
+export type AssignUsersToProgramDto = {
+  userIds: Array<string>;
+};
+
 export type ProgramSummaryDto = {
   id: string;
   name: string;
@@ -791,7 +795,7 @@ export type ProgramControllerGetAllProgramsForUserResponses = {
 };
 
 export type ProgramControllerAddUsersToProgramData = {
-  body?: never;
+  body: AssignUsersToProgramDto;
   path: {
     id: string;
   };
