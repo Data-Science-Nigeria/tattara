@@ -1,12 +1,11 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Plus, FileText, Edit, Archive, Link2 } from 'lucide-react';
+import { Plus, FileText, Edit, Link2 } from 'lucide-react';
 import Link from 'next/link';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   workflowControllerGetWorkflowsOptions,
-  workflowControllerArchiveWorkflowMutation,
 } from '@/client/@tanstack/react-query.gen';
 import SearchWorkflows from './components/search-workflows';
 
@@ -28,7 +27,7 @@ export default function CreateWorkflow() {
   const queryClient = useQueryClient();
   const [searchResults, setSearchResults] = useState<Workflow[]>([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [archivingId, setArchivingId] = useState<string | null>(null);
+
 
   const { data: workflowsData, isLoading } = useQuery({
     ...workflowControllerGetWorkflowsOptions({
@@ -36,20 +35,7 @@ export default function CreateWorkflow() {
     }),
   });
 
-  const archiveMutation = useMutation({
-    ...workflowControllerArchiveWorkflowMutation(),
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        predicate: (query) =>
-          (query.queryKey[0] as { _id?: string })?._id ===
-          'workflowControllerGetWorkflows',
-      });
-      setArchivingId(null);
-    },
-    onError: () => {
-      setArchivingId(null);
-    },
-  });
+
 
   // Extract workflows from the nested structure
   const responseData = (workflowsData as WorkflowsResponse)?.data;
@@ -69,10 +55,7 @@ export default function CreateWorkflow() {
     setIsSearching(false);
   };
 
-  const handleArchive = (workflowId: string) => {
-    setArchivingId(workflowId);
-    archiveMutation.mutate({ path: { workflowId } });
-  };
+
 
   return (
     <div className="relative min-h-screen p-6">
@@ -169,18 +152,7 @@ export default function CreateWorkflow() {
                       >
                         <Edit className="h-4 w-4" />
                       </button>
-                      <button
-                        onClick={() => handleArchive(workflow.id)}
-                        disabled={archivingId === workflow.id}
-                        className="rounded p-2 text-gray-400 hover:bg-gray-100 hover:text-red-600 disabled:opacity-50"
-                        title="Archive workflow"
-                      >
-                        {archivingId === workflow.id ? (
-                          <div className="h-4 w-4 animate-spin rounded-full border-b border-gray-400"></div>
-                        ) : (
-                          <Archive className="h-4 w-4" />
-                        )}
-                      </button>
+
                     </div>
                   )}
                 </div>

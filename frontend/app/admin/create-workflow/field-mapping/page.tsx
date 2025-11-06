@@ -137,6 +137,13 @@ export default function FieldMapping() {
     }
   };
 
+  const handleSaveAndContinue = async () => {
+    await handleSave();
+    if (!upsertMappingMutation.isError) {
+      window.location.href = '/admin/create-workflow';
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -199,13 +206,22 @@ export default function FieldMapping() {
         >
           Test Mapping
         </button>
-        <button
-          onClick={handleSave}
-          disabled={upsertMappingMutation.isPending}
-          className="rounded-lg bg-green-600 px-6 py-2 text-white hover:bg-green-700 disabled:opacity-50"
-        >
-          {upsertMappingMutation.isPending ? 'Saving...' : 'Save Mappings'}
-        </button>
+        <div className="flex gap-3">
+          <button
+            onClick={handleSave}
+            disabled={upsertMappingMutation.isPending}
+            className="rounded-lg border border-green-600 px-6 py-2 text-green-600 hover:bg-green-50 disabled:opacity-50"
+          >
+            {upsertMappingMutation.isPending ? 'Saving...' : 'Save'}
+          </button>
+          <button
+            onClick={handleSaveAndContinue}
+            disabled={upsertMappingMutation.isPending}
+            className="rounded-lg bg-green-600 px-6 py-2 text-white hover:bg-green-700 disabled:opacity-50"
+          >
+            {upsertMappingMutation.isPending ? 'Saving...' : 'Save & Continue'}
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -113,16 +113,20 @@ export default function Card() {
 
   const program = (programData as { data?: Program })?.data || {};
 
+  // Get unique users across all workflows
+  const uniqueUsers = new Set<string>();
+  workflows.forEach((workflow: WorkflowData) => {
+    workflow.users?.forEach((user) => {
+      uniqueUsers.add(user.id);
+    });
+  });
+
   const stats: Stat[] = [
     {
       title: 'Active Users',
       description: 'All active users under this program',
       icon: Users,
-      value: workflows.reduce(
-        (total: number, workflow: WorkflowData) =>
-          total + (workflow.users?.length || 0),
-        0
-      ),
+      value: uniqueUsers.size,
     },
     {
       title: 'Total Workflows',

@@ -66,6 +66,7 @@ export default function ExternalConnections() {
       });
       resetForm();
       setEditingConnection(null);
+      setShowCreateForm(false);
     },
   });
 
@@ -100,8 +101,14 @@ export default function ExternalConnections() {
 
   const handleSubmit = () => {
     if (editingConnection) {
+      const updatePayload = {
+        name,
+        type: type as 'dhis2',
+        configuration: { baseUrl, pat },
+      };
       updateMutation.mutate({
         path: { id: editingConnection.id },
+        body: updatePayload as any,
       });
     } else {
       const createPayload = {

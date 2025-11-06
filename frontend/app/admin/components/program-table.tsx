@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { ChevronDown, Download } from 'lucide-react';
+import { ChevronDown, Download, ArrowUp, ArrowDown } from 'lucide-react';
 import SearchInput from './search-input';
 import { exportToJSON, exportToCSV, exportToPDF } from '../utils/export-utils';
 
@@ -50,6 +50,9 @@ export default function ProgramTable({
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [selectedDate, setSelectedDate] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc' | null>(null);
+  const [statusFilter, setStatusFilter] = useState('');
+  const [showStatusDropdown, setShowStatusDropdown] = useState(false);
 
   const getCurrentDate = () => {
     const today = new Date();
@@ -61,15 +64,41 @@ export default function ProgramTable({
     setShowDatePicker(false);
   };
 
-  const filteredData = data.filter((item) => {
-    const matchesSearch =
-      item.name?.toLowerCase().includes(search.toLowerCase()) ||
-      item.program?.toLowerCase().includes(search.toLowerCase());
+  const handleSort = () => {
+    if (sortOrder === null) {
+      setSortOrder('asc');
+    } else if (sortOrder === 'asc') {
+      setSortOrder('desc');
+    } else {
+      setSortOrder(null);
+    }
+  };
 
-    const matchesDate = !selectedDate || item.completedOn === selectedDate;
+  const resetFilters = () => {
+    setSearch('');
+    setSelectedDate('');
+    setSortOrder(null);
+    setStatusFilter('');
+    setShowDatePicker(false);
+    setShowStatusDropdown(false);
+  };
 
-    return matchesSearch && matchesDate;
-  });
+  const filteredData = data
+    .filter((item) => {
+      const matchesSearch =
+        item.name?.toLowerCase().includes(search.toLowerCase()) ||
+        item.program?.toLowerCase().includes(search.toLowerCase());
+
+      const matchesDate = !selectedDate || item.completedOn === selectedDate;
+      const matchesStatus = !statusFilter || item.status === statusFilter;
+
+      return matchesSearch && matchesDate && matchesStatus;
+    })
+    .sort((a, b) => {
+      if (sortOrder === null) return 0;
+      const comparison = a.name.localeCompare(b.name);
+      return sortOrder === 'asc' ? comparison : -comparison;
+    });
 
   const totalPages = Math.ceil(filteredData.length / showLimit);
   const startIndex = (currentPage - 1) * showLimit;
@@ -111,6 +140,7 @@ export default function ProgramTable({
               <ChevronDown className="absolute top-1/2 right-2 h-4 w-4 -translate-y-1/2 transform" />
             </div>
           </div>
+
         </div>
         <div className="flex flex-row gap-4">
           <div className="relative">
@@ -195,12 +225,27 @@ export default function ProgramTable({
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto overflow-y-visible rounded-md border bg-white">
+      <div className="rounded-md border bg-white">
         <table className="w-full">
           <thead className="bg-[#F2F3FF]">
             <tr>
               <th className="px-6 py-4 text-left font-semibold text-gray-700">
-                Name
+                <div className="flex items-center gap-2">
+                  Name
+                  <button
+                    onClick={handleSort}
+                    className="flex items-center hover:bg-gray-100 rounded p-1"
+                  >
+                    <ArrowUp 
+                      size={14} 
+                      className={`${sortOrder === 'asc' ? 'text-blue-600' : 'text-gray-400'}`}
+                    />
+                    <ArrowDown 
+                      size={14} 
+                      className={`${sortOrder === 'desc' ? 'text-blue-600' : 'text-gray-400'} -ml-1`}
+                    />
+                  </button>
+                </div>
               </th>
               <th className="px-6 py-4 text-left font-semibold text-gray-700">
                 Assigned Workflow
@@ -240,12 +285,6 @@ export default function ProgramTable({
                           >
                             Clear
                           </button>
-                          <button
-                            onClick={() => setShowDatePicker(false)}
-                            className="flex-1 rounded bg-green-600 px-2 py-1 text-xs text-white hover:bg-green-700"
-                          >
-                            Apply
-                          </button>
                         </div>
                       </div>
                     )}
@@ -255,11 +294,48 @@ export default function ProgramTable({
               <th className="px-6 py-4 text-left font-semibold text-gray-700">
                 <div className="flex items-center gap-2">
                   Status
-                  <ChevronDown className="h-4 w-4 cursor-pointer" />
+                  <div className="relative">
+                    <ChevronDown
+                      className="h-4 w-4 cursor-pointer"
+                      onClick={() => setShowStatusDropdown(!showStatusDropdown)}
+                    />
+                    {showStatusDropdown && (
+                      <div className="absolute top-6 right-0 z-20 w-32 rounded border bg-white shadow-lg">
+                        <button
+                          onClick={() => {
+                            setStatusFilter('');
+                            setShowStatusDropdown(false);
+                          }}
+                          className="w-full px-3 py-2 text-left text-xs hover:bg-gray-50"
+                        >
+                          All
+                        </button>
+                        <button
+                          onClick={() => {
+                            setStatusFilter('Pending');
+                            setShowStatusDropdown(false);
+                          }}
+                          className="w-full px-3 py-2 text-left text-xs hover:bg-gray-50"
+                        >
+                          Pending
+                        </button>
+                        <button
+                          onClick={() => {
+                            setStatusFilter('Completed');
+                            setShowStatusDropdown(false);
+                          }}
+                          className="w-full px-3 py-2 text-left text-xs hover:bg-gray-50"
+                        >
+                          Completed
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </th>
             </tr>
           </thead>
+
           <tbody>
             {isLoading ? (
               <tr>

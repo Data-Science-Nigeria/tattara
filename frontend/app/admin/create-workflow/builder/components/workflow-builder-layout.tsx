@@ -11,9 +11,11 @@ interface WorkflowBuilderLayoutProps {
   steps: { id: string; label: string }[];
   children: ReactNode;
   onSave: () => void;
+  onSaveAndContinue?: () => void;
   isSaving?: boolean;
   saveButtonText?: string;
   canProceed?: boolean;
+  isEditMode?: boolean;
 }
 
 export default function WorkflowBuilderLayout({
@@ -24,9 +26,11 @@ export default function WorkflowBuilderLayout({
   steps,
   children,
   onSave,
+  onSaveAndContinue,
   isSaving = false,
   saveButtonText = 'Save Workflow',
   canProceed = true,
+  isEditMode = false,
 }: WorkflowBuilderLayoutProps) {
   return (
     <div className="space-y-8 p-8">
@@ -77,33 +81,54 @@ export default function WorkflowBuilderLayout({
           Previous
         </button>
 
-        <button
-          onClick={() => {
-            const currentIndex = steps.findIndex(
-              (step) => step.id === currentStep
-            );
-            const isLastStep = currentIndex === steps.length - 1;
+        {isEditMode ? (
+          <div className="flex gap-3">
+            <button
+              onClick={onSave}
+              disabled={isSaving || !canProceed}
+              className="rounded-lg border border-green-600 px-6 py-2 text-green-600 hover:bg-green-50 disabled:opacity-50"
+            >
+              {isSaving ? 'Saving...' : 'Save'}
+            </button>
+            {onSaveAndContinue && (
+              <button
+                onClick={onSaveAndContinue}
+                disabled={isSaving || !canProceed}
+                className="rounded-lg bg-green-600 px-6 py-2 text-white hover:bg-green-700 disabled:opacity-50"
+              >
+                {isSaving ? 'Saving...' : 'Save & Continue'}
+              </button>
+            )}
+          </div>
+        ) : (
+          <button
+            onClick={() => {
+              const currentIndex = steps.findIndex(
+                (step) => step.id === currentStep
+              );
+              const isLastStep = currentIndex === steps.length - 1;
 
-            if (isLastStep) {
-              onSave();
-            } else {
-              setCurrentStep(steps[currentIndex + 1].id);
-            }
-          }}
-          disabled={isSaving || !canProceed}
-          className="rounded-lg bg-green-600 px-6 py-2 text-white hover:bg-green-700 disabled:opacity-50"
-        >
-          {(() => {
-            const currentIndex = steps.findIndex(
-              (step) => step.id === currentStep
-            );
-            const isLastStep = currentIndex === steps.length - 1;
+              if (isLastStep) {
+                onSave();
+              } else {
+                setCurrentStep(steps[currentIndex + 1].id);
+              }
+            }}
+            disabled={isSaving || !canProceed}
+            className="rounded-lg bg-green-600 px-6 py-2 text-white hover:bg-green-700 disabled:opacity-50"
+          >
+            {(() => {
+              const currentIndex = steps.findIndex(
+                (step) => step.id === currentStep
+              );
+              const isLastStep = currentIndex === steps.length - 1;
 
-            if (isSaving) return 'Saving...';
-            if (isLastStep) return saveButtonText;
-            return 'Next';
-          })()}
-        </button>
+              if (isSaving) return 'Saving...';
+              if (isLastStep) return saveButtonText;
+              return 'Next';
+            })()}
+          </button>
+        )}
       </div>
     </div>
   );

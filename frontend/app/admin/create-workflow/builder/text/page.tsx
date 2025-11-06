@@ -1,10 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { Plus, Trash2, FileText, GripVertical } from 'lucide-react';
-import { workflowControllerCreateWorkflowMutation } from '@/client/@tanstack/react-query.gen';
+import { 
+  workflowControllerCreateWorkflowMutation,
+  workflowControllerFindWorkflowByIdOptions,
+  configurationControllerUpsertWorkflowConfigurationsMutation,
+  fieldControllerUpsertWorkflowFieldsMutation 
+} from '@/client/@tanstack/react-query.gen';
+import { toast } from 'sonner';
 import WorkflowBuilderLayout from '../components/workflow-builder-layout';
 import DHIS2ConfigStep from '../components/dhis2-config-step';
 import WorkflowTestModal from '../components/workflow-test-modal';
@@ -14,11 +20,14 @@ export default function TextBuilder() {
 
   // Get workflow data from URL params
   const programId = searchParams.get('programId');
+  const workflowId = searchParams.get('workflowId');
   const name = searchParams.get('name');
   const description = searchParams.get('description');
   const supportedLanguages = searchParams
     .get('supportedLanguages')
     ?.split(',') || ['en'];
+  
+  const isEditMode = !!workflowId;
 
   const [currentStep, setCurrentStep] = useState<'config' | 'text' | 'create'>(
     'config'
@@ -65,6 +74,14 @@ export default function TextBuilder() {
   >([]);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
 
+  // Fetch workflow data if editing
+  const { data: workflowData } = useQuery({
+    ...workflowControllerFindWorkflowByIdOptions({
+      path: { workflowId: workflowId || '' },
+    }),
+    enabled: isEditMode,
+  });
+
   const createWorkflowMutation = useMutation({
     ...workflowControllerCreateWorkflowMutation(),
     onSuccess: (data) => {
@@ -74,6 +91,39 @@ export default function TextBuilder() {
       }
     },
   });
+
+  const upsertConfigMutation = useMutation({
+    ...configurationControllerUpsertWorkflowConfigurationsMutation(),
+    onSuccess: () => {
+      toast.success('Configuration saved successfully!');
+    },
+  });
+
+  const upsertFieldsMutation = useMutation({
+    ...fieldControllerUpsertWorkflowFieldsMutation(),
+    onSuccess: () => {
+      toast.success('Fields saved successfully!');
+    },
+  });
+
+  // Load existing data in edit mode
+  useEffect(() => {
+    if (workflowData && isEditMode) {
+      const workflow = (workflowData as { data?: any })?.data;
+      if (workflow) {
+        setAiFieldMappings(workflow.workflowFields || []);
+        const dhis2Config = workflow.workflowConfigurations?.find(
+          (config: any) => config.type === 'dhis2'
+        );
+        if (dhis2Config) {
+          setSelectedConnection(dhis2Config.externalConnection?.id || '');
+          setSelectedProgram(dhis2Config.configuration?.programId || '');
+          setSelectedOrgUnits(dhis2Config.configuration?.orgUnits || []);
+          setTextConfig(dhis2Config.configuration?.textConfig || textConfig);
+        }
+      }
+    }
+  }, [workflowData, isEditMode]);
 
   const addAiFieldMapping = () => {
     const newMapping = {
@@ -101,6 +151,40 @@ export default function TextBuilder() {
 
   const removeAiFieldMapping = (id: string) => {
     setAiFieldMappings(aiFieldMappings.filter((mapping) => mapping.id !== id));
+  };
+
+  const handleSave = async () => {
+    if (isEditMode && workflowId) {
+      // Save current step data
+      if (currentStep === 'config' && selectedConnection && selectedProgram) {
+        await upsertConfigMutation.mutateAsync({
+          path: { workflowId },
+        });
+      } else if (currentStep === 'text' && aiFieldMappings.length > 0) {
+        await upsertFieldsMutation.mutateAsync({
+          path: { workflowId },
+          body: {
+            fields: aiFieldMappings.map((mapping) => ({
+              id: mapping.id,
+              fieldName: mapping.fieldName,
+              label: mapping.label,
+              fieldType: mapping.fieldType,
+              isRequired: mapping.isRequired,
+              displayOrder: mapping.displayOrder,
+              aiMapping: { prompt: mapping.aiPrompt },
+            })),
+          },
+        });
+      }
+    }
+  };
+
+  const handleSaveAndContinue = async () => {
+    await handleSave();
+    const currentIndex = steps.findIndex((step) => step.id === currentStep);
+    if (currentIndex < steps.length - 1) {
+      setCurrentStep(steps[currentIndex + 1].id as typeof currentStep);
+    }
   };
 
   const handleCreateWorkflow = async () => {
@@ -467,9 +551,11 @@ export default function TextBuilder() {
         currentStep={currentStep}
         setCurrentStep={(step) => setCurrentStep(step as typeof currentStep)}
         steps={steps}
-        onSave={handleCreateWorkflow}
-        isSaving={createWorkflowMutation.isPending}
+        onSave={isEditMode ? handleSave : handleCreateWorkflow}
+        onSaveAndContinue={isEditMode ? handleSaveAndContinue : undefined}
+        isSaving={createWorkflowMutation.isPending || upsertConfigMutation.isPending || upsertFieldsMutation.isPending}
         saveButtonText={currentStep === 'create' ? 'Create Workflow' : 'Next'}
+        isEditMode={isEditMode}
       >
         {renderCurrentStep()}
       </WorkflowBuilderLayout>

@@ -1,12 +1,13 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { CircleX, User, Plus } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   userControllerFindAllForLoggedInUserOptions,
   programControllerFindWorkflowsByProgramOptions,
   workflowControllerAssignUsersToWorkflowMutation,
+  workflowControllerFindWorkflowByIdOptions,
 } from '@/client/@tanstack/react-query.gen';
 import { toast } from 'sonner';
 
@@ -29,6 +30,7 @@ interface Workflow {
   id: string;
   name: string;
   description?: string;
+  users?: Array<{ id: string; firstName?: string; lastName?: string; email: string }>;
 }
 
 export default function AssignUsersModal({
@@ -39,6 +41,7 @@ export default function AssignUsersModal({
 }: AssignUsersModalProps) {
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [selectedWorkflows, setSelectedWorkflows] = useState<string[]>([]);
+  const [workflowUsers, setWorkflowUsers] = useState<Record<string, string[]>>({});
   const queryClient = useQueryClient();
 
   const assignUsersMutation = useMutation({
@@ -54,6 +57,39 @@ export default function AssignUsersModal({
   });
 
   const workflows = (workflowsData as { data?: Workflow[] })?.data || [];
+
+  // Update workflow users when workflows change
+  useEffect(() => {
+    if (!isOpen || workflows.length === 0) {
+      setWorkflowUsers({});
+      return;
+    }
+
+    const fetchWorkflowDetails = async () => {
+      const newWorkflowUsers: Record<string, string[]> = {};
+      
+      for (const workflow of workflows) {
+        try {
+          const response = await queryClient.fetchQuery({
+            ...workflowControllerFindWorkflowByIdOptions({
+              path: { workflowId: workflow.id },
+            }),
+          });
+          
+          const workflowData = (response as { data?: Workflow })?.data;
+          if (workflowData?.users) {
+            newWorkflowUsers[workflow.id] = workflowData.users.map(u => u.id);
+          }
+        } catch (error) {
+          console.error(`Failed to fetch workflow ${workflow.id}:`, error);
+        }
+      }
+      
+      setWorkflowUsers(newWorkflowUsers);
+    };
+
+    fetchWorkflowDetails();
+  }, [isOpen, workflows.length, queryClient]);
 
   const { data: usersData, isLoading: usersLoading } = useQuery({
     ...userControllerFindAllForLoggedInUserOptions({
@@ -118,16 +154,20 @@ export default function AssignUsersModal({
     if (selectedUsers.length === 0 || selectedWorkflows.length === 0) return;
 
     try {
-      const assignmentPromises = selectedWorkflows.map((workflowId) =>
-        assignUsersMutation.mutateAsync({
+      const assignmentPromises = selectedWorkflows.map((workflowId) => {
+        // Merge new users with existing users
+        const existingUsers = workflowUsers[workflowId] || [];
+        const allUsers = [...new Set([...existingUsers, ...selectedUsers])];
+        
+        return assignUsersMutation.mutateAsync({
           path: { workflowId },
-          body: { userIds: selectedUsers },
-        })
-      );
+          body: { userIds: allUsers },
+        });
+      });
 
       await Promise.all(assignmentPromises);
       toast.success(
-        `Successfully assigned ${selectedUsers.length} user(s) to ${selectedWorkflows.length} workflow(s)`
+        `Successfully added ${selectedUsers.length} user(s) to ${selectedWorkflows.length} workflow(s)`
       );
 
       // Invalidate all queries to force refresh
@@ -150,10 +190,10 @@ export default function AssignUsersModal({
         <div className="mb-4 flex items-start justify-between sm:mb-6">
           <div>
             <h1 className="text-lg font-semibold text-[#2F3A4C] sm:text-xl">
-              Assign Users to {programName}
+              Add Users to {programName}
             </h1>
             <p className="text-xs text-[#7987A0] sm:text-sm">
-              Select verified users to assign to this program
+              Select verified users to add to workflows (existing assignments will be preserved)
             </p>
           </div>
           <button
@@ -181,29 +221,35 @@ export default function AssignUsersModal({
           <div className="mb-4 max-h-32 overflow-y-auto rounded-lg border p-2">
             {workflows.length > 0 ? (
               <div className="space-y-2">
-                {workflows.map((workflow: Workflow) => (
-                  <div
-                    key={workflow.id}
-                    className="flex items-center gap-3 rounded p-2 hover:bg-gray-50"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selectedWorkflows.includes(workflow.id)}
-                      onChange={() => handleWorkflowToggle(workflow.id)}
-                      className="h-4 w-4 text-green-600 focus:ring-green-500"
-                    />
-                    <div>
-                      <p className="text-sm font-medium text-gray-800">
-                        {workflow.name}
-                      </p>
-                      {workflow.description && (
-                        <p className="text-xs text-gray-500">
-                          {workflow.description}
+                {workflows.map((workflow: Workflow) => {
+                  const currentUserCount = workflowUsers[workflow.id]?.length || 0;
+                  return (
+                    <div
+                      key={workflow.id}
+                      className="flex items-center gap-3 rounded p-2 hover:bg-gray-50"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedWorkflows.includes(workflow.id)}
+                        onChange={() => handleWorkflowToggle(workflow.id)}
+                        className="h-4 w-4 text-green-600 focus:ring-green-500"
+                      />
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-gray-800">
+                          {workflow.name}
                         </p>
-                      )}
+                        {workflow.description && (
+                          <p className="text-xs text-gray-500">
+                            {workflow.description}
+                          </p>
+                        )}
+                        <p className="text-xs text-blue-600">
+                          {currentUserCount} user(s) currently assigned
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <p className="py-4 text-center text-gray-500">
@@ -232,32 +278,46 @@ export default function AssignUsersModal({
               </div>
             ) : users.length > 0 ? (
               <div className="space-y-2">
-                {users.map((user: User) => (
-                  <div
-                    key={user.id}
-                    className="flex items-center gap-3 rounded-lg border p-3 hover:bg-gray-50"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selectedUsers.includes(user.id)}
-                      onChange={() => handleUserToggle(user.id)}
-                      className="h-4 w-4 text-green-600 focus:ring-green-500"
-                    />
-                    <div className="flex items-center gap-2">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-200">
-                        <User size={16} className="text-gray-600" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-800">
-                          {user.firstName && user.lastName
-                            ? `${user.firstName} ${user.lastName}`
-                            : user.email}
-                        </p>
-                        <p className="text-xs text-gray-500">{user.email}</p>
+                {users.map((user: User) => {
+                  // Check if user is already assigned to any selected workflow
+                  const isAlreadyAssigned = selectedWorkflows.some(workflowId => 
+                    workflowUsers[workflowId]?.includes(user.id)
+                  );
+                  
+                  return (
+                    <div
+                      key={user.id}
+                      className={`flex items-center gap-3 rounded-lg border p-3 hover:bg-gray-50 ${
+                        isAlreadyAssigned ? 'bg-blue-50 border-blue-200' : ''
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedUsers.includes(user.id)}
+                        onChange={() => handleUserToggle(user.id)}
+                        className="h-4 w-4 text-green-600 focus:ring-green-500"
+                      />
+                      <div className="flex items-center gap-2 flex-1">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-200">
+                          <User size={16} className="text-gray-600" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-gray-800">
+                            {user.firstName && user.lastName
+                              ? `${user.firstName} ${user.lastName}`
+                              : user.email}
+                          </p>
+                          <p className="text-xs text-gray-500">{user.email}</p>
+                          {isAlreadyAssigned && (
+                            <p className="text-xs text-blue-600 font-medium">
+                              Already assigned to selected workflow(s)
+                            </p>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <p className="py-8 text-center text-gray-500">
@@ -286,8 +346,8 @@ export default function AssignUsersModal({
             >
               <Plus size={16} />
               {assignUsersMutation.isPending
-                ? 'Assigning...'
-                : `Assign (${selectedUsers.length} users, ${selectedWorkflows.length} workflows)`}
+                ? 'Adding...'
+                : `Add Users (${selectedUsers.length} users, ${selectedWorkflows.length} workflows)`}
             </button>
           </div>
         </div>
