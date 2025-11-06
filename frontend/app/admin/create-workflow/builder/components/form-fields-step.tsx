@@ -1,7 +1,8 @@
 'use client';
 
-import { Plus, Trash2, GripVertical } from 'lucide-react';
+import { Plus, Trash2, GripVertical, Eye } from 'lucide-react';
 import { useState } from 'react';
+import FieldPreviewModal from './field-preview-modal';
 
 interface FormField {
   id: string;
@@ -33,6 +34,8 @@ export default function FormFieldsStep({
   fields,
   setFields,
 }: FormFieldsStepProps) {
+  const [showFieldPreview, setShowFieldPreview] = useState(false);
+
   const addField = () => {
     const newField: FormField = {
       id: Date.now().toString(),
@@ -92,13 +95,22 @@ export default function FormFieldsStep({
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-medium text-gray-900">Form Fields</h3>
-        <button
-          onClick={addField}
-          className="flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-white hover:bg-green-700"
-        >
-          <Plus size={16} />
-          Add Field
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setShowFieldPreview(true)}
+            className="flex items-center gap-2 rounded-lg border border-green-600 px-4 py-2 text-green-600 hover:bg-green-50"
+          >
+            <Eye size={16} />
+            Browse DHIS2 Fields
+          </button>
+          <button
+            onClick={addField}
+            className="flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-white hover:bg-green-700"
+          >
+            <Plus size={16} />
+            Add Field
+          </button>
+        </div>
       </div>
 
       <div className="space-y-4">
@@ -225,6 +237,30 @@ export default function FormFieldsStep({
           No fields created yet. Click &quot;Add Field&quot; to get started.
         </div>
       )}
+
+      <FieldPreviewModal
+        isOpen={showFieldPreview}
+        onClose={() => setShowFieldPreview(false)}
+        onFieldsSelect={(selectedFields) => {
+          const newFields = selectedFields.map((field, index) => ({
+            id: Date.now().toString() + index,
+            fieldName: field.name.toLowerCase().replace(/\s+/g, '_'),
+            label: field.name,
+            fieldType:
+              field.valueType === 'NUMBER' || field.valueType === 'INTEGER'
+                ? ('number' as const)
+                : field.valueType === 'DATE'
+                  ? ('date' as const)
+                  : field.valueType === 'BOOLEAN' ||
+                      field.valueType === 'TRUE_ONLY'
+                    ? ('boolean' as const)
+                    : ('text' as const),
+            isRequired: field.mandatory || false,
+            displayOrder: fields.length + index + 1,
+          }));
+          setFields([...fields, ...newFields]);
+        }}
+      />
     </div>
   );
 }

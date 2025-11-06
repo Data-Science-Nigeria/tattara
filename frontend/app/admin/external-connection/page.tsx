@@ -7,7 +7,6 @@ import {
   externalConnectionsControllerFindAllOptions,
   externalConnectionsControllerCreateMutation,
   externalConnectionsControllerRemoveMutation,
-  externalConnectionsControllerUpdateMutation,
 } from '@/client/@tanstack/react-query.gen';
 import type { ExternalConnection } from '@/client/types.gen';
 import { client } from '@/client/client.gen';

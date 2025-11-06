@@ -73,6 +73,7 @@ export default function FormBuilder() {
 
   // DHIS2 Configuration
   const [selectedConnection, setSelectedConnection] = useState('');
+  const [selectedType, setSelectedType] = useState('');
   const [selectedProgram, setSelectedProgram] = useState('');
   const [selectedOrgUnits, setSelectedOrgUnits] = useState<string[]>([]);
 
@@ -223,6 +224,8 @@ export default function FormBuilder() {
           <DHIS2ConfigStep
             selectedConnection={selectedConnection}
             setSelectedConnection={setSelectedConnection}
+            selectedType={selectedType}
+            setSelectedType={setSelectedType}
             selectedProgram={selectedProgram}
             setSelectedProgram={setSelectedProgram}
             selectedOrgUnits={selectedOrgUnits}
@@ -266,6 +269,7 @@ export default function FormBuilder() {
       case 'config':
         return !!(
           selectedConnection &&
+          selectedType &&
           selectedProgram &&
           selectedOrgUnits.length > 0
         );
@@ -274,6 +278,7 @@ export default function FormBuilder() {
       case 'create':
         return !!(
           selectedConnection &&
+          selectedType &&
           selectedProgram &&
           selectedOrgUnits.length > 0 &&
           fields.length > 0

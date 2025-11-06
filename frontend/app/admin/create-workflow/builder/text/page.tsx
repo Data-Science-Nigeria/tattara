@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { Plus, Trash2, FileText, GripVertical } from 'lucide-react';
+import { Plus, Trash2, FileText, GripVertical, Eye } from 'lucide-react';
 import {
   workflowControllerCreateWorkflowMutation,
   workflowControllerFindWorkflowByIdOptions,
@@ -14,6 +14,7 @@ import { toast } from 'sonner';
 import WorkflowBuilderLayout from '../components/workflow-builder-layout';
 import DHIS2ConfigStep from '../components/dhis2-config-step';
 import WorkflowTestModal from '../components/workflow-test-modal';
+import FieldPreviewModal from '../components/field-preview-modal';
 
 export default function TextBuilder() {
   const searchParams = useSearchParams();
@@ -33,9 +34,11 @@ export default function TextBuilder() {
     'config'
   );
   const [showTestModal, setShowTestModal] = useState(false);
+  const [showFieldPreview, setShowFieldPreview] = useState(false);
 
   // DHIS2 Configuration
   const [selectedConnection, setSelectedConnection] = useState('');
+  const [selectedType, setSelectedType] = useState('');
   const [selectedProgram, setSelectedProgram] = useState('');
   const [selectedOrgUnits, setSelectedOrgUnits] = useState<string[]>([]);
 
@@ -369,13 +372,22 @@ export default function TextBuilder() {
           <h3 className="text-lg font-medium text-gray-900">
             AI Field Extraction
           </h3>
-          <button
-            onClick={addAiFieldMapping}
-            className="flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-white hover:bg-green-700"
-          >
-            <Plus size={16} />
-            Add Field
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setShowFieldPreview(true)}
+              className="flex items-center gap-2 rounded-lg border border-green-600 px-4 py-2 text-green-600 hover:bg-green-50"
+            >
+              <Eye size={16} />
+              Browse DHIS2 Fields
+            </button>
+            <button
+              onClick={addAiFieldMapping}
+              className="flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-white hover:bg-green-700"
+            >
+              <Plus size={16} />
+              Add Field
+            </button>
+          </div>
         </div>
 
         <div className="space-y-4">
@@ -525,6 +537,8 @@ export default function TextBuilder() {
           <DHIS2ConfigStep
             selectedConnection={selectedConnection}
             setSelectedConnection={setSelectedConnection}
+            selectedType={selectedType}
+            setSelectedType={setSelectedType}
             selectedProgram={selectedProgram}
             setSelectedProgram={setSelectedProgram}
             selectedOrgUnits={selectedOrgUnits}
@@ -592,6 +606,31 @@ export default function TextBuilder() {
         }}
         workflowType="text"
         fields={aiFieldMappings}
+      />
+
+      <FieldPreviewModal
+        isOpen={showFieldPreview}
+        onClose={() => setShowFieldPreview(false)}
+        onFieldsSelect={(selectedFields) => {
+          const newFields = selectedFields.map((field, index) => ({
+            id: Date.now().toString() + index,
+            fieldName: field.name.toLowerCase().replace(/\s+/g, '_'),
+            label: field.name,
+            fieldType:
+              field.valueType === 'NUMBER' || field.valueType === 'INTEGER'
+                ? ('number' as const)
+                : field.valueType === 'DATE'
+                  ? ('date' as const)
+                  : field.valueType === 'BOOLEAN' ||
+                      field.valueType === 'TRUE_ONLY'
+                    ? ('boolean' as const)
+                    : ('text' as const),
+            isRequired: field.mandatory || false,
+            displayOrder: aiFieldMappings.length + index + 1,
+            aiPrompt: `Extract ${field.name.toLowerCase()} from the text`,
+          }));
+          setAiFieldMappings([...aiFieldMappings, ...newFields]);
+        }}
       />
     </>
   );
