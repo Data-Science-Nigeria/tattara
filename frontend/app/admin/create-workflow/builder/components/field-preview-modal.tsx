@@ -66,16 +66,19 @@ interface FieldPreviewModalProps {
   isOpen: boolean;
   onClose: () => void;
   onFieldsSelect?: (fields: DataElement[]) => void;
+  preSelectedConnection: string;
+  preSelectedType: string;
+  preSelectedProgram: string;
 }
 
 export default function FieldPreviewModal({
   isOpen,
   onClose,
   onFieldsSelect,
+  preSelectedConnection,
+  preSelectedType,
+  preSelectedProgram,
 }: FieldPreviewModalProps) {
-  const [selectedConnection, setSelectedConnection] = useState('');
-  const [selectedType, setSelectedType] = useState('');
-  const [selectedProgram, setSelectedProgram] = useState('');
   const [selectedFields, setSelectedFields] = useState<DataElement[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedField, setSelectedField] = useState<DataElement | null>(null);
@@ -86,29 +89,30 @@ export default function FieldPreviewModal({
 
   const { data: programsData } = useQuery({
     ...integrationControllerGetProgramsOptions({
-      path: { connectionId: selectedConnection },
+      path: { connectionId: preSelectedConnection },
       query: { page: 1, pageSize: 100 },
     }),
-    enabled: !!selectedConnection && selectedType === 'program',
+    enabled: !!preSelectedConnection && preSelectedType === 'program',
   });
 
   const { data: datasetsData } = useQuery({
     ...integrationControllerGetDatasetsOptions({
-      path: { connectionId: selectedConnection },
+      path: { connectionId: preSelectedConnection },
       query: { page: 1, pageSize: 100 },
     }),
-    enabled: !!selectedConnection && selectedType === 'dataset',
+    enabled: !!preSelectedConnection && preSelectedType === 'dataset',
   });
 
   const { data: schemaData } = useQuery({
     ...integrationControllerFetchSchemasOptions({
-      path: { connectionId: selectedConnection },
+      path: { connectionId: preSelectedConnection },
       query: {
-        type: selectedType as unknown as _Object,
-        id: selectedProgram,
+        type: preSelectedType as unknown as _Object,
+        id: preSelectedProgram,
       },
     }),
-    enabled: !!selectedConnection && !!selectedProgram && !!selectedType,
+    enabled:
+      !!preSelectedConnection && !!preSelectedProgram && !!preSelectedType,
   });
 
   const connections =
@@ -122,7 +126,7 @@ export default function FieldPreviewModal({
   const dataElements: DataElement[] = [];
   const schema = (schemaData as SchemaResponse)?.data;
 
-  if (selectedType === 'program' && schema?.programStages) {
+  if (preSelectedType === 'program' && schema?.programStages) {
     schema.programStages.forEach((stage: ProgramStage) => {
       stage.programStageDataElements?.forEach(
         (element: ProgramStageDataElement) => {
@@ -138,7 +142,7 @@ export default function FieldPreviewModal({
         }
       );
     });
-  } else if (selectedType === 'dataset' && schema?.dataSetElements) {
+  } else if (preSelectedType === 'dataset' && schema?.dataSetElements) {
     schema.dataSetElements.forEach((element: DataSetElement) => {
       dataElements.push({
         id: element.dataElement.id,
@@ -222,77 +226,51 @@ export default function FieldPreviewModal({
                   Configuration
                 </h3>
 
-                {/* Connection Selection */}
+                {/* Pre-selected Configuration (Read-only) */}
                 <div className="mb-4">
                   <label className="mb-2 block text-sm font-medium text-gray-700">
                     DHIS2 Connection
                   </label>
-                  <select
-                    value={selectedConnection}
-                    onChange={(e) => {
-                      setSelectedConnection(e.target.value);
-                      setSelectedType('');
-                      setSelectedProgram('');
-                      setSelectedFields([]);
-                    }}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-green-500 focus:outline-none"
-                  >
-                    <option value="">Select connection...</option>
-                    {connections.map((conn: Connection) => (
-                      <option key={conn.id} value={conn.id}>
-                        {conn.name}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="w-full rounded-lg border border-gray-200 bg-gray-100 px-3 py-2 text-gray-700">
+                    {connections.find(
+                      (conn) => conn.id === preSelectedConnection
+                    )?.name || 'Loading...'}
+                  </div>
                 </div>
 
-                {/* Type Selection */}
-                {selectedConnection && (
-                  <div className="mb-4">
-                    <label className="mb-2 block text-sm font-medium text-gray-700">
-                      Type
-                    </label>
-                    <select
-                      value={selectedType}
-                      onChange={(e) => {
-                        setSelectedType(e.target.value);
-                        setSelectedProgram('');
-                        setSelectedFields([]);
-                      }}
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-green-500 focus:outline-none"
-                    >
-                      <option value="">Select type...</option>
-                      <option value="program">Program</option>
-                      <option value="dataset">Dataset</option>
-                    </select>
+                <div className="mb-4">
+                  <label className="mb-2 block text-sm font-medium text-gray-700">
+                    Type
+                  </label>
+                  <div className="w-full rounded-lg border border-gray-200 bg-gray-100 px-3 py-2 text-gray-700 capitalize">
+                    {preSelectedType || 'Loading...'}
                   </div>
-                )}
+                </div>
 
-                {/* Program/Dataset Selection */}
-                {selectedConnection && selectedType && (
-                  <div className="mb-4">
-                    <label className="mb-2 block text-sm font-medium text-gray-700">
-                      {selectedType === 'dataset' ? 'Dataset' : 'Program'}
-                    </label>
-                    <select
-                      value={selectedProgram}
-                      onChange={(e) => {
-                        setSelectedProgram(e.target.value);
-                        setSelectedFields([]);
-                      }}
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-green-500 focus:outline-none"
-                    >
-                      <option value="">Select {selectedType}...</option>
-                      {(selectedType === 'dataset' ? datasets : programs).map(
-                        (item: DataItem) => (
-                          <option key={item.id} value={item.id}>
-                            {item.displayName || item.name}
-                          </option>
-                        )
-                      )}
-                    </select>
+                <div className="mb-4">
+                  <label className="mb-2 block text-sm font-medium text-gray-700">
+                    {preSelectedType === 'dataset' ? 'Dataset' : 'Program'}
+                  </label>
+                  <div className="w-full rounded-lg border border-gray-200 bg-gray-100 px-3 py-2 text-gray-700">
+                    {(() => {
+                      const items =
+                        preSelectedType === 'dataset' ? datasets : programs;
+                      const selectedItem = items.find(
+                        (item) => item.id === preSelectedProgram
+                      );
+                      return (
+                        selectedItem?.displayName ||
+                        selectedItem?.name ||
+                        'Loading...'
+                      );
+                    })()}
                   </div>
-                )}
+                </div>
+
+                <div className="rounded bg-blue-50 p-2 text-xs text-gray-500">
+                  💡 To change these settings, go back to the DHIS2
+                  Configuration step
+                </div>
               </div>
 
               {/* Selected Fields */}
@@ -350,7 +328,9 @@ export default function FieldPreviewModal({
                   )}
                 </div>
 
-                {selectedConnection && selectedType && selectedProgram ? (
+                {preSelectedConnection &&
+                preSelectedType &&
+                preSelectedProgram ? (
                   <div className="max-h-96 space-y-2 overflow-y-auto">
                     {filteredElements.map((element) => (
                       <div
@@ -417,8 +397,8 @@ export default function FieldPreviewModal({
                 ) : (
                   <div className="flex items-center justify-center py-20 text-gray-500">
                     <p>
-                      Select a connection, type, and {selectedType || 'item'} to
-                      browse available fields
+                      Select a connection, type, and {preSelectedType || 'item'}{' '}
+                      to browse available fields
                     </p>
                   </div>
                 )}

@@ -28,11 +28,17 @@ interface FormField {
 interface FormFieldsStepProps {
   fields: FormField[];
   setFields: (fields: FormField[]) => void;
+  selectedConnection: string;
+  selectedType: string;
+  selectedProgram: string;
 }
 
 export default function FormFieldsStep({
   fields,
   setFields,
+  selectedConnection,
+  selectedType,
+  selectedProgram,
 }: FormFieldsStepProps) {
   const [showFieldPreview, setShowFieldPreview] = useState(false);
 
@@ -241,6 +247,9 @@ export default function FormFieldsStep({
       <FieldPreviewModal
         isOpen={showFieldPreview}
         onClose={() => setShowFieldPreview(false)}
+        preSelectedConnection={selectedConnection}
+        preSelectedType={selectedType}
+        preSelectedProgram={selectedProgram}
         onFieldsSelect={(selectedFields) => {
           const newFields = selectedFields.map((field, index) => ({
             id: Date.now().toString() + index,

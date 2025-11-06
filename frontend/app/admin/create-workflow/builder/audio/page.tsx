@@ -539,7 +539,10 @@ export default function AudioBuilder() {
                 <strong>AI Fields:</strong> {aiFieldMappings.length} configured
               </div>
               <div>
-                <strong>DHIS2 Program:</strong> {selectedProgram}
+                <strong>
+                  DHIS2 {selectedType === 'program' ? 'Program' : 'Dataset'}:
+                </strong>{' '}
+                {selectedProgram}
               </div>
             </div>
           </div>
@@ -585,6 +588,9 @@ export default function AudioBuilder() {
       <FieldPreviewModal
         isOpen={showFieldPreview}
         onClose={() => setShowFieldPreview(false)}
+        preSelectedConnection={selectedConnection}
+        preSelectedType={selectedType}
+        preSelectedProgram={selectedProgram}
         onFieldsSelect={(selectedFields) => {
           const newFields = selectedFields.map((field, index) => ({
             id: Date.now().toString() + index,

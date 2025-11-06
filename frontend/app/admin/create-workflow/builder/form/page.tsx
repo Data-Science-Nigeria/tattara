@@ -233,7 +233,15 @@ export default function FormBuilder() {
           />
         );
       case 'fields':
-        return <FormFieldsStep fields={fields} setFields={setFields} />;
+        return (
+          <FormFieldsStep
+            fields={fields}
+            setFields={setFields}
+            selectedConnection={selectedConnection}
+            selectedType={selectedType}
+            selectedProgram={selectedProgram}
+          />
+        );
       case 'create':
         return (
           <div className="space-y-6">
@@ -254,7 +262,10 @@ export default function FormBuilder() {
                 <strong>Fields:</strong> {fields.length} configured
               </div>
               <div>
-                <strong>DHIS2 Program:</strong> {selectedProgram}
+                <strong>
+                  DHIS2 {selectedType === 'program' ? 'Program' : 'Dataset'}:
+                </strong>{' '}
+                {selectedProgram}
               </div>
             </div>
           </div>

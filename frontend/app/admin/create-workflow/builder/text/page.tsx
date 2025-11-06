@@ -567,7 +567,10 @@ export default function TextBuilder() {
                 <strong>AI Fields:</strong> {aiFieldMappings.length} configured
               </div>
               <div>
-                <strong>DHIS2 Program:</strong> {selectedProgram}
+                <strong>
+                  DHIS2 {selectedType === 'program' ? 'Program' : 'Dataset'}:
+                </strong>{' '}
+                {selectedProgram}
               </div>
             </div>
           </div>
@@ -609,6 +612,9 @@ export default function TextBuilder() {
       />
 
       <FieldPreviewModal
+        preSelectedConnection={selectedConnection}
+        preSelectedType={selectedType}
+        preSelectedProgram={selectedProgram}
         isOpen={showFieldPreview}
         onClose={() => setShowFieldPreview(false)}
         onFieldsSelect={(selectedFields) => {
