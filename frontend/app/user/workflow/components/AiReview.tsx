@@ -6,7 +6,18 @@ interface FormField {
   id: string;
   fieldName: string;
   label: string;
-  fieldType: 'text' | 'number' | 'date' | 'select' | 'checkbox';
+  fieldType:
+    | 'text'
+    | 'number'
+    | 'date'
+    | 'datetime'
+    | 'select'
+    | 'multiselect'
+    | 'boolean'
+    | 'email'
+    | 'phone'
+    | 'url'
+    | 'textarea';
   isRequired: boolean;
   options?: string[];
   displayOrder: number;
