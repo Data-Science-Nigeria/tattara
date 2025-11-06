@@ -109,17 +109,28 @@ export default function ImageBuilder() {
   // Load existing data in edit mode
   useEffect(() => {
     if (workflowData && isEditMode) {
-      const workflow = (workflowData as { data?: any })?.data;
+      const workflow = (workflowData as { data?: {
+        workflowFields?: typeof aiFieldMappings;
+        workflowConfigurations?: Array<{
+          type: string;
+          externalConnection?: { id: string };
+          configuration?: {
+            programId?: string;
+            orgUnits?: string[];
+            imageConfig?: typeof imageConfig;
+          };
+        }>;
+      } })?.data;
       if (workflow) {
         setAiFieldMappings(workflow.workflowFields || []);
         const dhis2Config = workflow.workflowConfigurations?.find(
-          (config: any) => config.type === 'dhis2'
+          (config) => config.type === 'dhis2'
         );
         if (dhis2Config) {
           setSelectedConnection(dhis2Config.externalConnection?.id || '');
           setSelectedProgram(dhis2Config.configuration?.programId || '');
           setSelectedOrgUnits(dhis2Config.configuration?.orgUnits || []);
-          setImageConfig(dhis2Config.configuration?.imageConfig || imageConfig);
+          setImageConfig(prev => ({ ...prev, ...dhis2Config.configuration?.imageConfig }));
         }
       }
     }

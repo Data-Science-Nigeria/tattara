@@ -109,17 +109,23 @@ export default function TextBuilder() {
   // Load existing data in edit mode
   useEffect(() => {
     if (workflowData && isEditMode) {
-      const workflow = (workflowData as { data?: any })?.data;
+      const workflow = (workflowData as { data?: Record<string, unknown> })?.data;
       if (workflow) {
-        setAiFieldMappings(workflow.workflowFields || []);
-        const dhis2Config = workflow.workflowConfigurations?.find(
-          (config: any) => config.type === 'dhis2'
+        setAiFieldMappings(workflow.workflowFields as typeof aiFieldMappings || []);
+        const dhis2Config = (workflow.workflowConfigurations as Array<Record<string, unknown>>)?.find(
+          (config: Record<string, unknown>) => config.type === 'dhis2'
         );
         if (dhis2Config) {
-          setSelectedConnection(dhis2Config.externalConnection?.id || '');
-          setSelectedProgram(dhis2Config.configuration?.programId || '');
-          setSelectedOrgUnits(dhis2Config.configuration?.orgUnits || []);
-          setTextConfig(dhis2Config.configuration?.textConfig || textConfig);
+          setSelectedConnection((dhis2Config.externalConnection as { id?: string })?.id || '');
+          setSelectedProgram((dhis2Config.configuration as { programId?: string })?.programId || '');
+          setSelectedOrgUnits((dhis2Config.configuration as { orgUnits?: string[] })?.orgUnits || []);
+          setTextConfig((dhis2Config.configuration as { textConfig?: typeof textConfig })?.textConfig || {
+            aiModel: 'gpt-3.5-turbo',
+            maxTokens: 1000,
+            temperature: 0.3,
+            enableNER: true,
+            language: 'en',
+          });
         }
       }
     }

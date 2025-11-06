@@ -11,9 +11,9 @@ interface Program {
   description?: string;
 }
 
-interface ProgramsResponse {
+interface ApiResponse {
   data?: {
-    programs?: Program[];
+    data?: Program[];
   };
 }
 
@@ -26,7 +26,7 @@ export default function SelectProgram() {
     }),
   });
 
-  const programs = (programsData as any)?.data?.data || [];
+  const programs: Program[] = (programsData as ApiResponse)?.data?.data || [];
 
   const handleNext = () => {
     if (selectedProgram) {

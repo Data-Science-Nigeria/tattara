@@ -12,18 +12,20 @@ interface FormField {
   displayOrder: number;
 }
 
+interface AiReviewData {
+  form_id: string;
+  extracted: Record<string, unknown>;
+  missing_required: string[];
+}
+
 interface AiReviewProps {
   workflowId: string;
-  formData: Record<string, any>;
+  formData: Record<string, unknown>;
   fields: FormField[];
-  onReviewComplete: (reviewData: any, logId: string) => void;
+  onReviewComplete: (reviewData: unknown, logId: string) => void;
   onSubmit?: () => void;
   isSubmitting?: boolean;
-  aiReviewData?: {
-    form_id: string;
-    extracted: Record<string, any>;
-    missing_required: string[];
-  } | null;
+  aiReviewData?: AiReviewData | null;
 }
 
 export default function AiReview({ workflowId, formData, fields, onReviewComplete, onSubmit, isSubmitting, aiReviewData }: AiReviewProps) {
@@ -61,9 +63,9 @@ export default function AiReview({ workflowId, formData, fields, onReviewComplet
         },
       });
 
-      const responseData = (aiResponse as any)?.data;
-      onReviewComplete(responseData?.aiData, responseData?.aiProcessingLogId);
-    } catch (error) {
+      const responseData = aiResponse as { data?: { aiData?: unknown; aiProcessingLogId?: string } };
+      onReviewComplete(responseData?.data?.aiData, responseData?.data?.aiProcessingLogId || '');
+    } catch {
       alert('Failed to process review. Please try again.');
     } finally {
       setIsReviewing(false);

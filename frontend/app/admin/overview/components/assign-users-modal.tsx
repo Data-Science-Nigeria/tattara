@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { CircleX, User, Plus } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -56,7 +56,9 @@ export default function AssignUsersModal({
     enabled: isOpen,
   });
 
-  const workflows = (workflowsData as { data?: Workflow[] })?.data || [];
+  const workflows = useMemo(() => {
+    return (workflowsData as { data?: Workflow[] })?.data || [];
+  }, [workflowsData]);
 
   // Update workflow users when workflows change
   useEffect(() => {
@@ -89,7 +91,7 @@ export default function AssignUsersModal({
     };
 
     fetchWorkflowDetails();
-  }, [isOpen, workflows.length, queryClient]);
+  }, [isOpen, workflows, queryClient]);
 
   const { data: usersData, isLoading: usersLoading } = useQuery({
     ...userControllerFindAllForLoggedInUserOptions({

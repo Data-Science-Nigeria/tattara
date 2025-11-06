@@ -37,6 +37,20 @@ interface FormField {
   dhis2DataElement?: string;
 }
 
+interface WorkflowConfiguration {
+  type: string;
+  externalConnection?: { id: string };
+  configuration?: {
+    programId: string;
+    orgUnits: string[];
+  };
+}
+
+interface WorkflowData {
+  workflowFields?: FormField[];
+  workflowConfigurations?: WorkflowConfiguration[];
+}
+
 export default function FormBuilder() {
   const searchParams = useSearchParams();
 
@@ -73,11 +87,11 @@ export default function FormBuilder() {
   // Load existing data in edit mode
   useEffect(() => {
     if (workflowData && isEditMode) {
-      const workflow = (workflowData as { data?: any })?.data;
+      const workflow = (workflowData as { data?: WorkflowData })?.data;
       if (workflow) {
         setFields(workflow.workflowFields || []);
         const dhis2Config = workflow.workflowConfigurations?.find(
-          (config: any) => config.type === 'dhis2'
+          (config: WorkflowConfiguration) => config.type === 'dhis2'
         );
         if (dhis2Config) {
           setSelectedConnection(dhis2Config.externalConnection?.id || '');

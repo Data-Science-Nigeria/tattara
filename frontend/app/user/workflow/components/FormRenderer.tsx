@@ -7,6 +7,12 @@ import { collectorControllerSubmitDataMutation } from '@/client/@tanstack/react-
 import { validateFieldValue } from '@/lib/field-validation';
 import AiReview from './AiReview';
 
+interface AiReviewData {
+  form_id: string;
+  extracted: Record<string, unknown>;
+  missing_required: string[];
+}
+
 interface FormField {
   id: string;
   fieldName: string;
@@ -36,7 +42,7 @@ type FormValue = string | number | boolean;
 export default function FormRenderer({ workflow }: FormRendererProps) {
   const [formData, setFormData] = useState<Record<string, FormValue>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [aiReviewData, setAiReviewData] = useState<any>(null);
+  const [aiReviewData, setAiReviewData] = useState<AiReviewData | null>(null);
   const [aiProcessingLogId, setAiProcessingLogId] = useState<string>('');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
@@ -70,8 +76,8 @@ export default function FormRenderer({ workflow }: FormRendererProps) {
     }));
   };
 
-  const handleAiReviewComplete = (reviewData: any, processingLogId: string) => {
-    setAiReviewData(reviewData);
+  const handleAiReviewComplete = (reviewData: unknown, processingLogId: string) => {
+    setAiReviewData(reviewData as AiReviewData);
     setAiProcessingLogId(processingLogId);
   };
 
@@ -99,7 +105,7 @@ export default function FormRenderer({ workflow }: FormRendererProps) {
 
       alert('Form submitted successfully!');
       window.location.href = '/user/overview';
-    } catch (error) {
+    } catch {
       alert('Failed to submit form. Please try again.');
     } finally {
       setIsSubmitting(false);
@@ -351,7 +357,7 @@ export default function FormRenderer({ workflow }: FormRendererProps) {
         <AiReview 
           workflowId={workflow.id}
           formData={formData}
-          fields={sortedFields as any}
+          fields={sortedFields as Parameters<typeof AiReview>[0]['fields']}
           aiReviewData={aiReviewData}
           onReviewComplete={handleAiReviewComplete}
           onSubmit={handleSubmit}

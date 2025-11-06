@@ -1,5 +1,6 @@
 import { useQueries } from '@tanstack/react-query';
 import { workflowControllerFindWorkflowByIdOptions } from '@/client/@tanstack/react-query.gen';
+import type { WorkflowResponseDto } from '@/client/types.gen';
 
 interface Workflow {
   id: string;
@@ -22,10 +23,10 @@ export function useWorkflowsWithUsers(workflows: Workflow[]) {
   const workflowsWithUsers = workflowQueries
     .filter((query) => query.data)
     .map((query) => {
-      const data = (query.data as { data?: Workflow })?.data;
+      const data = (query.data as { data?: WorkflowResponseDto })?.data;
       return data;
     })
-    .filter(Boolean) as Workflow[];
+    .filter(Boolean) as WorkflowResponseDto[];
 
   const isLoading = workflowQueries.some((query) => query.isLoading);
 

@@ -67,14 +67,6 @@ export default function Card() {
     }>;
   }
 
-  interface ApiUser {
-    id: string;
-    firstName?: string;
-    lastName?: string;
-    email: string;
-    name?: string;
-  }
-
   interface HookWorkflow {
     id: string;
     name: string;
@@ -97,11 +89,17 @@ export default function Card() {
     useWorkflowsWithUsers(hookWorkflows);
 
   // Use workflowsWithUsers directly since it already has the user data
-  const workflows: WorkflowData[] = workflowsWithUsers.map((w: any) => ({
-    ...w,
-    status: 'active' as const,
-    enabledModes: w.enabledModes || ['text'],
-    users: w.users || [],
+  const workflows: WorkflowData[] = workflowsWithUsers.map((w) => ({
+    id: w.id,
+    name: w.name,
+    status: w.status as WorkflowData['status'],
+    enabledModes: w.enabledModes as Array<'audio' | 'text' | 'form' | 'image'>,
+    users: w.users?.map(user => ({
+      id: user.id,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      email: user.email,
+    })) || [],
   }));
 
   interface Program {

@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { Plus, FileText, Edit, Link2 } from 'lucide-react';
 import Link from 'next/link';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import {
   workflowControllerGetWorkflowsOptions,
 } from '@/client/@tanstack/react-query.gen';
@@ -24,7 +24,6 @@ interface WorkflowsResponse {
 }
 
 export default function CreateWorkflow() {
-  const queryClient = useQueryClient();
   const [searchResults, setSearchResults] = useState<Workflow[]>([]);
   const [isSearching, setIsSearching] = useState(false);
 

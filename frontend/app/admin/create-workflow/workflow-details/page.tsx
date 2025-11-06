@@ -3,8 +3,12 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { useQuery } from '@tanstack/react-query';
-import { workflowControllerFindWorkflowByIdOptions } from '@/client/@tanstack/react-query.gen';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { 
+  workflowControllerFindWorkflowByIdOptions
+} from '@/client/@tanstack/react-query.gen';
+import { client } from '@/client/client.gen';
+import { toast } from 'sonner';
 
 interface Workflow {
   name?: string;
@@ -20,6 +24,7 @@ export default function WorkflowDetails() {
 
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
 
   // Fetch workflow data if editing
   const { data: workflowData, isLoading } = useQuery({
@@ -29,6 +34,26 @@ export default function WorkflowDetails() {
     enabled: isEditing,
   });
 
+  const updateMutation = useMutation({
+    mutationFn: async ({ workflowId, name, description }: { workflowId: string; name: string; description: string }) => {
+      const { data } = await client.put({
+        url: `/api/v1/workflows/${workflowId}`,
+        body: { name, description },
+        headers: { 'Content-Type': 'application/json' },
+        throwOnError: true,
+      });
+      return data;
+    },
+    onSuccess: () => {
+      toast.success('Workflow updated successfully!');
+      setIsSaving(false);
+    },
+    onError: () => {
+      toast.error('Failed to update workflow');
+      setIsSaving(false);
+    },
+  });
+
   useEffect(() => {
     if (workflowData) {
       const workflow = (workflowData as { data?: Workflow })?.data;
@@ -36,6 +61,24 @@ export default function WorkflowDetails() {
       setDescription(workflow?.description || '');
     }
   }, [workflowData]);
+
+  const handleSave = async () => {
+    if (!name.trim() || !workflowId) return;
+    
+    setIsSaving(true);
+    await updateMutation.mutateAsync({
+      workflowId,
+      name: name.trim(),
+      description: description.trim(),
+    });
+  };
+
+  const handleSaveAndContinue = async () => {
+    await handleSave();
+    if (!updateMutation.isError) {
+      router.push(`/admin/create-workflow/select-type?workflowId=${workflowId}`);
+    }
+  };
 
   const handleNext = () => {
     if (!name.trim()) return;
@@ -126,13 +169,32 @@ export default function WorkflowDetails() {
           </div>
 
           <div className="mt-8 flex justify-end">
-            <button
-              onClick={handleNext}
-              disabled={!name.trim()}
-              className="rounded-lg bg-green-600 px-6 py-2 font-medium text-white transition-colors hover:bg-green-700 disabled:opacity-50"
-            >
-              Next
-            </button>
+            {isEditing ? (
+              <div className="flex gap-3">
+                <button
+                  onClick={handleSave}
+                  disabled={!name.trim() || isSaving}
+                  className="rounded-lg border border-green-600 px-6 py-2 font-medium text-green-600 hover:bg-green-50 disabled:opacity-50"
+                >
+                  {isSaving ? 'Saving...' : 'Save'}
+                </button>
+                <button
+                  onClick={handleSaveAndContinue}
+                  disabled={!name.trim() || isSaving}
+                  className="rounded-lg bg-green-600 px-6 py-2 font-medium text-white transition-colors hover:bg-green-700 disabled:opacity-50"
+                >
+                  {isSaving ? 'Saving...' : 'Save & Continue'}
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={handleNext}
+                disabled={!name.trim()}
+                className="rounded-lg bg-green-600 px-6 py-2 font-medium text-white transition-colors hover:bg-green-700 disabled:opacity-50"
+              >
+                Next
+              </button>
+            )}
           </div>
         </div>
       </div>

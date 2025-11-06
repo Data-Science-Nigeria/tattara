@@ -74,14 +74,7 @@ export default function ProgramTable({
     }
   };
 
-  const resetFilters = () => {
-    setSearch('');
-    setSelectedDate('');
-    setSortOrder(null);
-    setStatusFilter('');
-    setShowDatePicker(false);
-    setShowStatusDropdown(false);
-  };
+
 
   const filteredData = data
     .filter((item) => {

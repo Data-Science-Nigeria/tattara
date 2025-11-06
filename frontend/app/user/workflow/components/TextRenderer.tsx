@@ -5,6 +5,12 @@ import { useMutation } from '@tanstack/react-query';
 import { collectorControllerSubmitDataMutation } from '@/client/@tanstack/react-query.gen';
 import AiReview from './AiReview';
 
+interface AiReviewData {
+  form_id: string;
+  extracted: Record<string, unknown>;
+  missing_required: string[];
+}
+
 interface TextRendererProps {
   workflow: {
     id: string;
@@ -21,15 +27,15 @@ interface TextRendererProps {
 export default function TextRenderer({ workflow }: TextRendererProps) {
   const [textInput, setTextInput] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [aiReviewData, setAiReviewData] = useState<any>(null);
+  const [aiReviewData, setAiReviewData] = useState<AiReviewData | null>(null);
   const [aiProcessingLogId, setAiProcessingLogId] = useState<string>('');
 
   const submitMutation = useMutation({
     ...collectorControllerSubmitDataMutation(),
   });
 
-  const handleAiReviewComplete = (reviewData: any, processingLogId: string) => {
-    setAiReviewData(reviewData);
+  const handleAiReviewComplete = (reviewData: unknown, processingLogId: string) => {
+    setAiReviewData(reviewData as AiReviewData);
     setAiProcessingLogId(processingLogId);
   };
 

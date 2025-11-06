@@ -38,7 +38,6 @@ export default function ExternalConnections() {
   const {
     data: connections,
     isLoading,
-    error,
   } = useQuery({
     ...externalConnectionsControllerFindAllOptions(),
     retry: false,
@@ -101,14 +100,8 @@ export default function ExternalConnections() {
 
   const handleSubmit = () => {
     if (editingConnection) {
-      const updatePayload = {
-        name,
-        type: type as 'dhis2',
-        configuration: { baseUrl, pat },
-      };
       updateMutation.mutate({
         path: { id: editingConnection.id },
-        body: updatePayload as any,
       });
     } else {
       const createPayload = {

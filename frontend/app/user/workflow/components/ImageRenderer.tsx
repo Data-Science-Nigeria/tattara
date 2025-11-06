@@ -6,6 +6,12 @@ import { useMutation } from '@tanstack/react-query';
 import { collectorControllerSubmitDataMutation } from '@/client/@tanstack/react-query.gen';
 import AiReview from './AiReview';
 
+interface AiReviewData {
+  form_id: string;
+  extracted: Record<string, unknown>;
+  missing_required: string[];
+}
+
 interface ImageRendererProps {
   workflow: {
     id: string;
@@ -24,7 +30,7 @@ export default function ImageRenderer({ workflow }: ImageRendererProps) {
   const [dragActive, setDragActive] = useState(false);
   const [showCamera, setShowCamera] = useState(false);
   const [stream, setStream] = useState<MediaStream | null>(null);
-  const [aiReviewData, setAiReviewData] = useState<any>(null);
+  const [aiReviewData, setAiReviewData] = useState<AiReviewData | null>(null);
   const [aiProcessingLogId, setAiProcessingLogId] = useState<string>('');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -98,7 +104,7 @@ export default function ImageRenderer({ workflow }: ImageRendererProps) {
           videoRef.current.srcObject = mediaStream;
         }
       }, 100);
-    } catch (error) {
+    } catch {
       alert(
         'Camera access denied or not available. Please use "Browse Files" instead.'
       );
@@ -151,8 +157,8 @@ export default function ImageRenderer({ workflow }: ImageRendererProps) {
     );
   }, [handleFileSelect, closeCamera]);
 
-  const handleAiReviewComplete = (reviewData: any, processingLogId: string) => {
-    setAiReviewData(reviewData);
+  const handleAiReviewComplete = (reviewData: unknown, processingLogId: string) => {
+    setAiReviewData(reviewData as AiReviewData);
     setAiProcessingLogId(processingLogId);
   };
 
@@ -191,7 +197,7 @@ export default function ImageRenderer({ workflow }: ImageRendererProps) {
         window.location.href = '/user/overview';
       };
       reader.readAsDataURL(selectedFile);
-    } catch (error) {
+    } catch {
       alert('Failed to submit image. Please try again.');
     } finally {
       setIsSubmitting(false);
