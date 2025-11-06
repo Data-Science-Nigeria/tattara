@@ -103,7 +103,10 @@ export default function AudioRenderer({ workflow }: AudioRendererProps) {
     }
   };
 
-  const handleAiReviewComplete = (reviewData: unknown, processingLogId: string) => {
+  const handleAiReviewComplete = (
+    reviewData: unknown,
+    processingLogId: string
+  ) => {
     setAiReviewData(reviewData as AiReviewData);
     setAiProcessingLogId(processingLogId);
   };
@@ -259,9 +262,12 @@ export default function AudioRenderer({ workflow }: AudioRendererProps) {
           </div>
         )}
 
-        <AiReview 
+        <AiReview
           workflowId={workflow.id}
-          formData={{ audio: audioBlob ? 'audio-data' : '', duration: recordingTime }}
+          formData={{
+            audio: audioBlob ? 'audio-data' : '',
+            duration: recordingTime,
+          }}
           fields={[]}
           aiReviewData={aiReviewData}
           onReviewComplete={handleAiReviewComplete}

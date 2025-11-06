@@ -77,7 +77,8 @@ export default function Workflows() {
   };
 
   // Extract workflows from API response
-  const allUserWorkflows = (workflowsData as WorkflowsResponse)?.data?.data || [];
+  const allUserWorkflows =
+    (workflowsData as WorkflowsResponse)?.data?.data || [];
   const activeWorkflows = allUserWorkflows.filter((w) => w.status === 'active');
   const finalWorkflows = activeWorkflows;
 

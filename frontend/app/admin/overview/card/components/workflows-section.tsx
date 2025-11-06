@@ -174,7 +174,8 @@ export default function WorkflowsSection({
                           {workflow.name}
                         </h3>
                         <p className="text-xs text-gray-500">
-                          {workflow.enabledModes.join(', ')} • {workflow.users?.length || 0} users
+                          {workflow.enabledModes.join(', ')} •{' '}
+                          {workflow.users?.length || 0} users
                         </p>
                       </div>
                     </div>
@@ -206,8 +207,8 @@ export default function WorkflowsSection({
 
           {/* Modal */}
           {showModal && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-              <div className="w-full max-w-2xl rounded-lg bg-white p-6 m-4 max-h-[80vh] overflow-y-auto">
+            <div className="bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black">
+              <div className="m-4 max-h-[80vh] w-full max-w-2xl overflow-y-auto rounded-lg bg-white p-6">
                 <div className="mb-4 flex items-center justify-between">
                   <h3 className="text-lg font-semibold text-gray-900">
                     All Workflows ({activeWorkflows.length})
@@ -236,10 +237,11 @@ export default function WorkflowsSection({
                               {workflow.name}
                             </h4>
                             <p className="text-sm text-gray-500">
-                              {workflow.enabledModes.join(', ')} • {workflow.users?.length || 0} users assigned
+                              {workflow.enabledModes.join(', ')} •{' '}
+                              {workflow.users?.length || 0} users assigned
                             </p>
                             {workflow.description && (
-                              <p className="text-xs text-gray-400 mt-1">
+                              <p className="mt-1 text-xs text-gray-400">
                                 {workflow.description}
                               </p>
                             )}

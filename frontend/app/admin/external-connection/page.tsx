@@ -35,10 +35,7 @@ export default function ExternalConnections() {
   );
   const [showTestModal, setShowTestModal] = useState(false);
 
-  const {
-    data: connections,
-    isLoading,
-  } = useQuery({
+  const { data: connections, isLoading } = useQuery({
     ...externalConnectionsControllerFindAllOptions(),
     retry: false,
   });

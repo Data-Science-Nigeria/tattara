@@ -28,12 +28,20 @@ interface AiReviewProps {
   aiReviewData?: AiReviewData | null;
 }
 
-export default function AiReview({ workflowId, formData, fields, onReviewComplete, onSubmit, isSubmitting, aiReviewData }: AiReviewProps) {
+export default function AiReview({
+  workflowId,
+  formData,
+  fields,
+  onReviewComplete,
+  onSubmit,
+  isSubmitting,
+  aiReviewData,
+}: AiReviewProps) {
   const [isReviewing, setIsReviewing] = useState(false);
 
   const validateRequiredFields = () => {
-    const requiredFields = fields.filter(field => field.isRequired);
-    const missingFields = requiredFields.filter(field => {
+    const requiredFields = fields.filter((field) => field.isRequired);
+    const missingFields = requiredFields.filter((field) => {
       const value = formData[field.fieldName];
       return !value || (typeof value === 'string' && value.trim() === '');
     });
@@ -47,7 +55,7 @@ export default function AiReview({ workflowId, formData, fields, onReviewComplet
   const handleReview = async () => {
     const missingFields = validateRequiredFields();
     if (missingFields.length > 0) {
-      const fieldNames = missingFields.map(field => field.label).join(', ');
+      const fieldNames = missingFields.map((field) => field.label).join(', ');
       alert(`Please fill in the following required fields: ${fieldNames}`);
       return;
     }
@@ -63,8 +71,13 @@ export default function AiReview({ workflowId, formData, fields, onReviewComplet
         },
       });
 
-      const responseData = aiResponse as { data?: { aiData?: unknown; aiProcessingLogId?: string } };
-      onReviewComplete(responseData?.data?.aiData, responseData?.data?.aiProcessingLogId || '');
+      const responseData = aiResponse as {
+        data?: { aiData?: unknown; aiProcessingLogId?: string };
+      };
+      onReviewComplete(
+        responseData?.data?.aiData,
+        responseData?.data?.aiProcessingLogId || ''
+      );
     } catch {
       alert('Failed to process review. Please try again.');
     } finally {
@@ -94,7 +107,9 @@ export default function AiReview({ workflowId, formData, fields, onReviewComplet
         </div>
       ) : (
         <div className="rounded-lg border border-gray-300 bg-white p-4">
-          <h3 className="mb-3 text-lg font-semibold text-black">AI Review Results</h3>
+          <h3 className="mb-3 text-lg font-semibold text-black">
+            AI Review Results
+          </h3>
           <div className="space-y-2">
             <p className="text-sm text-black">
               <strong>Form:</strong> {aiReviewData.form_id}
@@ -102,21 +117,25 @@ export default function AiReview({ workflowId, formData, fields, onReviewComplet
             <div className="text-sm text-black">
               <strong>Extracted Data:</strong>
               <div className="mt-2 space-y-1">
-                {Object.entries(aiReviewData.extracted || {}).map(([key, value]) => (
-                  <div key={key} className="flex justify-between">
-                    <span className="font-medium">{key}:</span>
-                    <span>{String(value)}</span>
-                  </div>
-                ))}
+                {Object.entries(aiReviewData.extracted || {}).map(
+                  ([key, value]) => (
+                    <div key={key} className="flex justify-between">
+                      <span className="font-medium">{key}:</span>
+                      <span>{String(value)}</span>
+                    </div>
+                  )
+                )}
               </div>
             </div>
             {aiReviewData.missing_required?.length > 0 && (
               <div className="text-sm text-red-600">
                 <strong>Missing Required Fields:</strong>
-                <ul className="mt-1 list-disc list-inside">
-                  {aiReviewData.missing_required.map((field: string, index: number) => (
-                    <li key={index}>{field}</li>
-                  ))}
+                <ul className="mt-1 list-inside list-disc">
+                  {aiReviewData.missing_required.map(
+                    (field: string, index: number) => (
+                      <li key={index}>{field}</li>
+                    )
+                  )}
                 </ul>
               </div>
             )}

@@ -94,12 +94,13 @@ export default function Card() {
     name: w.name,
     status: w.status as WorkflowData['status'],
     enabledModes: w.enabledModes as Array<'audio' | 'text' | 'form' | 'image'>,
-    users: w.users?.map(user => ({
-      id: user.id,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      email: user.email,
-    })) || [],
+    users:
+      w.users?.map((user) => ({
+        id: user.id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+      })) || [],
   }));
 
   interface Program {
@@ -241,7 +242,8 @@ export default function Card() {
             data={workflows.flatMap(
               (workflow: WorkflowData) =>
                 workflow.users?.map((user) => ({
-                  name: `${user.firstName} ${user.lastName}`.trim() || user.email,
+                  name:
+                    `${user.firstName} ${user.lastName}`.trim() || user.email,
                   program: workflow.name,
                   completedOn:
                     user.completedAt || workflow.completedAt || 'N/A',

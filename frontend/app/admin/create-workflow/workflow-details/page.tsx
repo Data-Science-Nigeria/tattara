@@ -4,9 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { 
-  workflowControllerFindWorkflowByIdOptions
-} from '@/client/@tanstack/react-query.gen';
+import { workflowControllerFindWorkflowByIdOptions } from '@/client/@tanstack/react-query.gen';
 import { client } from '@/client/client.gen';
 import { toast } from 'sonner';
 
@@ -35,7 +33,15 @@ export default function WorkflowDetails() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ workflowId, name, description }: { workflowId: string; name: string; description: string }) => {
+    mutationFn: async ({
+      workflowId,
+      name,
+      description,
+    }: {
+      workflowId: string;
+      name: string;
+      description: string;
+    }) => {
       const { data } = await client.put({
         url: `/api/v1/workflows/${workflowId}`,
         body: { name, description },
@@ -64,7 +70,7 @@ export default function WorkflowDetails() {
 
   const handleSave = async () => {
     if (!name.trim() || !workflowId) return;
-    
+
     setIsSaving(true);
     await updateMutation.mutateAsync({
       workflowId,
@@ -76,7 +82,9 @@ export default function WorkflowDetails() {
   const handleSaveAndContinue = async () => {
     await handleSave();
     if (!updateMutation.isError) {
-      router.push(`/admin/create-workflow/select-type?workflowId=${workflowId}`);
+      router.push(
+        `/admin/create-workflow/select-type?workflowId=${workflowId}`
+      );
     }
   };
 

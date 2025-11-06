@@ -17,7 +17,18 @@ interface FormField {
   id: string;
   fieldName: string;
   label: string;
-  fieldType: 'text' | 'number' | 'date' | 'datetime' | 'select' | 'multiselect' | 'boolean' | 'email' | 'phone' | 'url' | 'textarea';
+  fieldType:
+    | 'text'
+    | 'number'
+    | 'date'
+    | 'datetime'
+    | 'select'
+    | 'multiselect'
+    | 'boolean'
+    | 'email'
+    | 'phone'
+    | 'url'
+    | 'textarea';
   isRequired: boolean;
   options?: string[];
   displayOrder: number;
@@ -57,17 +68,20 @@ export default function FormRenderer({ workflow }: FormRendererProps) {
   });
 
   const fields = (fieldsData as unknown as FieldsResponse)?.data || [];
-  
+
   // Sort fields by display order
   const sortedFields = fields.sort((a, b) => a.displayOrder - b.displayOrder);
 
   const handleInputChange = (fieldName: string, value: FormValue) => {
-    const field = sortedFields.find(f => f.fieldName === fieldName);
+    const field = sortedFields.find((f) => f.fieldName === fieldName);
     if (field) {
-      const validation = validateFieldValue(value as string | boolean, field.fieldType);
-      setFieldErrors(prev => ({
+      const validation = validateFieldValue(
+        value as string | boolean,
+        field.fieldType
+      );
+      setFieldErrors((prev) => ({
         ...prev,
-        [fieldName]: validation.isValid ? '' : validation.error || ''
+        [fieldName]: validation.isValid ? '' : validation.error || '',
       }));
     }
     setFormData((prev) => ({
@@ -76,7 +90,10 @@ export default function FormRenderer({ workflow }: FormRendererProps) {
     }));
   };
 
-  const handleAiReviewComplete = (reviewData: unknown, processingLogId: string) => {
+  const handleAiReviewComplete = (
+    reviewData: unknown,
+    processingLogId: string
+  ) => {
     setAiReviewData(reviewData as AiReviewData);
     setAiProcessingLogId(processingLogId);
   };
@@ -284,7 +301,10 @@ export default function FormRenderer({ workflow }: FormRendererProps) {
                 : []
             }
             onChange={(e) => {
-              const values = Array.from(e.target.selectedOptions, option => option.value);
+              const values = Array.from(
+                e.target.selectedOptions,
+                (option) => option.value
+              );
               handleInputChange(field.fieldName, values.join(','));
             }}
             className={`w-full rounded-lg border bg-white px-3 py-2 focus:ring-2 focus:outline-none ${
@@ -310,7 +330,9 @@ export default function FormRenderer({ workflow }: FormRendererProps) {
                 ? (formData[field.fieldName] as boolean)
                 : false
             }
-            onChange={(e) => handleInputChange(field.fieldName, e.target.checked)}
+            onChange={(e) =>
+              handleInputChange(field.fieldName, e.target.checked)
+            }
             className="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
           />
         );
@@ -354,7 +376,7 @@ export default function FormRenderer({ workflow }: FormRendererProps) {
           </div>
         ))}
 
-        <AiReview 
+        <AiReview
           workflowId={workflow.id}
           formData={formData}
           fields={sortedFields as Parameters<typeof AiReview>[0]['fields']}

@@ -4,11 +4,11 @@ import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { Plus, Trash2, FileText, GripVertical } from 'lucide-react';
-import { 
+import {
   workflowControllerCreateWorkflowMutation,
   workflowControllerFindWorkflowByIdOptions,
   configurationControllerUpsertWorkflowConfigurationsMutation,
-  fieldControllerUpsertWorkflowFieldsMutation 
+  fieldControllerUpsertWorkflowFieldsMutation,
 } from '@/client/@tanstack/react-query.gen';
 import { toast } from 'sonner';
 import WorkflowBuilderLayout from '../components/workflow-builder-layout';
@@ -26,7 +26,7 @@ export default function TextBuilder() {
   const supportedLanguages = searchParams
     .get('supportedLanguages')
     ?.split(',') || ['en'];
-  
+
   const isEditMode = !!workflowId;
 
   const [currentStep, setCurrentStep] = useState<'config' | 'text' | 'create'>(
@@ -109,23 +109,37 @@ export default function TextBuilder() {
   // Load existing data in edit mode
   useEffect(() => {
     if (workflowData && isEditMode) {
-      const workflow = (workflowData as { data?: Record<string, unknown> })?.data;
+      const workflow = (workflowData as { data?: Record<string, unknown> })
+        ?.data;
       if (workflow) {
-        setAiFieldMappings(workflow.workflowFields as typeof aiFieldMappings || []);
-        const dhis2Config = (workflow.workflowConfigurations as Array<Record<string, unknown>>)?.find(
-          (config: Record<string, unknown>) => config.type === 'dhis2'
+        setAiFieldMappings(
+          (workflow.workflowFields as typeof aiFieldMappings) || []
         );
+        const dhis2Config = (
+          workflow.workflowConfigurations as Array<Record<string, unknown>>
+        )?.find((config: Record<string, unknown>) => config.type === 'dhis2');
         if (dhis2Config) {
-          setSelectedConnection((dhis2Config.externalConnection as { id?: string })?.id || '');
-          setSelectedProgram((dhis2Config.configuration as { programId?: string })?.programId || '');
-          setSelectedOrgUnits((dhis2Config.configuration as { orgUnits?: string[] })?.orgUnits || []);
-          setTextConfig((dhis2Config.configuration as { textConfig?: typeof textConfig })?.textConfig || {
-            aiModel: 'gpt-3.5-turbo',
-            maxTokens: 1000,
-            temperature: 0.3,
-            enableNER: true,
-            language: 'en',
-          });
+          setSelectedConnection(
+            (dhis2Config.externalConnection as { id?: string })?.id || ''
+          );
+          setSelectedProgram(
+            (dhis2Config.configuration as { programId?: string })?.programId ||
+              ''
+          );
+          setSelectedOrgUnits(
+            (dhis2Config.configuration as { orgUnits?: string[] })?.orgUnits ||
+              []
+          );
+          setTextConfig(
+            (dhis2Config.configuration as { textConfig?: typeof textConfig })
+              ?.textConfig || {
+              aiModel: 'gpt-3.5-turbo',
+              maxTokens: 1000,
+              temperature: 0.3,
+              enableNER: true,
+              language: 'en',
+            }
+          );
         }
       }
     }
@@ -559,7 +573,11 @@ export default function TextBuilder() {
         steps={steps}
         onSave={isEditMode ? handleSave : handleCreateWorkflow}
         onSaveAndContinue={isEditMode ? handleSaveAndContinue : undefined}
-        isSaving={createWorkflowMutation.isPending || upsertConfigMutation.isPending || upsertFieldsMutation.isPending}
+        isSaving={
+          createWorkflowMutation.isPending ||
+          upsertConfigMutation.isPending ||
+          upsertFieldsMutation.isPending
+        }
         saveButtonText={currentStep === 'create' ? 'Create Workflow' : 'Next'}
         isEditMode={isEditMode}
       >

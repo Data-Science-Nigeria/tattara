@@ -226,14 +226,14 @@ export default function UserTable({
                   Name
                   <button
                     onClick={handleSort}
-                    className="flex items-center hover:bg-gray-100 rounded p-1"
+                    className="flex items-center rounded p-1 hover:bg-gray-100"
                   >
-                    <ArrowUp 
-                      size={14} 
+                    <ArrowUp
+                      size={14}
                       className={`${sortOrder === 'asc' ? 'text-blue-600' : 'text-gray-400'}`}
                     />
-                    <ArrowDown 
-                      size={14} 
+                    <ArrowDown
+                      size={14}
                       className={`${sortOrder === 'desc' ? 'text-blue-600' : 'text-gray-400'} -ml-1`}
                     />
                   </button>

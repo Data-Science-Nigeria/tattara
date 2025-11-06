@@ -157,7 +157,10 @@ export default function ImageRenderer({ workflow }: ImageRendererProps) {
     );
   }, [handleFileSelect, closeCamera]);
 
-  const handleAiReviewComplete = (reviewData: unknown, processingLogId: string) => {
+  const handleAiReviewComplete = (
+    reviewData: unknown,
+    processingLogId: string
+  ) => {
     setAiReviewData(reviewData as AiReviewData);
     setAiProcessingLogId(processingLogId);
   };
@@ -203,8 +206,6 @@ export default function ImageRenderer({ workflow }: ImageRendererProps) {
       setIsSubmitting(false);
     }
   };
-
-
 
   return (
     <div className="rounded-lg bg-white p-6 shadow-md">
@@ -373,9 +374,12 @@ export default function ImageRenderer({ workflow }: ImageRendererProps) {
           </div>
         )}
 
-        <AiReview 
+        <AiReview
           workflowId={workflow.id}
-          formData={{ image: selectedFile ? selectedFile.name : '', fileName: selectedFile?.name || '' }}
+          formData={{
+            image: selectedFile ? selectedFile.name : '',
+            fileName: selectedFile?.name || '',
+          }}
           fields={[]}
           aiReviewData={aiReviewData}
           onReviewComplete={handleAiReviewComplete}

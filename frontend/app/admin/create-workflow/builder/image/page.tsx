@@ -4,11 +4,11 @@ import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { Plus, Trash2, Camera, GripVertical } from 'lucide-react';
-import { 
+import {
   workflowControllerCreateWorkflowMutation,
   workflowControllerFindWorkflowByIdOptions,
   configurationControllerUpsertWorkflowConfigurationsMutation,
-  fieldControllerUpsertWorkflowFieldsMutation 
+  fieldControllerUpsertWorkflowFieldsMutation,
 } from '@/client/@tanstack/react-query.gen';
 import { toast } from 'sonner';
 import WorkflowBuilderLayout from '../components/workflow-builder-layout';
@@ -26,7 +26,7 @@ export default function ImageBuilder() {
   const supportedLanguages = searchParams
     .get('supportedLanguages')
     ?.split(',') || ['en'];
-  
+
   const isEditMode = !!workflowId;
 
   const [currentStep, setCurrentStep] = useState<'config' | 'image' | 'create'>(
@@ -109,18 +109,22 @@ export default function ImageBuilder() {
   // Load existing data in edit mode
   useEffect(() => {
     if (workflowData && isEditMode) {
-      const workflow = (workflowData as { data?: {
-        workflowFields?: typeof aiFieldMappings;
-        workflowConfigurations?: Array<{
-          type: string;
-          externalConnection?: { id: string };
-          configuration?: {
-            programId?: string;
-            orgUnits?: string[];
-            imageConfig?: typeof imageConfig;
+      const workflow = (
+        workflowData as {
+          data?: {
+            workflowFields?: typeof aiFieldMappings;
+            workflowConfigurations?: Array<{
+              type: string;
+              externalConnection?: { id: string };
+              configuration?: {
+                programId?: string;
+                orgUnits?: string[];
+                imageConfig?: typeof imageConfig;
+              };
+            }>;
           };
-        }>;
-      } })?.data;
+        }
+      )?.data;
       if (workflow) {
         setAiFieldMappings(workflow.workflowFields || []);
         const dhis2Config = workflow.workflowConfigurations?.find(
@@ -130,7 +134,10 @@ export default function ImageBuilder() {
           setSelectedConnection(dhis2Config.externalConnection?.id || '');
           setSelectedProgram(dhis2Config.configuration?.programId || '');
           setSelectedOrgUnits(dhis2Config.configuration?.orgUnits || []);
-          setImageConfig(prev => ({ ...prev, ...dhis2Config.configuration?.imageConfig }));
+          setImageConfig((prev) => ({
+            ...prev,
+            ...dhis2Config.configuration?.imageConfig,
+          }));
         }
       }
     }
@@ -540,7 +547,11 @@ export default function ImageBuilder() {
         steps={steps}
         onSave={isEditMode ? handleSave : handleCreateWorkflow}
         onSaveAndContinue={isEditMode ? handleSaveAndContinue : undefined}
-        isSaving={createWorkflowMutation.isPending || upsertConfigMutation.isPending || upsertFieldsMutation.isPending}
+        isSaving={
+          createWorkflowMutation.isPending ||
+          upsertConfigMutation.isPending ||
+          upsertFieldsMutation.isPending
+        }
         saveButtonText={currentStep === 'create' ? 'Create Workflow' : 'Next'}
         isEditMode={isEditMode}
       >

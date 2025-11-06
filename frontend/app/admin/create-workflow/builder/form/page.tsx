@@ -4,11 +4,11 @@ import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { 
+import {
   workflowControllerCreateWorkflowMutation,
   workflowControllerFindWorkflowByIdOptions,
   configurationControllerUpsertWorkflowConfigurationsMutation,
-  fieldControllerUpsertWorkflowFieldsMutation 
+  fieldControllerUpsertWorkflowFieldsMutation,
 } from '@/client/@tanstack/react-query.gen';
 import WorkflowBuilderLayout from '../components/workflow-builder-layout';
 import DHIS2ConfigStep from '../components/dhis2-config-step';
@@ -62,7 +62,7 @@ export default function FormBuilder() {
   const supportedLanguages = searchParams
     .get('supportedLanguages')
     ?.split(',') || ['en'];
-  
+
   const isEditMode = !!workflowId;
 
   const [currentStep, setCurrentStep] = useState<
@@ -157,7 +157,9 @@ export default function FormBuilder() {
     await handleSave();
     const currentIndex = steps.findIndex((step) => step.id === currentStep);
     if (currentIndex < steps.length - 1) {
-      setCurrentStep(steps[currentIndex + 1].id as 'config' | 'fields' | 'create');
+      setCurrentStep(
+        steps[currentIndex + 1].id as 'config' | 'fields' | 'create'
+      );
     }
   };
 
@@ -291,7 +293,11 @@ export default function FormBuilder() {
         steps={steps}
         onSave={isEditMode ? handleSave : handleCreateWorkflow}
         onSaveAndContinue={isEditMode ? handleSaveAndContinue : undefined}
-        isSaving={createWorkflowMutation.isPending || upsertConfigMutation.isPending || upsertFieldsMutation.isPending}
+        isSaving={
+          createWorkflowMutation.isPending ||
+          upsertConfigMutation.isPending ||
+          upsertFieldsMutation.isPending
+        }
         saveButtonText={currentStep === 'create' ? 'Create Workflow' : 'Next'}
         canProceed={canProceed()}
         isEditMode={isEditMode}

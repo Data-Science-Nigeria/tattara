@@ -22,8 +22,6 @@ interface TextRendererProps {
   };
 }
 
-
-
 export default function TextRenderer({ workflow }: TextRendererProps) {
   const [textInput, setTextInput] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -34,7 +32,10 @@ export default function TextRenderer({ workflow }: TextRendererProps) {
     ...collectorControllerSubmitDataMutation(),
   });
 
-  const handleAiReviewComplete = (reviewData: unknown, processingLogId: string) => {
+  const handleAiReviewComplete = (
+    reviewData: unknown,
+    processingLogId: string
+  ) => {
     setAiReviewData(reviewData as AiReviewData);
     setAiProcessingLogId(processingLogId);
   };
@@ -108,7 +109,7 @@ export default function TextRenderer({ workflow }: TextRendererProps) {
           )}
         </div>
 
-        <AiReview 
+        <AiReview
           workflowId={workflow.id}
           formData={{ text: textInput }}
           fields={[]}

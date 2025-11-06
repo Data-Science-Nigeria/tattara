@@ -44,12 +44,12 @@ export default function WorkflowTestModal({
   if (!isOpen) return null;
 
   const handleInputChange = (fieldId: string, value: string | boolean) => {
-    const field = fields.find(f => f.id === fieldId);
+    const field = fields.find((f) => f.id === fieldId);
     if (field) {
       const validation = validateFieldValue(value, field.fieldType);
-      setFieldErrors(prev => ({
+      setFieldErrors((prev) => ({
         ...prev,
-        [fieldId]: validation.isValid ? '' : validation.error || ''
+        [fieldId]: validation.isValid ? '' : validation.error || '',
       }));
     }
     setTestData((prev) => ({ ...prev, [fieldId]: value }));
@@ -75,8 +75,8 @@ export default function WorkflowTestModal({
                       handleInputChange(field.id, e.target.value)
                     }
                     className={`w-full rounded-lg border px-3 py-2 focus:outline-none ${
-                      fieldErrors[field.id] 
-                        ? 'border-red-500 focus:border-red-500' 
+                      fieldErrors[field.id]
+                        ? 'border-red-500 focus:border-red-500'
                         : 'border-gray-300 focus:border-green-500'
                     }`}
                     rows={3}
@@ -88,8 +88,8 @@ export default function WorkflowTestModal({
                       handleInputChange(field.id, e.target.value)
                     }
                     className={`w-full rounded-lg border px-3 py-2 focus:outline-none ${
-                      fieldErrors[field.id] 
-                        ? 'border-red-500 focus:border-red-500' 
+                      fieldErrors[field.id]
+                        ? 'border-red-500 focus:border-red-500'
                         : 'border-gray-300 focus:border-green-500'
                     }`}
                   >
@@ -103,14 +103,19 @@ export default function WorkflowTestModal({
                 ) : field.fieldType === 'multiselect' ? (
                   <select
                     multiple
-                    value={((testData[field.id] as string) || '').split(',').filter(Boolean)}
+                    value={((testData[field.id] as string) || '')
+                      .split(',')
+                      .filter(Boolean)}
                     onChange={(e) => {
-                      const values = Array.from(e.target.selectedOptions, option => option.value);
+                      const values = Array.from(
+                        e.target.selectedOptions,
+                        (option) => option.value
+                      );
                       handleInputChange(field.id, values.join(','));
                     }}
                     className={`w-full rounded-lg border px-3 py-2 focus:outline-none ${
-                      fieldErrors[field.id] 
-                        ? 'border-red-500 focus:border-red-500' 
+                      fieldErrors[field.id]
+                        ? 'border-red-500 focus:border-red-500'
                         : 'border-gray-300 focus:border-green-500'
                     }`}
                     size={Math.min(field.options?.length || 3, 5)}
@@ -152,8 +157,8 @@ export default function WorkflowTestModal({
                       handleInputChange(field.id, e.target.value)
                     }
                     className={`w-full rounded-lg border px-3 py-2 focus:outline-none ${
-                      fieldErrors[field.id] 
-                        ? 'border-red-500 focus:border-red-500' 
+                      fieldErrors[field.id]
+                        ? 'border-red-500 focus:border-red-500'
                         : 'border-gray-300 focus:border-green-500'
                     }`}
                   />

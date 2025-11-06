@@ -4,9 +4,7 @@ import React, { useState } from 'react';
 import { Plus, FileText, Edit, Link2 } from 'lucide-react';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
-import {
-  workflowControllerGetWorkflowsOptions,
-} from '@/client/@tanstack/react-query.gen';
+import { workflowControllerGetWorkflowsOptions } from '@/client/@tanstack/react-query.gen';
 import SearchWorkflows from './components/search-workflows';
 
 interface Workflow {
@@ -27,14 +25,11 @@ export default function CreateWorkflow() {
   const [searchResults, setSearchResults] = useState<Workflow[]>([]);
   const [isSearching, setIsSearching] = useState(false);
 
-
   const { data: workflowsData, isLoading } = useQuery({
     ...workflowControllerGetWorkflowsOptions({
       query: { page: 1, limit: 20 },
     }),
   });
-
-
 
   // Extract workflows from the nested structure
   const responseData = (workflowsData as WorkflowsResponse)?.data;
@@ -53,8 +48,6 @@ export default function CreateWorkflow() {
     setSearchResults([]);
     setIsSearching(false);
   };
-
-
 
   return (
     <div className="relative min-h-screen p-6">
@@ -151,7 +144,6 @@ export default function CreateWorkflow() {
                       >
                         <Edit className="h-4 w-4" />
                       </button>
-
                     </div>
                   )}
                 </div>

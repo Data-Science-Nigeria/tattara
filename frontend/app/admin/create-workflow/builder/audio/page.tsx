@@ -4,11 +4,11 @@ import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { Plus, Trash2, Mic, GripVertical } from 'lucide-react';
-import { 
+import {
   workflowControllerCreateWorkflowMutation,
   workflowControllerFindWorkflowByIdOptions,
   configurationControllerUpsertWorkflowConfigurationsMutation,
-  fieldControllerUpsertWorkflowFieldsMutation 
+  fieldControllerUpsertWorkflowFieldsMutation,
 } from '@/client/@tanstack/react-query.gen';
 import { toast } from 'sonner';
 import WorkflowBuilderLayout from '../components/workflow-builder-layout';
@@ -26,7 +26,7 @@ export default function AudioBuilder() {
   const supportedLanguages = searchParams
     .get('supportedLanguages')
     ?.split(',') || ['en'];
-  
+
   const isEditMode = !!workflowId;
 
   const [currentStep, setCurrentStep] = useState<'config' | 'audio' | 'create'>(
@@ -109,18 +109,22 @@ export default function AudioBuilder() {
   // Load existing data in edit mode
   useEffect(() => {
     if (workflowData && isEditMode) {
-      const workflow = (workflowData as { data?: {
-        workflowFields?: typeof aiFieldMappings;
-        workflowConfigurations?: Array<{
-          type: string;
-          externalConnection?: { id: string };
-          configuration?: {
-            programId: string;
-            orgUnits: string[];
-            audioConfig: typeof audioConfig;
+      const workflow = (
+        workflowData as {
+          data?: {
+            workflowFields?: typeof aiFieldMappings;
+            workflowConfigurations?: Array<{
+              type: string;
+              externalConnection?: { id: string };
+              configuration?: {
+                programId: string;
+                orgUnits: string[];
+                audioConfig: typeof audioConfig;
+              };
+            }>;
           };
-        }>;
-      } })?.data;
+        }
+      )?.data;
       if (workflow) {
         setAiFieldMappings(workflow.workflowFields || []);
         const dhis2Config = workflow.workflowConfigurations?.find(
@@ -543,7 +547,11 @@ export default function AudioBuilder() {
         steps={steps}
         onSave={isEditMode ? handleSave : handleCreateWorkflow}
         onSaveAndContinue={isEditMode ? handleSaveAndContinue : undefined}
-        isSaving={createWorkflowMutation.isPending || upsertConfigMutation.isPending || upsertFieldsMutation.isPending}
+        isSaving={
+          createWorkflowMutation.isPending ||
+          upsertConfigMutation.isPending ||
+          upsertFieldsMutation.isPending
+        }
         saveButtonText={currentStep === 'create' ? 'Create Workflow' : 'Next'}
         isEditMode={isEditMode}
       >

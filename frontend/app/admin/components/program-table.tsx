@@ -74,8 +74,6 @@ export default function ProgramTable({
     }
   };
 
-
-
   const filteredData = data
     .filter((item) => {
       const matchesSearch =
@@ -133,7 +131,6 @@ export default function ProgramTable({
               <ChevronDown className="absolute top-1/2 right-2 h-4 w-4 -translate-y-1/2 transform" />
             </div>
           </div>
-
         </div>
         <div className="flex flex-row gap-4">
           <div className="relative">
@@ -227,14 +224,14 @@ export default function ProgramTable({
                   Name
                   <button
                     onClick={handleSort}
-                    className="flex items-center hover:bg-gray-100 rounded p-1"
+                    className="flex items-center rounded p-1 hover:bg-gray-100"
                   >
-                    <ArrowUp 
-                      size={14} 
+                    <ArrowUp
+                      size={14}
                       className={`${sortOrder === 'asc' ? 'text-blue-600' : 'text-gray-400'}`}
                     />
-                    <ArrowDown 
-                      size={14} 
+                    <ArrowDown
+                      size={14}
                       className={`${sortOrder === 'desc' ? 'text-blue-600' : 'text-gray-400'} -ml-1`}
                     />
                   </button>
