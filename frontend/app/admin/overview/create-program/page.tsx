@@ -56,7 +56,6 @@ export default function CreateProgramPage() {
         body: programData,
       });
 
-      // Force refetch programs query to refresh the list
       await queryClient.refetchQueries({
         queryKey: [
           'programControllerFindAll',

@@ -44,13 +44,24 @@ const Programs = () => {
   const [itemsPerPage, setItemsPerPage] = useState(6);
   const [showLoadingOverlay, setShowLoadingOverlay] = useState(false);
 
+  const {
+    data: programsData,
+    isLoading,
+    refetch,
+  } = useQuery({
+    ...programControllerGetProgramsOptions({
+      query: { page: currentPage, limit: itemsPerPage },
+    }),
+  });
+
   // Listen for program operations
   React.useEffect(() => {
     const handleProgramOperation = () => {
       setShowLoadingOverlay(true);
+      refetch(); // Manually refetch data
       setTimeout(() => {
         setShowLoadingOverlay(false);
-      }, 5000);
+      }, 1000);
     };
 
     window.addEventListener('programDeleted', handleProgramOperation);
@@ -60,14 +71,7 @@ const Programs = () => {
       window.removeEventListener('programDeleted', handleProgramOperation);
       window.removeEventListener('programUpdated', handleProgramOperation);
     };
-  }, []);
-
-  const { data: programsData, isLoading } = useQuery({
-    ...programControllerGetProgramsOptions({
-      query: { page: currentPage, limit: itemsPerPage },
-    }),
-    refetchInterval: 3000, // Auto-refresh every 3 seconds
-  });
+  }, [refetch]);
 
   interface ApiProgram {
     id: string;

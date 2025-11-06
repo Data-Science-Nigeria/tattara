@@ -40,7 +40,6 @@ export default function Card() {
       path: { id: programId || '' },
     }),
     enabled: !!programId,
-    refetchInterval: 3000, // Auto-refresh every 3 seconds
   });
 
   // Fetch workflows for this program
@@ -49,7 +48,6 @@ export default function Card() {
       path: { id: programId || '' },
     }),
     enabled: !!programId,
-    refetchInterval: 1000, // Auto-refresh every 1 second
   });
 
   interface WorkflowData {

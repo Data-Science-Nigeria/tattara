@@ -15,7 +15,6 @@ export function useWorkflowsWithUsers(workflows: Workflow[]) {
         path: { workflowId: workflow.id },
       }),
       enabled: !!workflow.id,
-      refetchInterval: 3000,
     })),
   });
 
