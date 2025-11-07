@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import { toast } from 'sonner';
 
 interface SaveDraftOptions {
   workflowId: string;
@@ -20,10 +21,10 @@ export function useSaveDraft({ workflowId, type }: SaveDraftOptions) {
           timestamp: new Date().toISOString(),
         };
         localStorage.setItem(storageKey, JSON.stringify(saveData));
-        alert('Draft saved successfully!');
+        toast.success('Draft saved successfully!');
       } catch (error) {
         console.error('Failed to save draft:', error);
-        alert('Failed to save draft.');
+        toast.error('Failed to save draft.');
       } finally {
         setIsSaving(false);
       }

@@ -6,6 +6,7 @@ import { useMutation } from '@tanstack/react-query';
 import { useSaveDraft } from '../hooks/useSaveDraft';
 import { collectorControllerSubmitDataMutation } from '@/client/@tanstack/react-query.gen';
 import AiReview from './AiReview';
+import { toast } from 'sonner';
 
 interface AiReviewData {
   form_id: string;
@@ -81,11 +82,11 @@ export default function TextRenderer({ workflow }: TextRendererProps) {
         },
       });
 
-      alert('Text submitted successfully!');
+      toast.success('Text submitted successfully!');
       window.location.href = '/user/overview';
     } catch (error) {
       console.error('Failed to submit text:', error);
-      alert('Failed to submit text. Please try again.');
+      toast.error('Failed to submit text. Please try again.');
     } finally {
       setIsSubmitting(false);
     }

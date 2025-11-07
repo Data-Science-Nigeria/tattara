@@ -6,6 +6,7 @@ import { useSaveDraft } from '../hooks/useSaveDraft';
 import { useMutation } from '@tanstack/react-query';
 import { collectorControllerSubmitDataMutation } from '@/client/@tanstack/react-query.gen';
 import AiReview from './AiReview';
+import { toast } from 'sonner';
 
 interface AiReviewData {
   form_id: string;
@@ -65,7 +66,7 @@ export default function ImageRenderer({ workflow }: ImageRendererProps) {
     (file: File) => {
       // Validate file size
       if (workflow.maxFileSize && file.size > workflow.maxFileSize) {
-        alert(
+        toast.error(
           `File size exceeds ${workflow.maxFileSize / (1024 * 1024)}MB limit`
         );
         return;
@@ -77,7 +78,7 @@ export default function ImageRenderer({ workflow }: ImageRendererProps) {
         workflow.allowedFormats &&
         !workflow.allowedFormats.includes(fileExtension || '')
       ) {
-        alert(
+        toast.error(
           `File format not supported. Allowed formats: ${workflow.allowedFormats.join(', ')}`
         );
         return;
@@ -125,7 +126,7 @@ export default function ImageRenderer({ workflow }: ImageRendererProps) {
         }
       }, 100);
     } catch {
-      alert(
+      toast.error(
         'Camera access denied or not available. Please use "Browse Files" instead.'
       );
     }
@@ -148,7 +149,7 @@ export default function ImageRenderer({ workflow }: ImageRendererProps) {
     const canvas = canvasRef.current;
 
     if (video.videoWidth === 0 || video.videoHeight === 0) {
-      alert('Camera not ready. Please wait a moment and try again.');
+      toast.error('Camera not ready. Please wait a moment and try again.');
       return;
     }
 
@@ -230,12 +231,12 @@ export default function ImageRenderer({ workflow }: ImageRendererProps) {
           },
         });
 
-        alert('Image submitted successfully!');
+        toast.success('Image submitted successfully!');
         window.location.href = '/user/overview';
       };
       reader.readAsDataURL(selectedFile);
     } catch {
-      alert('Failed to submit image. Please try again.');
+      toast.error('Failed to submit image. Please try again.');
     } finally {
       setIsSubmitting(false);
     }

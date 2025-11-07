@@ -6,6 +6,7 @@ import { useSaveDraft } from '../hooks/useSaveDraft';
 import { useMutation } from '@tanstack/react-query';
 import { collectorControllerSubmitDataMutation } from '@/client/@tanstack/react-query.gen';
 import AiReview from './AiReview';
+import { toast } from 'sonner';
 
 interface AiReviewData {
   form_id: string;
@@ -95,7 +96,7 @@ export default function AudioRenderer({ workflow }: AudioRendererProps) {
       }, 1000);
     } catch (error) {
       console.error('Failed to start recording:', error);
-      alert('Failed to access microphone. Please check permissions.');
+      toast.error('Failed to access microphone. Please check permissions.');
     }
   };
 
@@ -178,13 +179,13 @@ export default function AudioRenderer({ workflow }: AudioRendererProps) {
           },
         });
 
-        alert('Audio submitted successfully!');
+        toast.success('Audio submitted successfully!');
         window.location.href = '/user/overview';
       };
       reader.readAsDataURL(audioBlob);
     } catch (error) {
       console.error('Failed to submit audio:', error);
-      alert('Failed to submit audio. Please try again.');
+      toast.error('Failed to submit audio. Please try again.');
     } finally {
       setIsSubmitting(false);
     }

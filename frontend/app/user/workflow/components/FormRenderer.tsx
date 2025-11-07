@@ -8,6 +8,7 @@ import { fieldControllerGetWorkflowFieldsOptions } from '@/client/@tanstack/reac
 import { collectorControllerSubmitDataMutation } from '@/client/@tanstack/react-query.gen';
 import { validateFieldValue } from '@/lib/field-validation';
 import AiReview from './AiReview';
+import { toast } from 'sonner';
 
 interface AiReviewData {
   form_id: string;
@@ -154,10 +155,10 @@ export default function FormRenderer({ workflow }: FormRendererProps) {
         },
       });
 
-      alert('Form submitted successfully!');
+      toast.success('Form submitted successfully!');
       window.location.href = '/user/overview';
     } catch {
-      alert('Failed to submit form. Please try again.');
+      toast.error('Failed to submit form. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
