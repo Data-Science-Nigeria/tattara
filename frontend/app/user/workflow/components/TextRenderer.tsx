@@ -1,7 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { Save } from 'lucide-react';
 import { useMutation } from '@tanstack/react-query';
+import { useSaveDraft } from '../hooks/useSaveDraft';
 import { collectorControllerSubmitDataMutation } from '@/client/@tanstack/react-query.gen';
 import AiReview from './AiReview';
 
@@ -32,6 +34,18 @@ export default function TextRenderer({ workflow }: TextRendererProps) {
     ...collectorControllerSubmitDataMutation(),
   });
 
+  const { saveDraft, loadDraft, clearDraft, isSaving } = useSaveDraft({
+    workflowId: workflow.id,
+    type: 'text',
+  });
+
+  useEffect(() => {
+    const draft = loadDraft();
+    if (draft?.text) {
+      setTextInput(draft.text);
+    }
+  }, [loadDraft]);
+
   const handleAiReviewComplete = (
     reviewData: unknown,
     processingLogId: string
@@ -40,10 +54,16 @@ export default function TextRenderer({ workflow }: TextRendererProps) {
     setAiProcessingLogId(processingLogId);
   };
 
+  const handleSave = () => {
+    if (!textInput.trim()) return;
+    saveDraft({ text: textInput });
+  };
+
   const handleReset = () => {
     setTextInput('');
     setAiReviewData(null);
     setAiProcessingLogId('');
+    clearDraft();
   };
 
   const handleSubmit = async () => {
@@ -73,7 +93,18 @@ export default function TextRenderer({ workflow }: TextRendererProps) {
 
   return (
     <div className="rounded-lg bg-white p-6 shadow-md">
-      <div className="mb-4 flex justify-end">
+      <div className="mb-4 flex justify-end gap-2">
+        {textInput.trim() && (
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={isSaving}
+            className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700 disabled:opacity-50"
+          >
+            <Save className="h-4 w-4" />
+            {isSaving ? 'Saving...' : 'Save'}
+          </button>
+        )}
         <button
           type="button"
           onClick={handleReset}

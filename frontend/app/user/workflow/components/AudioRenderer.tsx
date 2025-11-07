@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
-import { Mic, Square, Play, Pause } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Mic, Square, Play, Pause, Save } from 'lucide-react';
+import { useSaveDraft } from '../hooks/useSaveDraft';
 import { useMutation } from '@tanstack/react-query';
 import { collectorControllerSubmitDataMutation } from '@/client/@tanstack/react-query.gen';
 import AiReview from './AiReview';
@@ -40,6 +41,25 @@ export default function AudioRenderer({ workflow }: AudioRendererProps) {
   const submitMutation = useMutation({
     ...collectorControllerSubmitDataMutation(),
   });
+
+  const { saveDraft, loadDraft, clearDraft, isSaving } = useSaveDraft({
+    workflowId: workflow.id,
+    type: 'audio',
+  });
+
+  useEffect(() => {
+    const draft = loadDraft();
+    if (draft?.audioData && draft?.duration) {
+      fetch(draft.audioData)
+        .then((res) => res.blob())
+        .then((blob) => {
+          setAudioBlob(blob);
+          setAudioUrl(draft.audioData);
+          setRecordingTime(draft.duration);
+        })
+        .catch(() => {});
+    }
+  }, [loadDraft]);
 
   const startRecording = async () => {
     try {
@@ -111,12 +131,26 @@ export default function AudioRenderer({ workflow }: AudioRendererProps) {
     setAiProcessingLogId(processingLogId);
   };
 
+  const handleSave = async () => {
+    if (!audioBlob) return;
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      saveDraft({
+        audioData: reader.result as string,
+        duration: recordingTime,
+      });
+    };
+    reader.readAsDataURL(audioBlob);
+  };
+
   const handleReset = () => {
     setAudioBlob(null);
     setAudioUrl(null);
     setRecordingTime(0);
     setAiReviewData(null);
     setAiProcessingLogId('');
+    clearDraft();
   };
 
   const handleSubmit = async () => {
@@ -164,7 +198,18 @@ export default function AudioRenderer({ workflow }: AudioRendererProps) {
 
   return (
     <div className="rounded-lg bg-white p-6 shadow-md">
-      <div className="mb-4 flex justify-end">
+      <div className="mb-4 flex justify-end gap-2">
+        {audioBlob && (
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={isSaving}
+            className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700 disabled:opacity-50"
+          >
+            <Save className="h-4 w-4" />
+            {isSaving ? 'Saving...' : 'Save'}
+          </button>
+        )}
         <button
           type="button"
           onClick={handleReset}

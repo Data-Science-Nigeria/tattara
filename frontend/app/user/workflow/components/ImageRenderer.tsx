@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState, useRef, useCallback } from 'react';
-import { Camera, Upload, X, Eye, Square } from 'lucide-react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { Camera, Upload, X, Eye, Square, Save } from 'lucide-react';
+import { useSaveDraft } from '../hooks/useSaveDraft';
 import { useMutation } from '@tanstack/react-query';
 import { collectorControllerSubmitDataMutation } from '@/client/@tanstack/react-query.gen';
 import AiReview from './AiReview';
@@ -40,6 +41,25 @@ export default function ImageRenderer({ workflow }: ImageRendererProps) {
   const submitMutation = useMutation({
     ...collectorControllerSubmitDataMutation(),
   });
+
+  const { saveDraft, loadDraft, clearDraft, isSaving } = useSaveDraft({
+    workflowId: workflow.id,
+    type: 'image',
+  });
+
+  useEffect(() => {
+    const draft = loadDraft();
+    if (draft?.fileName && draft?.imageData) {
+      fetch(draft.imageData)
+        .then((res) => res.blob())
+        .then((blob) => {
+          const file = new File([blob], draft.fileName, { type: 'image/jpeg' });
+          setSelectedFile(file);
+          setPreviewUrl(draft.imageData);
+        })
+        .catch(() => {});
+    }
+  }, [loadDraft]);
 
   const handleFileSelect = useCallback(
     (file: File) => {
@@ -165,11 +185,25 @@ export default function ImageRenderer({ workflow }: ImageRendererProps) {
     setAiProcessingLogId(processingLogId);
   };
 
+  const handleSave = async () => {
+    if (!selectedFile || !previewUrl) return;
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      saveDraft({
+        fileName: selectedFile.name,
+        imageData: reader.result as string,
+      });
+    };
+    reader.readAsDataURL(selectedFile);
+  };
+
   const handleReset = () => {
     setSelectedFile(null);
     setPreviewUrl(null);
     setAiReviewData(null);
     setAiProcessingLogId('');
+    clearDraft();
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
@@ -209,7 +243,18 @@ export default function ImageRenderer({ workflow }: ImageRendererProps) {
 
   return (
     <div className="rounded-lg bg-white p-6 shadow-md">
-      <div className="mb-4 flex justify-end">
+      <div className="mb-4 flex justify-end gap-2">
+        {selectedFile && (
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={isSaving}
+            className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700 disabled:opacity-50"
+          >
+            <Save className="h-4 w-4" />
+            {isSaving ? 'Saving...' : 'Save'}
+          </button>
+        )}
         <button
           type="button"
           onClick={handleReset}

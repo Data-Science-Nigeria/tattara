@@ -1,7 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { Save } from 'lucide-react';
 import { useMutation, useQuery } from '@tanstack/react-query';
+import { useSaveDraft } from '../hooks/useSaveDraft';
 import { fieldControllerGetWorkflowFieldsOptions } from '@/client/@tanstack/react-query.gen';
 import { collectorControllerSubmitDataMutation } from '@/client/@tanstack/react-query.gen';
 import { validateFieldValue } from '@/lib/field-validation';
@@ -67,6 +69,18 @@ export default function FormRenderer({ workflow }: FormRendererProps) {
     ...collectorControllerSubmitDataMutation(),
   });
 
+  const { saveDraft, loadDraft, clearDraft, isSaving } = useSaveDraft({
+    workflowId: workflow.id,
+    type: 'form',
+  });
+
+  useEffect(() => {
+    const draft = loadDraft();
+    if (draft?.formData) {
+      setFormData(draft.formData);
+    }
+  }, [loadDraft]);
+
   const fields = (fieldsData as unknown as FieldsResponse)?.data || [];
 
   // Sort fields by display order
@@ -98,20 +112,40 @@ export default function FormRenderer({ workflow }: FormRendererProps) {
     setAiProcessingLogId(processingLogId);
   };
 
+  const handleSave = () => {
+    const hasData = Object.values(formData).some(
+      (value) => value !== '' && value !== null && value !== undefined
+    );
+    if (!hasData) return;
+    saveDraft({ formData });
+  };
+
   const handleReset = () => {
     setFormData({});
     setAiReviewData(null);
     setAiProcessingLogId('');
+    clearDraft();
   };
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
 
     try {
+      // Convert number fields from strings to numbers
+      const processedData = { ...formData };
+      sortedFields.forEach((field) => {
+        if (field.fieldType === 'number' && processedData[field.fieldName]) {
+          const value = processedData[field.fieldName];
+          if (typeof value === 'string') {
+            processedData[field.fieldName] = parseFloat(value) || 0;
+          }
+        }
+      });
+
       await submitMutation.mutateAsync({
         body: {
           workflowId: workflow.id,
-          data: formData,
+          data: processedData,
           metadata: {
             type: 'form',
             submittedAt: new Date().toISOString(),
@@ -351,7 +385,20 @@ export default function FormRenderer({ workflow }: FormRendererProps) {
 
   return (
     <div className="rounded-lg bg-white p-6 shadow-md">
-      <div className="mb-4 flex justify-end">
+      <div className="mb-4 flex justify-end gap-2">
+        {Object.values(formData).some(
+          (value) => value !== '' && value !== null && value !== undefined
+        ) && (
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={isSaving}
+            className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700 disabled:opacity-50"
+          >
+            <Save className="h-4 w-4" />
+            {isSaving ? 'Saving...' : 'Save'}
+          </button>
+        )}
         <button
           type="button"
           onClick={handleReset}

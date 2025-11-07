@@ -1,4 +1,4 @@
-import { Computer, LogOut, PlusSquare, User, Users } from 'lucide-react';
+import { Computer, LogOut, User, Users } from 'lucide-react';
 
 export const sidebarItems = [
   {
@@ -12,12 +12,6 @@ export const sidebarItems = [
     href: '/user/profile',
     icon: User,
     alt: 'Profile icon',
-  },
-  {
-    name: 'Data Entry',
-    href: '/user/data-entry',
-    icon: PlusSquare,
-    alt: 'Workflow icon',
   },
   {
     name: 'Contact Admin',

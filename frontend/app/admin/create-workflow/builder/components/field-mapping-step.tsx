@@ -55,6 +55,11 @@ export default function FieldMappingStep({
 }: FieldMappingStepProps) {
   const [dhis2DataElements, setDhis2DataElements] = useState<DataElement[]>([]);
 
+  // Get list of already selected data elements
+  const selectedDataElements = fields
+    .map((field) => field.dhis2DataElement)
+    .filter(Boolean) as string[];
+
   const {
     data: schemaData,
     error,
@@ -190,11 +195,21 @@ export default function FieldMappingStep({
                     Configure DHIS2 connection first
                   </option>
                 )}
-                {dhis2DataElements.map((element) => (
-                  <option key={element.id} value={element.id}>
-                    {element.name} ({element.valueType})
-                  </option>
-                ))}
+                {dhis2DataElements.map((element) => {
+                  const isAlreadySelected =
+                    selectedDataElements.includes(element.id) &&
+                    field.dhis2DataElement !== element.id;
+                  return (
+                    <option
+                      key={element.id}
+                      value={element.id}
+                      disabled={isAlreadySelected}
+                    >
+                      {element.name} ({element.valueType})
+                      {isAlreadySelected ? ' - Already mapped' : ''}
+                    </option>
+                  );
+                })}
               </select>
             </div>
           </div>

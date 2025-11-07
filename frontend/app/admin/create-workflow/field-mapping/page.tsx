@@ -115,8 +115,16 @@ export default function FieldMapping() {
     );
   };
 
-  const handleTest = () => {
-    window.location.href = `/admin/create-workflow/test?workflowId=${workflowId}`;
+  // Check if all fields are mapped
+  const allFieldsMapped =
+    fields.length > 0 && fields.every((field) => field.dhis2DataElement);
+
+  const handleTest = async () => {
+    // Save mappings first before testing
+    await handleSave();
+    if (!upsertMappingMutation.isError) {
+      window.location.href = `/admin/create-workflow/test?workflowId=${workflowId}`;
+    }
   };
 
   const handleSave = async () => {
@@ -221,22 +229,23 @@ export default function FieldMapping() {
       <div className="flex justify-end gap-3 border-t border-gray-200 pt-6">
         <button
           onClick={handleTest}
-          className="rounded-lg border border-green-600 px-6 py-2 text-green-600 hover:bg-green-50"
+          disabled={!allFieldsMapped || upsertMappingMutation.isPending}
+          className="rounded-lg border border-green-600 px-6 py-2 text-green-600 hover:bg-green-50 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          Test Mapping
+          {upsertMappingMutation.isPending ? 'Saving...' : 'Test Mapping'}
         </button>
         <div className="flex gap-3">
           <button
             onClick={handleSave}
-            disabled={upsertMappingMutation.isPending}
-            className="rounded-lg border border-green-600 px-6 py-2 text-green-600 hover:bg-green-50 disabled:opacity-50"
+            disabled={!allFieldsMapped || upsertMappingMutation.isPending}
+            className="rounded-lg border border-green-600 px-6 py-2 text-green-600 hover:bg-green-50 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {upsertMappingMutation.isPending ? 'Saving...' : 'Save'}
           </button>
           <button
             onClick={handleSaveAndContinue}
-            disabled={upsertMappingMutation.isPending}
-            className="rounded-lg bg-green-600 px-6 py-2 text-white hover:bg-green-700 disabled:opacity-50"
+            disabled={!allFieldsMapped || upsertMappingMutation.isPending}
+            className="rounded-lg bg-green-600 px-6 py-2 text-white hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {upsertMappingMutation.isPending ? 'Saving...' : 'Save & Continue'}
           </button>

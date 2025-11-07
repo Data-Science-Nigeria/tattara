@@ -41,6 +41,9 @@ export default function FormFieldsStep({
   selectedProgram,
 }: FormFieldsStepProps) {
   const [showFieldPreview, setShowFieldPreview] = useState(false);
+  const [optionsInputs, setOptionsInputs] = useState<Record<string, string>>(
+    {}
+  );
 
   const addField = () => {
     const newField: FormField = {
@@ -199,15 +202,22 @@ export default function FormFieldsStep({
                 </label>
                 <input
                   type="text"
-                  value={field.options?.join(', ') || ''}
-                  onChange={(e) =>
+                  value={
+                    optionsInputs[field.id] || field.options?.join(', ') || ''
+                  }
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setOptionsInputs((prev) => ({
+                      ...prev,
+                      [field.id]: value,
+                    }));
                     updateField(field.id, {
-                      options: e.target.value
+                      options: value
                         .split(',')
                         .map((opt) => opt.trim())
                         .filter(Boolean),
-                    })
-                  }
+                    });
+                  }}
                   className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-green-500 focus:outline-none"
                   placeholder="Option 1, Option 2, Option 3"
                 />

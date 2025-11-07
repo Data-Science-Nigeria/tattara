@@ -22,9 +22,6 @@ export const SidebarItem = ({
     if (href === '/user/overview') {
       return pathname === href || pathname.startsWith('/user/overview/');
     }
-    if (href === '/user/data-entry') {
-      return pathname === href || pathname.startsWith('/user/data-entry/');
-    }
     return pathname === href;
   };
 
