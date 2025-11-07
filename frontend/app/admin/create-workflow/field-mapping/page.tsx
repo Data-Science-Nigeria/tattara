@@ -162,12 +162,8 @@ export default function FieldMapping() {
     {}
   );
 
-  const handleTest = async () => {
-    // Save mappings first before testing
-    await handleSave();
-    if (!upsertMappingMutation.isError) {
-      setShowAiReview(true);
-    }
+  const handleTest = () => {
+    setShowAiReview(true);
   };
 
   const handleSave = async () => {
