@@ -47,6 +47,9 @@ export default function FieldMapping() {
   const [fields, setFields] = useState<WorkflowField[]>([]);
   const [selectedConnection, setSelectedConnection] = useState('');
   const [selectedProgram, setSelectedProgram] = useState('');
+  const [selectedType, setSelectedType] = useState<'program' | 'dataSet' | ''>(
+    ''
+  );
   const [availableConnections, setAvailableConnections] = useState<
     Connection[]
   >([]);
@@ -179,7 +182,7 @@ export default function FieldMapping() {
             <select
               value={selectedConnection}
               onChange={(e) => setSelectedConnection(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-green-500 focus:outline-none"
+              className="mb-3 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-green-500 focus:outline-none"
             >
               <option value="">Select a connection...</option>
               {availableConnections.map((conn) => (
@@ -188,12 +191,28 @@ export default function FieldMapping() {
                 </option>
               ))}
             </select>
+
+            <h3 className="mb-2 text-sm font-medium text-yellow-900">
+              Select Type
+            </h3>
+            <select
+              value={selectedType}
+              onChange={(e) =>
+                setSelectedType(e.target.value as 'program' | 'dataSet' | '')
+              }
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-green-500 focus:outline-none"
+            >
+              <option value="">Select type...</option>
+              <option value="program">Program</option>
+              <option value="dataSet">Dataset</option>
+            </select>
           </div>
         )}
 
         <FieldMappingStep
           selectedConnection={selectedConnection}
           selectedProgram={selectedProgram}
+          selectedType={selectedType}
           fields={fields}
           updateField={updateField}
         />
