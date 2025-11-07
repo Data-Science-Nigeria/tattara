@@ -162,15 +162,15 @@ export default function IntegrationTabs({
   const activeTabData = tabs.find((tab) => tab.id === activeTab);
 
   return (
-    <div className="rounded-lg border border-gray-200 bg-white">
+    <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
       {/* Tab Headers */}
       <div className="border-b border-gray-200">
-        <nav className="flex space-x-8 px-6">
+        <nav className="flex space-x-4 overflow-x-auto px-3 sm:space-x-8 sm:px-6">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`border-b-2 px-1 py-4 text-sm font-medium ${
+              className={`border-b-2 px-1 py-3 text-xs font-medium whitespace-nowrap sm:py-4 sm:text-sm ${
                 activeTab === tab.id
                   ? 'border-green-500 text-green-600'
                   : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
@@ -183,11 +183,11 @@ export default function IntegrationTabs({
       </div>
 
       {/* Tab Content */}
-      <div className="p-6">
+      <div className="p-3 sm:p-6">
         {activeTab === 'schemas' && (
-          <div className="mb-4 flex gap-4">
-            <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">
+          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:gap-4">
+            <div className="w-full sm:w-auto">
+              <label className="mb-1 block text-xs font-medium text-gray-700 sm:text-sm">
                 Type
               </label>
               <select
@@ -196,20 +196,20 @@ export default function IntegrationTabs({
                   setSelectedType(e.target.value as 'program' | 'dataset');
                   setSelectedId('');
                 }}
-                className="rounded border border-gray-300 px-3 py-2 text-sm focus:border-green-500 focus:outline-none"
+                className="w-full rounded border border-gray-300 px-2 py-2 text-xs focus:border-green-500 focus:outline-none sm:w-auto sm:px-3 sm:text-sm"
               >
                 <option value="program">Programs</option>
                 <option value="dataset">Datasets</option>
               </select>
             </div>
             <div className="flex-1">
-              <label className="mb-1 block text-sm font-medium text-gray-700">
+              <label className="mb-1 block text-xs font-medium text-gray-700 sm:text-sm">
                 Select {selectedType === 'program' ? 'Program' : 'Dataset'}
               </label>
               <select
                 value={selectedId}
                 onChange={(e) => setSelectedId(e.target.value)}
-                className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-green-500 focus:outline-none"
+                className="w-full rounded border border-gray-300 px-2 py-2 text-xs focus:border-green-500 focus:outline-none sm:px-3 sm:text-sm"
               >
                 <option value="">
                   Choose{' '}
@@ -237,9 +237,9 @@ export default function IntegrationTabs({
         )}
         {activeTab === 'orgunits' && (
           <div className="mb-4">
-            <div className="mb-4 flex gap-4">
-              <div>
-                <label className="mb-1 block text-sm font-medium text-gray-700">
+            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:gap-4">
+              <div className="w-full sm:w-auto">
+                <label className="mb-1 block text-xs font-medium text-gray-700 sm:text-sm">
                   Type
                 </label>
                 <select
@@ -248,20 +248,20 @@ export default function IntegrationTabs({
                     setSelectedType(e.target.value as 'program' | 'dataset');
                     setSelectedId('');
                   }}
-                  className="rounded border border-gray-300 px-3 py-2 text-sm focus:border-green-500 focus:outline-none"
+                  className="w-full rounded border border-gray-300 px-2 py-2 text-xs focus:border-green-500 focus:outline-none sm:w-auto sm:px-3 sm:text-sm"
                 >
                   <option value="program">Programs</option>
                   <option value="dataset">Datasets</option>
                 </select>
               </div>
               <div className="flex-1">
-                <label className="mb-1 block text-sm font-medium text-gray-700">
+                <label className="mb-1 block text-xs font-medium text-gray-700 sm:text-sm">
                   Select {selectedType === 'program' ? 'Program' : 'Dataset'}
                 </label>
                 <select
                   value={selectedId}
                   onChange={(e) => setSelectedId(e.target.value)}
-                  className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-green-500 focus:outline-none"
+                  className="w-full rounded border border-gray-300 px-2 py-2 text-xs focus:border-green-500 focus:outline-none sm:px-3 sm:text-sm"
                 >
                   <option value="">
                     Choose{' '}
@@ -286,15 +286,15 @@ export default function IntegrationTabs({
                 </select>
               </div>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:gap-4">
               <div className="flex-1">
-                <label className="mb-1 block text-sm font-medium text-gray-700">
+                <label className="mb-1 block text-xs font-medium text-gray-700 sm:text-sm">
                   Select Parent Org Unit
                 </label>
                 <select
                   value={selectedParentId}
                   onChange={(e) => setSelectedParentId(e.target.value)}
-                  className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-green-500 focus:outline-none"
+                  className="w-full rounded border border-gray-300 px-2 py-2 text-xs focus:border-green-500 focus:outline-none sm:px-3 sm:text-sm"
                 >
                   <option value="">All Org Units</option>
                   <option value="SCsY0WF1kSr">Edo State</option>
@@ -303,7 +303,7 @@ export default function IntegrationTabs({
               {selectedParentId && (
                 <button
                   onClick={() => setSelectedParentId('')}
-                  className="mt-6 text-sm text-gray-600 hover:text-gray-800"
+                  className="text-xs whitespace-nowrap text-gray-600 hover:text-gray-800 sm:text-sm"
                 >
                   ← Back to All
                 </button>
@@ -394,55 +394,58 @@ export default function IntegrationTabs({
                       items.map((item, index: number) => (
                         <div
                           key={index}
-                          className="rounded border border-gray-200 p-3"
+                          className="rounded border border-gray-200 p-2 sm:p-3"
                         >
                           {activeTab === 'orgunits' &&
                           !selectedParentId &&
                           item.children ? (
                             <>
-                              <div className="flex items-center justify-between">
-                                <h3 className="font-medium">
+                              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                <h3 className="text-sm font-medium break-words sm:text-base">
                                   {item.displayName}
                                 </h3>
                                 <button
                                   onClick={() => setSelectedParentId(item.id)}
-                                  className="text-sm text-green-600 hover:text-green-800"
+                                  className="text-xs whitespace-nowrap text-green-600 hover:text-green-800 sm:text-sm"
                                 >
                                   View Children ({item.children.length})
                                 </button>
                               </div>
-                              <p className="text-xs text-gray-400">
+                              <p className="text-xs break-all text-gray-400">
                                 ID: {item.id}
                               </p>
                             </>
                           ) : (
                             <>
-                              <h3 className="font-medium">
+                              <h3 className="text-sm font-medium break-words sm:text-base">
                                 {item.name ||
                                   item.displayName ||
                                   `Item ${index + 1}`}
                               </h3>
                               {item.description && (
-                                <p className="text-sm text-gray-500">
+                                <p className="text-xs break-words text-gray-500 sm:text-sm">
                                   {item.description}
                                 </p>
                               )}
                               {item.id && (
-                                <p className="text-xs text-gray-400">
+                                <p className="text-xs break-all text-gray-400">
                                   ID: {item.id}
                                 </p>
                               )}
                               {item.parent && (
-                                <p className="text-xs text-gray-500">
+                                <p className="text-xs break-words text-gray-500">
                                   Parent: {item.parent.displayName} (
-                                  {item.parent.id})
+                                  <span className="break-all">
+                                    {item.parent.id}
+                                  </span>
+                                  )
                                 </p>
                               )}
                             </>
                           )}
                           {item.dataSetElements && (
                             <div className="mt-2">
-                              <p className="text-sm font-medium text-gray-700">
+                              <p className="text-xs font-medium text-gray-700 sm:text-sm">
                                 Data Elements:
                               </p>
                               <ul className="mt-1 space-y-1">
@@ -450,10 +453,10 @@ export default function IntegrationTabs({
                                   (element, idx: number) => (
                                     <li
                                       key={idx}
-                                      className="text-sm text-gray-600"
+                                      className="text-xs break-words text-gray-600 sm:text-sm"
                                     >
                                       • {element.dataElement.name}
-                                      <span className="ml-2 text-xs text-gray-400">
+                                      <span className="ml-2 text-xs break-all text-gray-400">
                                         ({element.dataElement.id})
                                       </span>
                                     </li>
@@ -464,29 +467,29 @@ export default function IntegrationTabs({
                           )}
                           {item.programStages && (
                             <div className="mt-2">
-                              <p className="text-sm font-medium text-gray-700">
+                              <p className="text-xs font-medium text-gray-700 sm:text-sm">
                                 Program Stages & Data Elements:
                               </p>
                               {item.programStages.map((stage, idx: number) => (
-                                <div key={idx} className="mt-2 ml-2">
-                                  <p className="text-sm font-medium text-gray-600">
+                                <div key={idx} className="mt-2 ml-1 sm:ml-2">
+                                  <p className="text-xs font-medium break-words text-gray-600 sm:text-sm">
                                     Stage:{' '}
                                     {stage.displayName ||
                                       stage.name ||
                                       `Stage ${idx + 1}`}
                                   </p>
                                   {stage.programStageDataElements && (
-                                    <ul className="mt-1 ml-4 space-y-1">
+                                    <ul className="mt-1 ml-2 space-y-1 sm:ml-4">
                                       {stage.programStageDataElements.map(
                                         (element, elemIdx: number) => (
                                           <li
                                             key={elemIdx}
-                                            className="text-sm text-gray-600"
+                                            className="text-xs break-words text-gray-600 sm:text-sm"
                                           >
                                             •{' '}
                                             {element.dataElement.name ||
                                               element.dataElement.displayName}
-                                            <span className="ml-2 text-xs text-gray-400">
+                                            <span className="ml-1 text-xs break-all text-gray-400 sm:ml-2">
                                               ({element.dataElement.id}) -{' '}
                                               {element.dataElement.valueType}
                                             </span>
@@ -501,7 +504,7 @@ export default function IntegrationTabs({
                           )}
                           {item.trackedEntityAttributes && (
                             <div className="mt-2">
-                              <p className="text-sm font-medium text-gray-700">
+                              <p className="text-xs font-medium text-gray-700 sm:text-sm">
                                 Tracked Entity Attributes:
                               </p>
                               <ul className="mt-1 space-y-1">
@@ -509,10 +512,10 @@ export default function IntegrationTabs({
                                   (attr, idx: number) => (
                                     <li
                                       key={idx}
-                                      className="text-sm text-gray-600"
+                                      className="text-xs break-words text-gray-600 sm:text-sm"
                                     >
                                       • {attr.name}
-                                      <span className="ml-2 text-xs text-gray-400">
+                                      <span className="ml-1 text-xs break-all text-gray-400 sm:ml-2">
                                         ({attr.id})
                                       </span>
                                     </li>
@@ -524,18 +527,18 @@ export default function IntegrationTabs({
                         </div>
                       ))
                     ) : (
-                      <p className="py-8 text-center text-gray-500">
+                      <p className="py-8 text-center text-xs text-gray-500 sm:text-sm">
                         No {activeTab} found for this connection
                       </p>
                     )}
 
                     {pager && (pager as Pager).pageCount > 1 && (
                       <div className="mt-4 text-center">
-                        <p className="mb-2 text-sm text-gray-600">
+                        <p className="mb-2 text-xs text-gray-600 sm:text-sm">
                           Showing {items.length} of {(pager as Pager).total}{' '}
                           items
                         </p>
-                        <button className="rounded bg-green-600 px-4 py-2 text-sm text-white hover:bg-green-700">
+                        <button className="rounded bg-green-600 px-3 py-2 text-xs text-white hover:bg-green-700 sm:px-4 sm:text-sm">
                           Load All {(pager as Pager).total} Items
                         </button>
                       </div>

@@ -131,18 +131,18 @@ export default function CreateProgramPage() {
           </div>
 
           {/* Action Buttons */}
-          <div className="flex justify-end gap-3 pt-4">
+          <div className="flex flex-col gap-2 pt-4 sm:flex-row sm:justify-end sm:gap-3">
             <Button
               type="button"
               onClick={() => router.push('/admin/overview')}
-              className="rounded-lg border-2 border-green-800 bg-white px-6 py-2 font-medium text-green-800 transition-colors hover:bg-green-800 hover:text-white"
+              className="w-full rounded-lg border-2 border-green-800 bg-white px-4 py-2 font-medium text-green-800 transition-colors hover:bg-green-800 hover:text-white sm:w-auto sm:px-6"
             >
               Cancel
             </Button>
             <Button
               type="submit"
               disabled={isSubmitting}
-              className="rounded-lg bg-green-800 px-6 py-2 font-medium text-white transition-colors hover:bg-green-900"
+              className="w-full rounded-lg bg-green-800 px-4 py-2 font-medium text-white transition-colors hover:bg-green-900 sm:w-auto sm:px-6"
             >
               {isSubmitting ? (
                 <LoaderCircle className="animate-spin" />

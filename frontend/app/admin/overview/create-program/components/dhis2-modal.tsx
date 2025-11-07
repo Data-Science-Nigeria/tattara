@@ -56,40 +56,40 @@ export function DHIS2Modal({ isOpen, onClose, onConfirm }: DHIS2ModalProps) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(12,16,20,0.88)] p-4 backdrop-blur-sm">
-      <div className="mx-4 w-full max-w-lg rounded-lg bg-white p-6">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(12,16,20,0.88)] p-2 backdrop-blur-sm sm:p-4">
+      <div className="mx-2 w-full max-w-lg rounded-lg bg-white p-4 sm:mx-4 sm:p-6">
         {/* Header */}
         <div className="mb-4 flex items-start justify-between">
-          <div>
-            <h2 className="text-xl font-semibold text-gray-800">
+          <div className="pr-2">
+            <h2 className="text-lg font-semibold text-gray-800 sm:text-xl">
               Send Data to DHIS2
             </h2>
-            <p className="mt-1 text-sm text-gray-600">
+            <p className="mt-1 text-xs text-gray-600 sm:text-sm">
               Please confirm if data should be sent to DHIS2. If yes, select
               from available authenticated instances or connect a new one.
             </p>
           </div>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600"
+            className="flex-shrink-0 text-gray-400 hover:text-gray-600"
           >
-            <X size={20} />
+            <X size={18} className="sm:h-5 sm:w-5" />
           </button>
         </div>
 
         {/* Options */}
         <div className="mb-6">
-          <div className="mb-4 grid grid-cols-2 gap-4">
+          <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
             {/* No Option */}
             <div
-              className={`cursor-pointer rounded-lg border-2 p-4 transition-colors ${
+              className={`cursor-pointer rounded-lg border-2 p-3 transition-colors sm:p-4 ${
                 sendToDHIS2 === false
                   ? 'border-green-500 bg-green-50'
                   : 'border-gray-200 hover:border-gray-300'
               }`}
               onClick={() => setSendToDHIS2(false)}
             >
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 sm:gap-3">
                 <div
                   className={`flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full border-2 ${
                     sendToDHIS2 === false
@@ -103,7 +103,7 @@ export function DHIS2Modal({ isOpen, onClose, onConfirm }: DHIS2ModalProps) {
                 </div>
                 <div className="min-w-0">
                   <p className="font-medium text-gray-800">No</p>
-                  <p className="text-sm text-gray-600">
+                  <p className="text-xs text-gray-600 sm:text-sm">
                     Data will remain in this application only.
                   </p>
                 </div>
@@ -112,14 +112,14 @@ export function DHIS2Modal({ isOpen, onClose, onConfirm }: DHIS2ModalProps) {
 
             {/* Yes Option */}
             <div
-              className={`cursor-pointer rounded-lg border-2 p-4 transition-colors ${
+              className={`cursor-pointer rounded-lg border-2 p-3 transition-colors sm:p-4 ${
                 sendToDHIS2 === true
                   ? 'border-green-500 bg-green-50'
                   : 'border-gray-200 hover:border-gray-300'
               }`}
               onClick={() => setSendToDHIS2(true)}
             >
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 sm:gap-3">
                 <div
                   className={`flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full border-2 ${
                     sendToDHIS2 === true
@@ -133,7 +133,7 @@ export function DHIS2Modal({ isOpen, onClose, onConfirm }: DHIS2ModalProps) {
                 </div>
                 <div className="min-w-0">
                   <p className="font-medium text-gray-800">Yes</p>
-                  <p className="text-sm text-gray-600">
+                  <p className="text-xs text-gray-600 sm:text-sm">
                     Select available authenticated instances
                   </p>
                 </div>
@@ -144,7 +144,7 @@ export function DHIS2Modal({ isOpen, onClose, onConfirm }: DHIS2ModalProps) {
           {/* DHIS2 Instance Selection */}
           {sendToDHIS2 === true && (
             <div>
-              <label className="mb-2 block text-sm font-medium text-gray-700">
+              <label className="mb-2 block text-xs font-medium text-gray-700 sm:text-sm">
                 Select DHIS2 Instance
               </label>
               <div className="relative">
@@ -153,7 +153,7 @@ export function DHIS2Modal({ isOpen, onClose, onConfirm }: DHIS2ModalProps) {
                   disabled={isLoading}
                   className="flex w-full items-center justify-between rounded-lg border border-gray-300 bg-white px-3 py-2 text-left focus:border-green-500 focus:ring-2 focus:ring-green-500 focus:outline-none disabled:bg-gray-100"
                 >
-                  <span className="text-sm">
+                  <span className="truncate text-xs sm:text-sm">
                     {isLoading
                       ? 'Loading instances...'
                       : selectedInstance
@@ -182,16 +182,18 @@ export function DHIS2Modal({ isOpen, onClose, onConfirm }: DHIS2ModalProps) {
                             setSelectedInstance(instance.id);
                             setShowDropdown(false);
                           }}
-                          className="w-full px-3 py-2 text-left text-sm first:rounded-t-lg last:rounded-b-lg hover:bg-gray-50"
+                          className="w-full px-3 py-2 text-left text-xs first:rounded-t-lg last:rounded-b-lg hover:bg-gray-50 sm:text-sm"
                         >
-                          <div className="font-medium">{instance.name}</div>
-                          <div className="text-xs text-gray-500">
+                          <div className="truncate font-medium">
+                            {instance.name}
+                          </div>
+                          <div className="truncate text-xs text-gray-500">
                             {instance.configuration.baseUrl}
                           </div>
                         </button>
                       ))
                     ) : (
-                      <div className="px-3 py-2 text-sm text-gray-500">
+                      <div className="px-3 py-2 text-xs text-gray-500 sm:text-sm">
                         No DHIS2 instances available
                       </div>
                     )}
@@ -203,17 +205,17 @@ export function DHIS2Modal({ isOpen, onClose, onConfirm }: DHIS2ModalProps) {
         </div>
 
         {/* Action Buttons */}
-        <div className="flex gap-3">
+        <div className="flex gap-2 sm:gap-3">
           <Button
             onClick={onClose}
-            className="flex-1 rounded-lg border-2 border-gray-300 bg-white px-4 py-2 font-medium text-gray-700 transition-colors hover:bg-gray-50"
+            className="flex-1 rounded-lg border-2 border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 sm:px-4"
           >
             Cancel
           </Button>
           <Button
             onClick={handleConfirm}
             disabled={!canConfirm}
-            className="flex-1 rounded-lg bg-green-800 px-4 py-2 font-medium text-white transition-colors hover:bg-green-900 disabled:cursor-not-allowed disabled:bg-gray-300"
+            className="flex-1 rounded-lg bg-green-800 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-green-900 disabled:cursor-not-allowed disabled:bg-gray-300 sm:px-4"
           >
             Confirm
           </Button>

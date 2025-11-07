@@ -62,9 +62,19 @@ export default function UploadDropdown({
     <div
       className="fixed z-50 rounded-lg border bg-white shadow-lg"
       style={{
-        top: `${coords.top}px`,
-        left: `${coords.left}px`,
-        width: `${coords.width}px`,
+        top: `${coords.top + 8}px`,
+        left:
+          window.innerWidth < 640
+            ? `${Math.max(16, (window.innerWidth - 240) / 2)}px`
+            : window.innerWidth < 1024
+              ? `${Math.max(16, (window.innerWidth - 320) / 2)}px`
+              : `${coords.left}px`,
+        width:
+          window.innerWidth < 640
+            ? '240px'
+            : window.innerWidth < 1024
+              ? '320px'
+              : `${coords.width}px`,
       }}
     >
       <div>
@@ -87,7 +97,7 @@ export default function UploadDropdown({
           </svg>
           <div className="min-w-0">
             <p className="text-sm font-medium">Download Template</p>
-            <p className="hidden text-xs opacity-75 sm:block">
+            <p className="hidden text-xs opacity-75 lg:block">
               Get the CSV template with the required columns
             </p>
           </div>
@@ -115,7 +125,7 @@ export default function UploadDropdown({
           </svg>
           <div className="min-w-0">
             <p className="text-sm font-medium">Upload CSV File</p>
-            <p className="hidden text-xs opacity-75 sm:block">
+            <p className="hidden text-xs opacity-75 lg:block">
               Upload your completed CSV file for review
             </p>
           </div>
