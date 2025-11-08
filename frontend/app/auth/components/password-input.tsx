@@ -22,7 +22,6 @@ export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
             ref={ref}
             placeholder={placeholder}
             className="mt-1 w-full rounded border bg-[#F2F3FF] p-2 pr-10 placeholder:text-sm placeholder:text-[#525F76] focus:border-[#03390F] focus:ring-[#03390F] focus:outline-none"
-            suppressHydrationWarning
             {...props}
           />
           <button
@@ -31,9 +30,9 @@ export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
             type="button"
           >
             {showPassword ? (
-              <EyeOff className="h-4 w-4" />
+              <EyeOff className="h-5 w-5" />
             ) : (
-              <Eye className="h-4 w-4" />
+              <Eye className="h-5 w-5" />
             )}
           </button>
         </div>
