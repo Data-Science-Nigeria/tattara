@@ -26,11 +26,15 @@ export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
             {...props}
           />
           <button
-            className="absolute top-4 right-2 cursor-pointer text-sm text-gray-500"
+            className="absolute top-1/2 right-2 flex -translate-y-1/2 cursor-pointer items-center justify-center p-1 text-gray-500 hover:text-gray-700"
             onClick={() => setShowPassword(!showPassword)}
             type="button"
           >
-            {showPassword ? <EyeOff /> : <Eye />}
+            {showPassword ? (
+              <EyeOff className="h-4 w-4" />
+            ) : (
+              <Eye className="h-4 w-4" />
+            )}
           </button>
         </div>
         {error && <p className="text-sm text-red-600">{error}</p>}
