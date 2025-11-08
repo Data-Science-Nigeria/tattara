@@ -48,20 +48,20 @@ export default function ProfilePage() {
     : '';
 
   return (
-    <div className="px-4 py-6 sm:px-6 lg:px-8">
+    <div className="px-3 py-4 sm:px-6 sm:py-6 lg:px-8">
       <div className="mx-auto max-w-4xl">
-        <h1 className="mb-6 text-xl font-semibold text-gray-800 sm:text-2xl">
+        <h1 className="mb-4 text-lg font-semibold text-gray-800 sm:mb-6 sm:text-xl lg:text-2xl">
           Profile
         </h1>
 
-        <div className="rounded-2xl bg-white p-6 shadow-sm sm:p-8">
+        <div className="rounded-lg bg-white p-4 shadow-sm sm:rounded-2xl sm:p-6 lg:p-8">
           {/* Profile Header */}
-          <div className="mb-8 flex flex-col items-center gap-6 border-b border-gray-200 pb-8 sm:flex-row sm:items-start">
+          <div className="mb-6 flex flex-col items-center gap-4 border-b border-gray-200 pb-6 sm:mb-8 sm:flex-row sm:items-start sm:gap-6 sm:pb-8">
             {/* Profile Avatar */}
             <div className="relative">
-              <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-green-400 to-green-600">
+              <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-green-400 to-green-600 sm:h-24 sm:w-24">
                 <svg
-                  className="h-12 w-12 text-white"
+                  className="h-10 w-10 text-white sm:h-12 sm:w-12"
                   fill="currentColor"
                   viewBox="0 0 24 24"
                 >
@@ -81,11 +81,11 @@ export default function ProfilePage() {
             </div>
 
             {/* Profile Info */}
-            <div className="text-center sm:text-left">
-              <h2 className="mb-1 text-xl font-semibold text-gray-900 sm:text-2xl">
+            <div className="min-w-0 flex-1 text-center sm:text-left">
+              <h2 className="mb-1 truncate text-lg font-semibold text-gray-900 sm:text-xl lg:text-2xl">
                 {fullName || 'User Name'}
               </h2>
-              <p className="text-sm text-gray-600 sm:text-base">
+              <p className="text-sm break-all text-gray-600 sm:text-base">
                 {profile?.email || 'user@email.com'}
               </p>
             </div>
@@ -93,13 +93,13 @@ export default function ProfilePage() {
 
           {/* Personal Information Section */}
           <div className="relative">
-            <div className="mb-6">
-              <h3 className="text-lg font-semibold text-gray-900 sm:text-xl">
+            <div className="mb-4 sm:mb-6">
+              <h3 className="text-base font-semibold text-gray-900 sm:text-lg lg:text-xl">
                 Personal Information
               </h3>
             </div>
 
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6">
               {/* First Name */}
               <div>
                 <h4 className="mb-1 text-sm font-medium text-gray-900 sm:text-base">
@@ -121,7 +121,7 @@ export default function ProfilePage() {
               </div>
 
               {/* Gender */}
-              <div>
+              <div className="sm:col-span-2">
                 <div className="mb-1 flex items-center gap-2">
                   <h4 className="text-sm font-medium text-gray-900 sm:text-base">
                     Gender
@@ -144,7 +144,7 @@ export default function ProfilePage() {
                     <div className="flex items-center gap-1">
                       <button
                         onClick={handleSaveGender}
-                        className="rounded bg-green-600 px-2 py-1 text-xs text-white hover:bg-green-700"
+                        className="rounded bg-green-600 px-2 py-1 text-xs text-white hover:bg-green-700 sm:px-3 sm:text-sm"
                       >
                         Save
                       </button>
@@ -167,7 +167,7 @@ export default function ProfilePage() {
                     onChange={(e) =>
                       setGenderValue(e.target.value as 'Male' | 'Female')
                     }
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-green-500 focus:ring-2 focus:ring-green-500/20 focus:outline-none"
+                    className="w-full max-w-xs rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-green-500 focus:ring-2 focus:ring-green-500/20 focus:outline-none sm:text-base"
                   >
                     <option value="">Select Gender</option>
                     <option value="Male">Male</option>
