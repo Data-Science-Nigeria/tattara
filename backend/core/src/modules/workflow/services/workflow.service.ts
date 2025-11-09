@@ -321,6 +321,11 @@ export class WorkflowService {
   ): Promise<Workflow> {
     return this.dataSource.transaction(async manager => {
       const workflowRepo = this.getWorkflowRepo(manager);
+      const userRepo = BaseRepository.fromManager(
+        User,
+        manager,
+        this.requestContext,
+      );
 
       const workflow = await workflowRepo.findOne({
         where: { id: workflowId },
@@ -334,7 +339,7 @@ export class WorkflowService {
         );
       }
 
-      const users = await manager.findBy(User, { id: In(userIds) });
+      const users = await userRepo.findBy({ id: In(userIds) });
 
       if (users.length !== userIds.length) {
         const foundUserIds = users.map(user => user.id);
@@ -344,9 +349,40 @@ export class WorkflowService {
         );
       }
 
-      workflow.users = users;
+      const existingUserIds = new Set(workflow.users.map(u => u.id));
 
-      return await manager.save(workflow);
+      const newUsers = users.filter(u => !existingUserIds.has(u.id));
+
+      workflow.users.push(...newUsers);
+
+      return await workflowRepo.save(workflow);
+    });
+  }
+
+  async unassignUsersFromWorkflow(
+    workflowId: string,
+    userIds: string[],
+  ): Promise<Workflow> {
+    return this.dataSource.transaction(async manager => {
+      const workflowRepo = this.getWorkflowRepo(manager);
+
+      const workflow = await workflowRepo.findOne({
+        where: { id: workflowId },
+        relations: ['users'],
+        select: ['id', 'users'],
+      });
+
+      if (!workflow) {
+        throw new NotFoundException(
+          `Workflow with ID '${workflowId}' not found`,
+        );
+      }
+
+      const removeSet = new Set(userIds);
+
+      workflow.users = workflow.users.filter(user => !removeSet.has(user.id));
+
+      return await workflowRepo.save(workflow);
     });
   }
 }

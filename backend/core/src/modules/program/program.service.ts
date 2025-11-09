@@ -76,8 +76,6 @@ export class ProgramService {
 
     const [programs, total] = await qb.getManyAndCount();
 
-    console.log('Generated SQL:', qb.getSql());
-
     return { programs, total };
   }
 
@@ -165,7 +163,31 @@ export class ProgramService {
       throw new ConflictException('One or more users not found');
     }
 
-    program.users.push(...users);
+    const existingUserIds = new Set(program.users.map(u => u.id));
+
+    const newUsers = users.filter(u => !existingUserIds.has(u.id));
+
+    program.users.push(...newUsers);
+
+    return this.programRepository.save(program);
+  }
+
+  async unassignUsersFromProgram(
+    userIds: string[],
+    programId: string,
+  ): Promise<Program> {
+    const program = await this.programRepository.findOne({
+      where: { id: programId },
+      relations: ['users'],
+    });
+
+    if (!program) {
+      throw new ConflictException('Program not found');
+    }
+
+    const removeSet = new Set(userIds);
+
+    program.users = program.users.filter(user => !removeSet.has(user.id));
 
     return this.programRepository.save(program);
   }

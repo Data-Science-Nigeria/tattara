@@ -44,7 +44,7 @@ export class ProgramController {
     );
 
     return {
-      data: plainToInstance(ProgramResponseDto, programs, {
+      programs: plainToInstance(ProgramResponseDto, programs, {
         excludeExtraneousValues: true,
       }),
       page,
@@ -139,10 +139,27 @@ export class ProgramController {
   @Post(':id/users')
   @Roles('admin')
   @RequirePermissions('program:update')
-  addUsersToProgram(
+  assignUsersToProgram(
     @Param('id', new ParseUUIDPipe()) programId: string,
     @Body() dto: AssignUsersToProgramDto,
   ) {
-    return this.programService.assignUsersToProgram(dto.userIds, programId);
+    // return this.programService.assignUsersToProgram(dto.userIds, programId);
+    const program = this.programService.assignUsersToProgram(
+      dto.userIds,
+      programId,
+    );
+    return plainToInstance(ProgramResponseDto, program, {
+      excludeExtraneousValues: true,
+    });
+  }
+
+  @Post(':id/users/unassign')
+  @Roles('admin')
+  @RequirePermissions('program:update')
+  unassignUsersFromProgram(
+    @Param('id', new ParseUUIDPipe()) programId: string,
+    @Body() dto: AssignUsersToProgramDto,
+  ) {
+    return this.programService.unassignUsersFromProgram(dto.userIds, programId);
   }
 }

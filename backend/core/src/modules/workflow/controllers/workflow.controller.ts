@@ -47,7 +47,7 @@ export class WorkflowController {
     );
 
     return {
-      data: plainToInstance(WorkflowResponseDto, workflows, {
+      workflows: plainToInstance(WorkflowResponseDto, workflows, {
         excludeExtraneousValues: true,
       }),
       page,
@@ -115,6 +115,30 @@ export class WorkflowController {
     @Param('workflowId', new ParseUUIDPipe()) workflowId: string,
     @Body() dto: AssignUsersDto,
   ) {
-    return this.workflowService.assignUsersToWorkflow(workflowId, dto.userIds);
+    return plainToInstance(
+      WorkflowResponseDto,
+      await this.workflowService.assignUsersToWorkflow(workflowId, dto.userIds),
+      {
+        excludeExtraneousValues: true,
+      },
+    );
+  }
+
+  @Post('/:workflowId/users/unassign')
+  @Roles('admin')
+  async unassignUsersFromWorkflow(
+    @Param('workflowId', new ParseUUIDPipe()) workflowId: string,
+    @Body() dto: AssignUsersDto,
+  ) {
+    return plainToInstance(
+      WorkflowResponseDto,
+      await this.workflowService.unassignUsersFromWorkflow(
+        workflowId,
+        dto.userIds,
+      ),
+      {
+        excludeExtraneousValues: true,
+      },
+    );
   }
 }
