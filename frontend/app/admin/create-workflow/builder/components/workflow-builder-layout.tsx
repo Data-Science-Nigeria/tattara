@@ -33,39 +33,43 @@ export default function WorkflowBuilderLayout({
   isEditMode = false,
 }: WorkflowBuilderLayoutProps) {
   return (
-    <div className="space-y-8 p-8">
+    <div className="space-y-4 p-3 sm:space-y-6 sm:p-6 lg:space-y-8 lg:p-8">
       <div>
         <button
           onClick={() => window.history.back()}
-          className="mb-4 flex items-center gap-2 text-gray-600 hover:text-gray-900"
+          className="mb-3 flex items-center gap-2 text-gray-600 hover:text-gray-900 sm:mb-4"
         >
-          <ArrowLeft size={20} />
-          Back
+          <ArrowLeft size={16} className="sm:h-5 sm:w-5" />
+          <span className="text-sm sm:text-base">Back</span>
         </button>
-        <h1 className="mb-2 text-3xl font-semibold text-gray-900">{title}</h1>
-        <p className="text-gray-600">{description}</p>
+        <h1 className="mb-2 text-xl font-semibold text-gray-900 sm:text-2xl lg:text-3xl">
+          {title}
+        </h1>
+        <p className="text-sm text-gray-600 sm:text-base">{description}</p>
       </div>
 
       {/* Step Navigation */}
-      <div className="flex space-x-4 border-b border-gray-200">
-        {steps.map((step) => (
-          <div
-            key={step.id}
-            className={`cursor-default border-b-2 px-1 pb-2 text-sm font-medium ${
-              currentStep === step.id
-                ? 'border-green-500 text-green-600'
-                : 'border-transparent text-gray-500'
-            }`}
-          >
-            {step.label}
-          </div>
-        ))}
+      <div className="overflow-x-auto">
+        <div className="flex min-w-max space-x-4 border-b border-gray-200">
+          {steps.map((step) => (
+            <div
+              key={step.id}
+              className={`cursor-default border-b-2 px-1 pb-2 text-xs font-medium whitespace-nowrap sm:text-sm ${
+                currentStep === step.id
+                  ? 'border-green-500 text-green-600'
+                  : 'border-transparent text-gray-500'
+              }`}
+            >
+              {step.label}
+            </div>
+          ))}
+        </div>
       </div>
 
-      <div className="max-w-4xl space-y-6">{children}</div>
+      <div className="max-w-4xl space-y-4 sm:space-y-6">{children}</div>
 
       {/* Navigation Buttons */}
-      <div className="flex justify-between border-t border-gray-200 pt-6">
+      <div className="flex flex-col justify-between gap-3 border-t border-gray-200 pt-4 sm:flex-row sm:gap-0 sm:pt-6">
         <button
           onClick={() => {
             const currentIndex = steps.findIndex(
@@ -76,17 +80,17 @@ export default function WorkflowBuilderLayout({
             }
           }}
           disabled={steps.findIndex((step) => step.id === currentStep) === 0}
-          className="rounded-lg border border-gray-300 px-6 py-2 text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+          className="w-full rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto sm:px-6 sm:text-base"
         >
           Previous
         </button>
 
         {isEditMode ? (
-          <div className="flex gap-3">
+          <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
             <button
               onClick={onSave}
               disabled={isSaving || !canProceed}
-              className="rounded-lg border border-green-600 px-6 py-2 text-green-600 hover:bg-green-50 disabled:opacity-50"
+              className="w-full rounded-lg border border-green-600 px-4 py-2 text-sm text-green-600 hover:bg-green-50 disabled:opacity-50 sm:w-auto sm:px-6 sm:text-base"
             >
               {isSaving ? 'Saving...' : 'Save'}
             </button>
@@ -94,7 +98,7 @@ export default function WorkflowBuilderLayout({
               <button
                 onClick={onSaveAndContinue}
                 disabled={isSaving || !canProceed}
-                className="rounded-lg bg-green-600 px-6 py-2 text-white hover:bg-green-700 disabled:opacity-50"
+                className="w-full rounded-lg bg-green-600 px-4 py-2 text-sm text-white hover:bg-green-700 disabled:opacity-50 sm:w-auto sm:px-6 sm:text-base"
               >
                 {isSaving ? 'Saving...' : 'Save & Continue'}
               </button>
@@ -115,7 +119,7 @@ export default function WorkflowBuilderLayout({
               }
             }}
             disabled={isSaving || !canProceed}
-            className="rounded-lg bg-green-600 px-6 py-2 text-white hover:bg-green-700 disabled:opacity-50"
+            className="w-full rounded-lg bg-green-600 px-4 py-2 text-sm text-white hover:bg-green-700 disabled:opacity-50 sm:w-auto sm:px-6 sm:text-base"
           >
             {(() => {
               const currentIndex = steps.findIndex(

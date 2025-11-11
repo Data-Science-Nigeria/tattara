@@ -74,10 +74,10 @@ export default function WorkflowsSection({
         </div>
         <button
           onClick={handleCreateWorkflow}
-          className="flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700"
+          className="flex items-center gap-2 rounded-lg bg-green-600 px-3 py-2 text-sm font-medium text-white hover:bg-green-700 lg:px-4"
         >
-          <Plus className="h-4 w-4" />
-          Create Workflow
+          <Plus className="h-5 w-5" />
+          <span className="hidden lg:inline">Create Workflow</span>
         </button>
       </div>
 

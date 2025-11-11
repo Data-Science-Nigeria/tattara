@@ -215,13 +215,13 @@ export default function ProgramTable({
       </div>
 
       {/* Table */}
-      <div className="rounded-md border bg-white">
-        <table className="w-full">
+      <div className="overflow-x-auto rounded-md border bg-white">
+        <table className="w-full min-w-[600px]">
           <thead className="bg-[#F2F3FF]">
             <tr>
-              <th className="px-6 py-4 text-left font-semibold text-gray-700">
+              <th className="px-3 py-4 text-left font-semibold text-gray-700 sm:px-6">
                 <div className="flex items-center gap-2">
-                  Name
+                  <span className="text-sm sm:text-base">Name</span>
                   <button
                     onClick={handleSort}
                     className="flex items-center rounded p-1 hover:bg-gray-100"
@@ -237,12 +237,12 @@ export default function ProgramTable({
                   </button>
                 </div>
               </th>
-              <th className="px-6 py-4 text-left font-semibold text-gray-700">
-                Assigned Workflow
+              <th className="px-3 py-4 text-left font-semibold text-gray-700 sm:px-6">
+                <span className="text-sm sm:text-base">Assigned Workflow</span>
               </th>
-              <th className="px-6 py-4 text-left font-semibold text-gray-700">
+              <th className="px-3 py-4 text-left font-semibold text-gray-700 sm:px-6">
                 <div className="flex items-center gap-2">
-                  Completed on
+                  <span className="text-sm sm:text-base">Completed on</span>
                   <div className="relative">
                     <svg
                       className="h-4 w-4 cursor-pointer"
@@ -281,9 +281,9 @@ export default function ProgramTable({
                   </div>
                 </div>
               </th>
-              <th className="px-6 py-4 text-left font-semibold text-gray-700">
+              <th className="px-3 py-4 text-left font-semibold text-gray-700 sm:px-6">
                 <div className="flex items-center gap-2">
-                  Status
+                  <span className="text-sm sm:text-base">Status</span>
                   <div className="relative">
                     <ChevronDown
                       className="h-4 w-4 cursor-pointer"
@@ -329,32 +329,38 @@ export default function ProgramTable({
           <tbody>
             {isLoading ? (
               <tr>
-                <td colSpan={4} className="px-6 py-4 text-center text-gray-500">
+                <td
+                  colSpan={4}
+                  className="px-3 py-4 text-center text-gray-500 sm:px-6"
+                >
                   <div className="flex items-center justify-center py-4">
                     <div className="h-6 w-6 animate-spin rounded-full border-b-2 border-[#008647]"></div>
-                    <span className="ml-2">Loading users...</span>
+                    <span className="ml-2 text-sm">Loading users...</span>
                   </div>
                 </td>
               </tr>
             ) : currentData.length === 0 ? (
               <tr>
-                <td colSpan={4} className="px-6 py-4 text-center text-gray-500">
+                <td
+                  colSpan={4}
+                  className="px-3 py-4 text-center text-sm text-gray-500 sm:px-6"
+                >
                   No users found
                 </td>
               </tr>
             ) : (
               currentData.map((item, index) => (
                 <tr key={index} className="border-b" data-row={index}>
-                  <td className="px-6 py-4 text-gray-700">
+                  <td className="px-3 py-4 text-sm text-gray-700 sm:px-6">
                     {item.name || 'N/A'}
                   </td>
-                  <td className="px-6 py-4 text-gray-700">
+                  <td className="px-3 py-4 text-sm text-gray-700 sm:px-6">
                     {item.program || 'N/A'}
                   </td>
-                  <td className="px-6 py-4 text-gray-700">
+                  <td className="px-3 py-4 text-sm text-gray-700 sm:px-6">
                     {item.completedOn || 'N/A'}
                   </td>
-                  <td className="px-6 py-4 text-gray-700">
+                  <td className="px-3 py-4 text-gray-700 sm:px-6">
                     <StatusBadge status={item.status || 'Pending'} />
                   </td>
                 </tr>

@@ -5,12 +5,15 @@ import {
   externalConnectionsControllerFindAllOptions,
   integrationControllerGetProgramsOptions,
   integrationControllerGetOrgUnitsOptions,
+  integrationControllerGetDatasetsOptions,
 } from '@/client/@tanstack/react-query.gen';
 import { _Object } from '@/client/types.gen';
 
 interface DHIS2ConfigStepProps {
   selectedConnection: string;
   setSelectedConnection: (value: string) => void;
+  selectedType: string;
+  setSelectedType: (value: string) => void;
   selectedProgram: string;
   setSelectedProgram: (value: string) => void;
   selectedOrgUnits: string[];
@@ -20,6 +23,8 @@ interface DHIS2ConfigStepProps {
 export default function DHIS2ConfigStep({
   selectedConnection,
   setSelectedConnection,
+  selectedType,
+  setSelectedType,
   selectedProgram,
   setSelectedProgram,
   selectedOrgUnits,
@@ -34,15 +39,23 @@ export default function DHIS2ConfigStep({
       path: { connectionId: selectedConnection },
       query: { page: 1, pageSize: 50 },
     }),
-    enabled: !!selectedConnection,
+    enabled: !!selectedConnection && selectedType === 'program',
+  });
+
+  const { data: datasetsData } = useQuery({
+    ...integrationControllerGetDatasetsOptions({
+      path: { connectionId: selectedConnection },
+      query: { page: 1, pageSize: 50 },
+    }),
+    enabled: !!selectedConnection && selectedType === 'dataset',
   });
 
   const { data: orgUnitsData } = useQuery({
     ...integrationControllerGetOrgUnitsOptions({
       path: { connectionId: selectedConnection },
-      query: { type: 'program' as unknown as _Object, id: selectedProgram },
+      query: { type: selectedType as unknown as _Object, id: selectedProgram },
     }),
-    enabled: !!selectedConnection && !!selectedProgram,
+    enabled: !!selectedConnection && !!selectedProgram && !!selectedType,
   });
 
   interface Connection {
@@ -65,11 +78,13 @@ export default function DHIS2ConfigStep({
   const connections = (connectionsData as { data?: Connection[] })?.data || [];
   const programs =
     (programsData as { data?: { programs?: Program[] } })?.data?.programs || [];
+  const datasets =
+    (datasetsData as { data?: { dataSets?: Program[] } })?.data?.dataSets || [];
   const orgUnits = (orgUnitsData as { data?: OrgUnit[] })?.data || [];
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
         <div>
           <label className="mb-2 block text-sm font-medium text-gray-700">
             External Connection
@@ -90,18 +105,34 @@ export default function DHIS2ConfigStep({
 
         <div>
           <label className="mb-2 block text-sm font-medium text-gray-700">
-            DHIS2 Program
+            Type
+          </label>
+          <select
+            value={selectedType}
+            onChange={(e) => setSelectedType(e.target.value)}
+            disabled={!selectedConnection}
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-green-500 focus:outline-none disabled:opacity-50"
+          >
+            <option value="">Select type...</option>
+            <option value="program">Program</option>
+            <option value="dataset">Dataset</option>
+          </select>
+        </div>
+
+        <div>
+          <label className="mb-2 block text-sm font-medium text-gray-700">
+            {selectedType === 'dataset' ? 'Dataset' : 'Program'}
           </label>
           <select
             value={selectedProgram}
             onChange={(e) => setSelectedProgram(e.target.value)}
-            disabled={!selectedConnection}
+            disabled={!selectedConnection || !selectedType}
             className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-green-500 focus:outline-none disabled:opacity-50"
           >
-            <option value="">Select program...</option>
-            {programs.map((prog) => (
-              <option key={prog.id} value={prog.id}>
-                {prog.displayName || prog.name}
+            <option value="">Select {selectedType || 'item'}...</option>
+            {(selectedType === 'dataset' ? datasets : programs).map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.displayName || item.name}
               </option>
             ))}
           </select>

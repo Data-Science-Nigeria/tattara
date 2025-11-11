@@ -1,25 +1,20 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
-import { Mic, Square, Play, Pause } from 'lucide-react';
-import { useMutation } from '@tanstack/react-query';
-import { collectorControllerSubmitDataMutation } from '@/client/@tanstack/react-query.gen';
-import AiReview from './AiReview';
-
-interface AiReviewData {
-  form_id: string;
-  extracted: Record<string, unknown>;
-  missing_required: string[];
-}
+import React, { useState, useRef, useEffect } from 'react';
+import { Mic, Square, Play, Pause, Save } from 'lucide-react';
+import { useSaveDraft } from '../hooks/useSaveDraft';
+import { toast } from 'sonner';
+import FormRenderer from './FormRenderer';
 
 interface AudioRendererProps {
   workflow: {
     id: string;
     name: string;
     type: 'audio';
-    maxDuration?: number;
-    transcriptionEnabled?: boolean;
-    languages?: string[];
+    workflowConfigurations: Array<{
+      type: string;
+      configuration: Record<string, unknown>;
+    }>;
   };
 }
 
@@ -29,17 +24,32 @@ export default function AudioRenderer({ workflow }: AudioRendererProps) {
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [aiReviewData, setAiReviewData] = useState<AiReviewData | null>(null);
-  const [aiProcessingLogId, setAiProcessingLogId] = useState<string>('');
+  const [showForm, setShowForm] = useState(false);
+  const [audioData, setAudioData] = useState<string>('');
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-  const submitMutation = useMutation({
-    ...collectorControllerSubmitDataMutation(),
+  const { saveDraft, loadDraft, clearDraft, isSaving } = useSaveDraft({
+    workflowId: workflow.id,
+    type: 'audio',
   });
+
+  useEffect(() => {
+    const draft = loadDraft();
+    if (draft?.audioData && draft?.duration) {
+      fetch(draft.audioData)
+        .then((res) => res.blob())
+        .then((blob) => {
+          setAudioBlob(blob);
+          setAudioUrl(draft.audioData);
+          setRecordingTime(draft.duration);
+          setAudioData(draft.audioData);
+        })
+        .catch(() => {});
+    }
+  }, [loadDraft]);
 
   const startRecording = async () => {
     try {
@@ -55,7 +65,16 @@ export default function AudioRenderer({ workflow }: AudioRendererProps) {
       mediaRecorder.onstop = () => {
         const blob = new Blob(chunks, { type: 'audio/wav' });
         setAudioBlob(blob);
-        setAudioUrl(URL.createObjectURL(blob));
+        const url = URL.createObjectURL(blob);
+        setAudioUrl(url);
+
+        // Convert to base64 for AI processing
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setAudioData(reader.result as string);
+        };
+        reader.readAsDataURL(blob);
+
         stream.getTracks().forEach((track) => track.stop());
       };
 
@@ -63,19 +82,12 @@ export default function AudioRenderer({ workflow }: AudioRendererProps) {
       setIsRecording(true);
       setRecordingTime(0);
 
-      // Start timer
       timerRef.current = setInterval(() => {
-        setRecordingTime((prev) => {
-          const newTime = prev + 1;
-          if (workflow.maxDuration && newTime >= workflow.maxDuration) {
-            stopRecording();
-          }
-          return newTime;
-        });
+        setRecordingTime((prev) => prev + 1);
       }, 1000);
     } catch (error) {
       console.error('Failed to start recording:', error);
-      alert('Failed to access microphone. Please check permissions.');
+      toast.error('Failed to access microphone. Please check permissions.');
     }
   };
 
@@ -103,57 +115,25 @@ export default function AudioRenderer({ workflow }: AudioRendererProps) {
     }
   };
 
-  const handleAiReviewComplete = (
-    reviewData: unknown,
-    processingLogId: string
-  ) => {
-    setAiReviewData(reviewData as AiReviewData);
-    setAiProcessingLogId(processingLogId);
+  const handleSave = async () => {
+    if (!audioBlob || !audioData) return;
+    saveDraft({
+      audioData: audioData,
+      duration: recordingTime,
+    });
   };
 
   const handleReset = () => {
     setAudioBlob(null);
     setAudioUrl(null);
     setRecordingTime(0);
-    setAiReviewData(null);
-    setAiProcessingLogId('');
+    setShowForm(false);
+    setAudioData('');
+    clearDraft();
   };
 
-  const handleSubmit = async () => {
-    if (!audioBlob) return;
-
-    setIsSubmitting(true);
-    try {
-      const reader = new FileReader();
-      reader.onloadend = async () => {
-        const base64Audio = reader.result as string;
-
-        await submitMutation.mutateAsync({
-          body: {
-            workflowId: workflow.id,
-            data: {
-              audio: base64Audio,
-              duration: recordingTime,
-              transcriptionEnabled: workflow.transcriptionEnabled,
-            },
-            metadata: {
-              type: 'audio',
-              recordingTime,
-            },
-            aiProcessingLogId: aiProcessingLogId,
-          },
-        });
-
-        alert('Audio submitted successfully!');
-        window.location.href = '/user/overview';
-      };
-      reader.readAsDataURL(audioBlob);
-    } catch (error) {
-      console.error('Failed to submit audio:', error);
-      alert('Failed to submit audio. Please try again.');
-    } finally {
-      setIsSubmitting(false);
-    }
+  const handleProcessingComplete = () => {
+    setShowForm(true);
   };
 
   const formatTime = (seconds: number) => {
@@ -162,13 +142,35 @@ export default function AudioRenderer({ workflow }: AudioRendererProps) {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  if (showForm) {
+    return (
+      <FormRenderer
+        workflowId={workflow.id}
+        workflowType="audio"
+        inputData={audioData}
+        onProcessingComplete={handleProcessingComplete}
+      />
+    );
+  }
+
   return (
     <div className="rounded-lg bg-white p-6 shadow-md">
-      <div className="mb-4 flex justify-end">
+      <div className="mb-4 flex justify-end gap-2">
+        {audioBlob && (
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={isSaving}
+            className="flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-xs text-white hover:bg-blue-700 disabled:opacity-50 sm:px-4 sm:text-sm"
+          >
+            <Save size={14} className="sm:h-4 sm:w-4" />
+            {isSaving ? 'Saving...' : 'Save'}
+          </button>
+        )}
         <button
           type="button"
           onClick={handleReset}
-          className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+          className="rounded-lg border border-gray-300 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 sm:px-4 sm:text-sm"
         >
           Reset
         </button>
@@ -185,20 +187,15 @@ export default function AudioRenderer({ workflow }: AudioRendererProps) {
             <div className="font-mono text-2xl font-bold text-gray-800">
               {formatTime(recordingTime)}
             </div>
-            {workflow.maxDuration && (
-              <div className="text-sm text-gray-500">
-                Max: {formatTime(workflow.maxDuration)}
-              </div>
-            )}
           </div>
 
           <div className="flex justify-center gap-4">
             {!isRecording && !audioBlob && (
               <button
                 onClick={startRecording}
-                className="flex items-center gap-2 rounded-lg bg-red-600 px-6 py-3 text-white hover:bg-red-700"
+                className="flex items-center justify-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-xs text-white hover:bg-red-700 sm:px-6 sm:py-3 sm:text-sm"
               >
-                <Mic className="h-5 w-5" />
+                <Mic size={16} className="sm:h-5 sm:w-5" />
                 Start Recording
               </button>
             )}
@@ -206,9 +203,9 @@ export default function AudioRenderer({ workflow }: AudioRendererProps) {
             {isRecording && (
               <button
                 onClick={stopRecording}
-                className="flex items-center gap-2 rounded-lg bg-gray-600 px-6 py-3 text-white hover:bg-gray-700"
+                className="flex items-center justify-center gap-2 rounded-lg bg-gray-600 px-4 py-2 text-xs text-white hover:bg-gray-700 sm:px-6 sm:py-3 sm:text-sm"
               >
-                <Square className="h-5 w-5" />
+                <Square size={16} className="sm:h-5 sm:w-5" />
                 Stop Recording
               </button>
             )}
@@ -222,12 +219,12 @@ export default function AudioRenderer({ workflow }: AudioRendererProps) {
               <div className="flex gap-2">
                 <button
                   onClick={isPlaying ? pauseAudio : playAudio}
-                  className="flex items-center gap-2 rounded bg-blue-600 px-3 py-1 text-white hover:bg-blue-700"
+                  className="flex items-center justify-center gap-2 rounded bg-blue-600 px-2 py-1 text-xs text-white hover:bg-blue-700 sm:px-3 sm:text-sm"
                 >
                   {isPlaying ? (
-                    <Pause className="h-4 w-4" />
+                    <Pause size={14} className="sm:h-4 sm:w-4" />
                   ) : (
-                    <Play className="h-4 w-4" />
+                    <Play size={14} className="sm:h-4 sm:w-4" />
                   )}
                   {isPlaying ? 'Pause' : 'Play'}
                 </button>
@@ -236,8 +233,9 @@ export default function AudioRenderer({ workflow }: AudioRendererProps) {
                     setAudioBlob(null);
                     setAudioUrl(null);
                     setRecordingTime(0);
+                    setAudioData('');
                   }}
-                  className="rounded bg-gray-600 px-3 py-1 text-white hover:bg-gray-700"
+                  className="rounded bg-gray-600 px-2 py-1 text-xs text-white hover:bg-gray-700 sm:px-3 sm:text-sm"
                 >
                   Re-record
                 </button>
@@ -253,26 +251,11 @@ export default function AudioRenderer({ workflow }: AudioRendererProps) {
           </div>
         )}
 
-        {workflow.transcriptionEnabled && (
-          <div className="rounded-lg bg-blue-50 p-4">
-            <p className="text-sm text-blue-800">
-              🎯 Transcription is enabled for this workflow. Your audio will be
-              converted to text automatically.
-            </p>
-          </div>
-        )}
-
-        <AiReview
+        <FormRenderer
           workflowId={workflow.id}
-          formData={{
-            audio: audioBlob ? 'audio-data' : '',
-            duration: recordingTime,
-          }}
-          fields={[]}
-          aiReviewData={aiReviewData}
-          onReviewComplete={handleAiReviewComplete}
-          onSubmit={handleSubmit}
-          isSubmitting={isSubmitting}
+          workflowType="audio"
+          inputData={audioData}
+          onProcessingComplete={handleProcessingComplete}
         />
       </div>
     </div>

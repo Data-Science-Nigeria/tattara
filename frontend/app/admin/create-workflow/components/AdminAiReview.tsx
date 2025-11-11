@@ -1,16 +1,7 @@
 import React, { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { collectorControllerProcessAiMutation } from '@/client/@tanstack/react-query.gen';
-
-interface FormField {
-  id: string;
-  fieldName: string;
-  label: string;
-  fieldType: 'text' | 'number' | 'date' | 'select' | 'checkbox';
-  isRequired: boolean;
-  options?: string[];
-  displayOrder: number;
-}
+import { toast } from 'sonner';
 
 interface AiReviewData {
   form_id: string;
@@ -18,48 +9,25 @@ interface AiReviewData {
   missing_required: string[];
 }
 
-interface AiReviewProps {
+interface AdminAiReviewProps {
   workflowId: string;
   formData: Record<string, unknown>;
-  fields: FormField[];
-  onReviewComplete: (reviewData: unknown, logId: string) => void;
-  onSubmit?: () => void;
-  isSubmitting?: boolean;
-  aiReviewData?: AiReviewData | null;
+  onReviewComplete?: (reviewData: unknown, logId: string) => void;
 }
 
-export default function AiReview({
+export default function AdminAiReview({
   workflowId,
   formData,
-  fields,
   onReviewComplete,
-  onSubmit,
-  isSubmitting,
-  aiReviewData,
-}: AiReviewProps) {
+}: AdminAiReviewProps) {
   const [isReviewing, setIsReviewing] = useState(false);
-
-  const validateRequiredFields = () => {
-    const requiredFields = fields.filter((field) => field.isRequired);
-    const missingFields = requiredFields.filter((field) => {
-      const value = formData[field.fieldName];
-      return !value || (typeof value === 'string' && value.trim() === '');
-    });
-    return missingFields;
-  };
+  const [aiReviewData, setAiReviewData] = useState<AiReviewData | null>(null);
 
   const aiProcessMutation = useMutation({
     ...collectorControllerProcessAiMutation(),
   });
 
   const handleReview = async () => {
-    const missingFields = validateRequiredFields();
-    if (missingFields.length > 0) {
-      const fieldNames = missingFields.map((field) => field.label).join(', ');
-      alert(`Please fill in the following required fields: ${fieldNames}`);
-      return;
-    }
-
     setIsReviewing(true);
 
     try {
@@ -72,14 +40,25 @@ export default function AiReview({
       });
 
       const responseData = aiResponse as {
-        data?: { aiData?: unknown; aiProcessingLogId?: string };
+        aiData?: AiReviewData;
+        aiProcessingLogId?: string;
       };
-      onReviewComplete(
-        responseData?.data?.aiData,
-        responseData?.data?.aiProcessingLogId || ''
-      );
-    } catch {
-      alert('Failed to process review. Please try again.');
+
+      const reviewData = responseData?.aiData;
+      setAiReviewData(reviewData || null);
+
+      if (reviewData) {
+        toast.success('AI processing completed successfully!');
+      } else {
+        toast.error('No data extracted from AI processing');
+      }
+
+      if (onReviewComplete) {
+        onReviewComplete(reviewData, responseData?.aiProcessingLogId || '');
+      }
+    } catch (error) {
+      console.error('AI processing failed:', error);
+      toast.error('Failed to process review. Please try again.');
     } finally {
       setIsReviewing(false);
     }
@@ -88,33 +67,26 @@ export default function AiReview({
   return (
     <div className="mt-6">
       {!aiReviewData ? (
-        <div className="flex justify-end gap-4">
-          <button
-            type="button"
-            onClick={() => (window.location.href = '/user/overview')}
-            className="rounded-lg border border-gray-300 px-6 py-2 text-gray-700 hover:bg-gray-50"
-          >
-            Cancel
-          </button>
+        <div className="flex justify-end">
           <button
             type="button"
             onClick={handleReview}
             disabled={isReviewing}
             className="rounded-lg bg-green-600 px-6 py-2 text-white hover:bg-green-700 disabled:opacity-50"
           >
-            {isReviewing ? 'Reviewing...' : 'Review'}
+            {isReviewing ? 'Processing...' : 'Test AI Processing'}
           </button>
         </div>
       ) : (
         <div className="rounded-lg border border-gray-300 bg-white p-4">
-          <h3 className="mb-3 text-lg font-semibold text-black">
-            AI Review Results
+          <h3 className="mb-3 text-lg font-semibold text-gray-900">
+            AI Processing Results
           </h3>
           <div className="space-y-2">
-            <p className="text-sm text-black">
-              <strong>Form:</strong> {aiReviewData.form_id}
+            <p className="text-sm text-gray-700">
+              <strong>Form ID:</strong> {aiReviewData.form_id}
             </p>
-            <div className="text-sm text-black">
+            <div className="text-sm text-gray-700">
               <strong>Extracted Data:</strong>
               <div className="mt-2 space-y-1">
                 {Object.entries(aiReviewData.extracted || {}).map(
@@ -140,24 +112,14 @@ export default function AiReview({
               </div>
             )}
           </div>
-          <div className="mt-4 flex justify-end gap-4">
+          <div className="mt-4 flex justify-end">
             <button
               type="button"
-              onClick={() => (window.location.href = '/user/overview')}
+              onClick={() => setAiReviewData(null)}
               className="rounded-lg border border-gray-300 px-6 py-2 text-gray-700 hover:bg-gray-50"
             >
-              Cancel
+              Test Again
             </button>
-            {onSubmit && (
-              <button
-                type="button"
-                onClick={onSubmit}
-                disabled={isSubmitting}
-                className="rounded-lg bg-green-600 px-6 py-2 text-white hover:bg-green-700 disabled:opacity-50"
-              >
-                {isSubmitting ? 'Submitting...' : 'Submit'}
-              </button>
-            )}
           </div>
         </div>
       )}

@@ -5,7 +5,7 @@ import {
   FileText,
   Users,
   ClipboardList,
-  FolderPlus,
+  Plus,
   Heart,
   Shield,
   Activity,
@@ -191,7 +191,7 @@ const Programs = () => {
                 className="ml-auto lg:hidden"
               >
                 <button className="flex items-center justify-center rounded-lg bg-green-600 p-3 text-white transition-colors duration-200 hover:bg-green-700">
-                  <FolderPlus className="h-5 w-5" />
+                  <Plus className="h-4 w-4" />
                 </button>
               </Link>
             </TooltipTrigger>
