@@ -11,7 +11,6 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { programControllerCreateMutation } from '@/client/@tanstack/react-query.gen';
 import { getApiErrorMessage } from '@/lib/get-api-error-message';
 import { toast } from 'sonner';
-import { DHIS2Modal } from './components/dhis2-modal';
 
 const programSchema = z.object({
   name: z.string().min(1, 'Program name is required'),
@@ -24,9 +23,7 @@ export default function CreateProgramPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showDHIS2Modal, setShowDHIS2Modal] = useState(false);
-  const [programData, setProgramData] = useState<ProgramData | null>(null);
-  const [buttonText] = useState('Next');
+  const [buttonText] = useState('Create Program');
 
   const {
     register,
@@ -41,19 +38,11 @@ export default function CreateProgramPage() {
   });
 
   const onSubmit = async (data: ProgramData) => {
-    setProgramData(data);
-    setShowDHIS2Modal(true);
-  };
-
-  const handleDHIS2Confirm = async () => {
-    if (!programData) return;
-
     setIsSubmitting(true);
-    setShowDHIS2Modal(false);
 
     try {
       await createProgram.mutateAsync({
-        body: programData,
+        body: data,
       });
 
       await queryClient.refetchQueries({
@@ -153,13 +142,6 @@ export default function CreateProgramPage() {
           </div>
         </form>
       </div>
-
-      {/* DHIS2 Modal */}
-      <DHIS2Modal
-        isOpen={showDHIS2Modal}
-        onClose={() => setShowDHIS2Modal(false)}
-        onConfirm={handleDHIS2Confirm}
-      />
     </div>
   );
 }

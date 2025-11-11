@@ -106,6 +106,7 @@ export default function ContactAdminPage() {
             <Button
               type="button"
               variant="ghost"
+              onClick={handleCancel}
               className="text-muted-foreground hover:text-foreground h-9 text-sm sm:h-10 sm:text-base"
             >
               Cancel

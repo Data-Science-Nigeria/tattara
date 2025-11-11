@@ -42,13 +42,9 @@ export default function AudioBuilder() {
   const [selectedProgram, setSelectedProgram] = useState('');
   const [selectedOrgUnits, setSelectedOrgUnits] = useState<string[]>([]);
 
-  // Audio Configuration
-  const [audioConfig, setAudioConfig] = useState({
+  // Basic Configuration
+  const [basicConfig, setBasicConfig] = useState({
     language: 'en',
-    transcriptionModel: 'whisper-1',
-    enableSpeakerDiarization: false,
-    confidenceThreshold: 0.8,
-    autoProcessing: true,
   });
 
   // AI Field Mapping
@@ -90,8 +86,22 @@ export default function AudioBuilder() {
     onSuccess: (data) => {
       const workflow = (data as { data?: { id?: string } })?.data;
       if (workflow?.id) {
-        window.location.href = `/admin/create-workflow/builder/audio?workflowId=${workflow.id}&step=mapping`;
+        toast.success('Workflow created successfully!');
+        window.location.href = `/admin/create-workflow/field-mapping?workflowId=${workflow.id}`;
       }
+    },
+    onError: (error) => {
+      console.error('Failed to create workflow:', error);
+      const errorMessage =
+        (
+          error as {
+            response?: { data?: { message?: string } };
+            message?: string;
+          }
+        )?.response?.data?.message ||
+        (error as { message?: string })?.message ||
+        'Failed to create workflow';
+      toast.error(errorMessage);
     },
   });
 
@@ -122,7 +132,7 @@ export default function AudioBuilder() {
               configuration?: {
                 programId: string;
                 orgUnits: string[];
-                audioConfig: typeof audioConfig;
+                language?: string;
               };
             }>;
           };
@@ -137,11 +147,13 @@ export default function AudioBuilder() {
           setSelectedConnection(dhis2Config.externalConnection?.id || '');
           setSelectedProgram(dhis2Config.configuration?.programId || '');
           setSelectedOrgUnits(dhis2Config.configuration?.orgUnits || []);
-          setAudioConfig(dhis2Config.configuration?.audioConfig || audioConfig);
+          setBasicConfig({
+            language: dhis2Config.configuration?.language || 'en',
+          });
         }
       }
     }
-  }, [workflowData, isEditMode, audioConfig]);
+  }, [workflowData, isEditMode]);
 
   const addAiFieldMapping = () => {
     const newMapping = {
@@ -232,7 +244,7 @@ export default function AudioBuilder() {
               configuration: {
                 programId: selectedProgram,
                 orgUnits: selectedOrgUnits,
-                audioConfig,
+                ...basicConfig,
               },
               isActive: true,
             },
@@ -251,30 +263,30 @@ export default function AudioBuilder() {
   ];
 
   const renderAudioStep = () => (
-    <div className="space-y-6">
-      <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 sm:p-4">
         <div className="mb-2 flex items-center gap-2">
-          <Mic className="h-5 w-5 text-blue-600" />
-          <h3 className="text-sm font-medium text-blue-900">
+          <Mic className="h-4 w-4 text-blue-600 sm:h-5 sm:w-5" />
+          <h3 className="text-xs font-medium text-blue-900 sm:text-sm">
             Audio Processing Settings
           </h3>
         </div>
-        <p className="text-sm text-blue-700">
+        <p className="text-xs text-blue-700 sm:text-sm">
           Configure how audio input will be processed and transcribed.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-2">
         <div>
-          <label className="mb-2 block text-sm font-medium text-gray-700">
+          <label className="mb-2 block text-xs font-medium text-gray-700 sm:text-sm">
             Language
           </label>
           <select
-            value={audioConfig.language}
+            value={basicConfig.language}
             onChange={(e) =>
-              setAudioConfig({ ...audioConfig, language: e.target.value })
+              setBasicConfig({ ...basicConfig, language: e.target.value })
             }
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-green-500 focus:outline-none"
+            className="w-full rounded-lg border border-gray-300 px-2 py-2 text-xs focus:border-green-500 focus:outline-none sm:px-3 sm:text-sm"
           >
             <option value="en">English</option>
             <option value="yo">Yoruba</option>
@@ -282,82 +294,29 @@ export default function AudioBuilder() {
             <option value="ha">Hausa</option>
           </select>
         </div>
-
-        <div>
-          <label className="mb-2 block text-sm font-medium text-gray-700">
-            Transcription Model
-          </label>
-          <select
-            value={audioConfig.transcriptionModel}
-            onChange={(e) =>
-              setAudioConfig({
-                ...audioConfig,
-                transcriptionModel: e.target.value,
-              })
-            }
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-green-500 focus:outline-none"
-          >
-            <option value="whisper-1">Whisper v1 (Fast)</option>
-            <option value="whisper-2">Whisper v2 (Accurate)</option>
-          </select>
-        </div>
-      </div>
-
-      <div className="space-y-4">
-        <label className="flex items-center space-x-2">
-          <input
-            type="checkbox"
-            checked={audioConfig.enableSpeakerDiarization}
-            onChange={(e) =>
-              setAudioConfig({
-                ...audioConfig,
-                enableSpeakerDiarization: e.target.checked,
-              })
-            }
-            className="rounded border-gray-300 text-green-600 focus:ring-green-500"
-          />
-          <span className="text-sm text-gray-700">
-            Enable speaker diarization
-          </span>
-        </label>
-
-        <label className="flex items-center space-x-2">
-          <input
-            type="checkbox"
-            checked={audioConfig.autoProcessing}
-            onChange={(e) =>
-              setAudioConfig({
-                ...audioConfig,
-                autoProcessing: e.target.checked,
-              })
-            }
-            className="rounded border-gray-300 text-green-600 focus:ring-green-500"
-          />
-          <span className="text-sm text-gray-700">
-            Auto-process audio after recording
-          </span>
-        </label>
       </div>
 
       <div className="border-t border-gray-200 pt-6">
-        <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-lg font-medium text-gray-900">
+        <div className="mb-4 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+          <h3 className="text-sm font-medium text-gray-900 sm:text-lg">
             AI Field Extraction
           </h3>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:gap-3">
             <button
               onClick={() => setShowFieldPreview(true)}
-              className="flex items-center gap-2 rounded-lg border border-green-600 px-4 py-2 text-green-600 hover:bg-green-50"
+              className="flex items-center justify-center gap-2 rounded-lg border border-green-600 px-3 py-2 text-xs text-green-600 hover:bg-green-50 sm:px-4 sm:text-sm"
             >
-              <Eye size={16} />
-              Browse DHIS2 Fields
+              <Eye size={14} className="sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">Browse DHIS2 Fields</span>
+              <span className="sm:hidden">Browse Fields</span>
             </button>
             <button
               onClick={addAiFieldMapping}
-              className="flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-white hover:bg-green-700"
+              className="flex items-center justify-center gap-2 rounded-lg bg-green-600 px-3 py-2 text-xs text-white hover:bg-green-700 sm:px-4 sm:text-sm"
             >
-              <Plus size={16} />
-              Add Field
+              <Plus size={14} className="sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">Add Field</span>
+              <span className="sm:hidden">Add</span>
             </button>
           </div>
         </div>
@@ -366,7 +325,7 @@ export default function AudioBuilder() {
           {aiFieldMappings.map((mapping, index) => (
             <div
               key={mapping.id}
-              className="relative rounded-lg border border-gray-200 p-4"
+              className="relative rounded-lg border border-gray-200 p-3 sm:p-4"
               draggable
               onDragStart={(e) => {
                 setDraggedIndex(index);
@@ -394,9 +353,9 @@ export default function AudioBuilder() {
               <div className="absolute top-4 left-2 cursor-move text-gray-400 hover:text-gray-600">
                 <GripVertical size={16} />
               </div>
-              <div className="ml-6 grid grid-cols-1 gap-4 md:grid-cols-4">
+              <div className="ml-6 grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4">
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-gray-700">
+                  <label className="mb-1 block text-xs font-medium text-gray-700 sm:text-sm">
                     Field Name
                   </label>
                   <input
@@ -407,13 +366,13 @@ export default function AudioBuilder() {
                         fieldName: e.target.value,
                       })
                     }
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-green-500 focus:outline-none"
+                    className="w-full rounded-lg border border-gray-300 px-2 py-2 text-xs focus:border-green-500 focus:outline-none sm:px-3 sm:text-sm"
                     placeholder="e.g., patient_age"
                   />
                 </div>
 
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-gray-700">
+                  <label className="mb-1 block text-xs font-medium text-gray-700 sm:text-sm">
                     Label
                   </label>
                   <input
@@ -424,13 +383,13 @@ export default function AudioBuilder() {
                         label: e.target.value,
                       })
                     }
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-green-500 focus:outline-none"
+                    className="w-full rounded-lg border border-gray-300 px-2 py-2 text-xs focus:border-green-500 focus:outline-none sm:px-3 sm:text-sm"
                     placeholder="Patient Age"
                   />
                 </div>
 
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-gray-700">
+                  <label className="mb-1 block text-xs font-medium text-gray-700 sm:text-sm">
                     Field Type
                   </label>
                   <select
@@ -440,7 +399,7 @@ export default function AudioBuilder() {
                         fieldType: e.target.value as typeof mapping.fieldType,
                       })
                     }
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-green-500 focus:outline-none"
+                    className="w-full rounded-lg border border-gray-300 px-2 py-2 text-xs focus:border-green-500 focus:outline-none sm:px-3 sm:text-sm"
                   >
                     <option value="text">Text</option>
                     <option value="number">Number</option>
@@ -456,7 +415,7 @@ export default function AudioBuilder() {
                   </select>
                 </div>
 
-                <div className="flex items-end gap-4">
+                <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-end sm:gap-4">
                   <label className="flex items-center space-x-2">
                     <input
                       type="checkbox"
@@ -468,7 +427,9 @@ export default function AudioBuilder() {
                       }
                       className="rounded border-gray-300 text-green-600 focus:ring-green-500"
                     />
-                    <span className="text-sm text-gray-700">Required</span>
+                    <span className="text-xs text-gray-700 sm:text-sm">
+                      Required
+                    </span>
                   </label>
                   <button
                     onClick={() => removeAiFieldMapping(mapping.id)}
@@ -479,8 +440,8 @@ export default function AudioBuilder() {
                 </div>
               </div>
 
-              <div className="mt-4">
-                <label className="mb-1 block text-sm font-medium text-gray-700">
+              <div className="mt-3 sm:mt-4">
+                <label className="mb-1 block text-xs font-medium text-gray-700 sm:text-sm">
                   AI Extraction Prompt
                 </label>
                 <textarea
@@ -490,9 +451,9 @@ export default function AudioBuilder() {
                       aiPrompt: e.target.value,
                     })
                   }
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-green-500 focus:outline-none"
+                  className="w-full rounded-lg border border-gray-300 px-2 py-2 text-xs focus:border-green-500 focus:outline-none sm:px-3 sm:text-sm"
                   rows={3}
-                  placeholder="e.g., Extract the patient's age from the audio transcription"
+                  placeholder="e.g., Extract the patient's age from the audio recording"
                 />
               </div>
             </div>
@@ -570,6 +531,29 @@ export default function AudioBuilder() {
           upsertFieldsMutation.isPending
         }
         saveButtonText={currentStep === 'create' ? 'Create Workflow' : 'Next'}
+        canProceed={(() => {
+          switch (currentStep) {
+            case 'config':
+              return !!(
+                selectedConnection &&
+                selectedType &&
+                selectedProgram &&
+                selectedOrgUnits.length > 0
+              );
+            case 'audio':
+              return aiFieldMappings.length > 0;
+            case 'create':
+              return !!(
+                selectedConnection &&
+                selectedType &&
+                selectedProgram &&
+                selectedOrgUnits.length > 0 &&
+                aiFieldMappings.length > 0
+              );
+            default:
+              return false;
+          }
+        })()}
         isEditMode={isEditMode}
       >
         {renderCurrentStep()}
@@ -607,7 +591,7 @@ export default function AudioBuilder() {
                     : ('text' as const),
             isRequired: field.mandatory || false,
             displayOrder: aiFieldMappings.length + index + 1,
-            aiPrompt: `Extract ${field.name.toLowerCase()} from the audio transcription`,
+            aiPrompt: `Extract ${field.name.toLowerCase()} from the audio recording transcription`,
           }));
           setAiFieldMappings([...aiFieldMappings, ...newFields]);
         }}

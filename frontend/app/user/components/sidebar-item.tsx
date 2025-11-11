@@ -20,7 +20,11 @@ export const SidebarItem = ({
 
   const isActive = () => {
     if (href === '/user/overview') {
-      return pathname === href || pathname.startsWith('/user/overview/');
+      return (
+        pathname === href ||
+        pathname.startsWith('/user/overview/') ||
+        pathname.startsWith('/user/workflow/')
+      );
     }
     return pathname === href;
   };

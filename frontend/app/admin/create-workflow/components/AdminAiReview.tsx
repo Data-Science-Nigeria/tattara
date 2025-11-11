@@ -3,14 +3,6 @@ import { useMutation } from '@tanstack/react-query';
 import { collectorControllerProcessAiMutation } from '@/client/@tanstack/react-query.gen';
 import { toast } from 'sonner';
 
-interface FormField {
-  id: string;
-  fieldName?: string;
-  label?: string;
-  fieldType: string;
-  isRequired?: boolean;
-}
-
 interface AiReviewData {
   form_id: string;
   extracted: Record<string, unknown>;
@@ -20,14 +12,12 @@ interface AiReviewData {
 interface AdminAiReviewProps {
   workflowId: string;
   formData: Record<string, unknown>;
-  fields: FormField[];
   onReviewComplete?: (reviewData: unknown, logId: string) => void;
 }
 
 export default function AdminAiReview({
   workflowId,
   formData,
-  fields,
   onReviewComplete,
 }: AdminAiReviewProps) {
   const [isReviewing, setIsReviewing] = useState(false);
@@ -50,17 +40,21 @@ export default function AdminAiReview({
       });
 
       const responseData = aiResponse as {
-        data?: { aiData?: AiReviewData; aiProcessingLogId?: string };
+        aiData?: AiReviewData;
+        aiProcessingLogId?: string;
       };
 
-      const reviewData = responseData?.data?.aiData;
+      const reviewData = responseData?.aiData;
       setAiReviewData(reviewData || null);
 
+      if (reviewData) {
+        toast.success('AI processing completed successfully!');
+      } else {
+        toast.error('No data extracted from AI processing');
+      }
+
       if (onReviewComplete) {
-        onReviewComplete(
-          reviewData,
-          responseData?.data?.aiProcessingLogId || ''
-        );
+        onReviewComplete(reviewData, responseData?.aiProcessingLogId || '');
       }
     } catch (error) {
       console.error('AI processing failed:', error);

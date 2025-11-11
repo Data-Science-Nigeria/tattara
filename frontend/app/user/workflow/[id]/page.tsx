@@ -5,7 +5,6 @@ import { ArrowLeft } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { workflowControllerFindWorkflowByIdOptions } from '@/client/@tanstack/react-query.gen';
-import FormRenderer from '../components/FormRenderer';
 import TextRenderer from '../components/TextRenderer';
 import AudioRenderer from '../components/AudioRenderer';
 import ImageRenderer from '../components/ImageRenderer';
@@ -56,14 +55,24 @@ export default function WorkflowExecution() {
   const renderWorkflowContent = () => {
     const enabledModes = workflow.enabledModes || [];
 
-    if (enabledModes.includes('form')) {
-      return <FormRenderer workflow={{ ...workflow, type: 'form' }} />;
-    } else if (enabledModes.includes('text')) {
-      return <TextRenderer workflow={{ ...workflow, type: 'text' }} />;
+    if (enabledModes.includes('text')) {
+      return (
+        <TextRenderer
+          workflow={{ ...workflow, type: 'text', workflowConfigurations: [] }}
+        />
+      );
     } else if (enabledModes.includes('audio')) {
-      return <AudioRenderer workflow={{ ...workflow, type: 'audio' }} />;
+      return (
+        <AudioRenderer
+          workflow={{ ...workflow, type: 'audio', workflowConfigurations: [] }}
+        />
+      );
     } else if (enabledModes.includes('image')) {
-      return <ImageRenderer workflow={{ ...workflow, type: 'image' }} />;
+      return (
+        <ImageRenderer
+          workflow={{ ...workflow, type: 'image', workflowConfigurations: [] }}
+        />
+      );
     } else {
       return <div>Unsupported workflow type</div>;
     }

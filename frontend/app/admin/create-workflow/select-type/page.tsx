@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { ArrowLeft, FormInput, Edit, Mic, Image } from 'lucide-react';
+import { ArrowLeft, Edit, Mic, Image } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 
 export default function SelectType() {
@@ -10,12 +10,6 @@ export default function SelectType() {
   const workflowId = searchParams.get('workflowId');
 
   const inputTypes = [
-    {
-      id: 'form',
-      name: 'Form',
-      icon: FormInput,
-      description: 'Create structured forms with fields',
-    },
     {
       id: 'text',
       name: 'Text',
@@ -70,7 +64,7 @@ export default function SelectType() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
         {inputTypes.map((type) => (
           <div
             key={type.id}
