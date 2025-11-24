@@ -27,6 +27,9 @@ export const SidebarItem = ({
         pathname === href || pathname.startsWith('/admin/create-workflow/')
       );
     }
+    if (href === '/admin/user-profile') {
+      return pathname === href || pathname.startsWith('/admin/user-profile/');
+    }
     return pathname === href;
   };
 

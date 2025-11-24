@@ -28,14 +28,20 @@ interface ProgramStage {
   programStageDataElements?: ProgramStageDataElement[];
 }
 
+interface DataSetElement {
+  dataElement: DataElement;
+}
+
 interface SchemaData {
   programStages?: ProgramStage[];
   dataElements?: DataElement[];
+  dataSetElements?: DataSetElement[];
 }
 
 interface FieldMappingStepProps {
   selectedConnection: string;
   selectedProgram: string;
+  selectedType: 'program' | 'dataSet' | '';
   fields: Field[];
   updateField: (id: string, updates: Partial<Field>) => void;
 }
@@ -43,10 +49,16 @@ interface FieldMappingStepProps {
 export default function FieldMappingStep({
   selectedConnection,
   selectedProgram,
+  selectedType,
   fields,
   updateField,
 }: FieldMappingStepProps) {
   const [dhis2DataElements, setDhis2DataElements] = useState<DataElement[]>([]);
+
+  // Get list of already selected data elements
+  const selectedDataElements = fields
+    .map((field) => field.dhis2DataElement)
+    .filter(Boolean) as string[];
 
   const {
     data: schemaData,
@@ -56,11 +68,11 @@ export default function FieldMappingStep({
     ...integrationControllerFetchSchemasOptions({
       path: { connectionId: selectedConnection },
       query: {
-        type: { value: 'program' } as _Object,
+        type: selectedType as unknown as _Object,
         id: selectedProgram as string,
       },
     }),
-    enabled: !!selectedConnection && !!selectedProgram,
+    enabled: !!selectedConnection && !!selectedProgram && !!selectedType,
   });
 
   useEffect(() => {
@@ -81,6 +93,14 @@ export default function FieldMappingStep({
             });
           }
         });
+        setDhis2DataElements(elements);
+      } else if (schema?.dataSetElements) {
+        // Handle dataset elements structure
+        const elements = schema.dataSetElements.map((element) => ({
+          id: element.dataElement.id,
+          name: element.dataElement.name || element.dataElement.displayName,
+          valueType: element.dataElement.valueType,
+        }));
         setDhis2DataElements(elements);
       } else if (schema?.dataElements) {
         // Handle direct data elements structure
@@ -175,11 +195,21 @@ export default function FieldMappingStep({
                     Configure DHIS2 connection first
                   </option>
                 )}
-                {dhis2DataElements.map((element) => (
-                  <option key={element.id} value={element.id}>
-                    {element.name} ({element.valueType})
-                  </option>
-                ))}
+                {dhis2DataElements.map((element) => {
+                  const isAlreadySelected =
+                    selectedDataElements.includes(element.id) &&
+                    field.dhis2DataElement !== element.id;
+                  return (
+                    <option
+                      key={element.id}
+                      value={element.id}
+                      disabled={isAlreadySelected}
+                    >
+                      {element.name} ({element.valueType})
+                      {isAlreadySelected ? ' - Already mapped' : ''}
+                    </option>
+                  );
+                })}
               </select>
             </div>
           </div>

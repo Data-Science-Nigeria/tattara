@@ -48,7 +48,7 @@ export default function UserProfileTable({
 }: UserProfileTableProps) {
   return (
     <div className="rounded-lg bg-white shadow">
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto custom-scrollbar">
         <table className="w-full">
           <thead className="border-b border-gray-200 bg-gray-50">
             <tr>

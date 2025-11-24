@@ -74,10 +74,10 @@ export default function WorkflowsSection({
         </div>
         <button
           onClick={handleCreateWorkflow}
-          className="flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700"
+          className="flex items-center gap-2 rounded-lg bg-green-600 px-3 py-2 text-sm font-medium text-white hover:bg-green-700 lg:px-4"
         >
-          <Plus className="h-4 w-4" />
-          Create Workflow
+          <Plus className="h-5 w-5" />
+          <span className="hidden lg:inline">Create Workflow</span>
         </button>
       </div>
 
@@ -207,7 +207,7 @@ export default function WorkflowsSection({
 
           {/* Modal */}
           {showModal && (
-            <div className="bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black">
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
               <div className="m-4 max-h-[80vh] w-full max-w-2xl overflow-y-auto rounded-lg bg-white p-6">
                 <div className="mb-4 flex items-center justify-between">
                   <h3 className="text-lg font-semibold text-gray-900">

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { Plus, Trash2, FileText, GripVertical } from 'lucide-react';
+import { Plus, Trash2, FileText, GripVertical, Eye } from 'lucide-react';
 import {
   workflowControllerCreateWorkflowMutation,
   workflowControllerFindWorkflowByIdOptions,
@@ -13,7 +13,7 @@ import {
 import { toast } from 'sonner';
 import WorkflowBuilderLayout from '../components/workflow-builder-layout';
 import DHIS2ConfigStep from '../components/dhis2-config-step';
-import WorkflowTestModal from '../components/workflow-test-modal';
+import FieldPreviewModal from '../components/field-preview-modal';
 
 export default function TextBuilder() {
   const searchParams = useSearchParams();
@@ -32,19 +32,17 @@ export default function TextBuilder() {
   const [currentStep, setCurrentStep] = useState<'config' | 'text' | 'create'>(
     'config'
   );
-  const [showTestModal, setShowTestModal] = useState(false);
+
+  const [showFieldPreview, setShowFieldPreview] = useState(false);
 
   // DHIS2 Configuration
   const [selectedConnection, setSelectedConnection] = useState('');
+  const [selectedType, setSelectedType] = useState('');
   const [selectedProgram, setSelectedProgram] = useState('');
   const [selectedOrgUnits, setSelectedOrgUnits] = useState<string[]>([]);
 
-  // Text Configuration
-  const [textConfig, setTextConfig] = useState({
-    aiModel: 'gpt-3.5-turbo',
-    maxTokens: 1000,
-    temperature: 0.3,
-    enableNER: true,
+  // Basic Configuration
+  const [basicConfig, setBasicConfig] = useState({
     language: 'en',
   });
 
@@ -87,8 +85,22 @@ export default function TextBuilder() {
     onSuccess: (data) => {
       const workflow = (data as { data?: { id?: string } })?.data;
       if (workflow?.id) {
-        window.location.href = `/admin/create-workflow/builder/text?workflowId=${workflow.id}&step=mapping`;
+        toast.success('Workflow created successfully!');
+        window.location.href = `/admin/create-workflow/field-mapping?workflowId=${workflow.id}`;
       }
+    },
+    onError: (error) => {
+      console.error('Failed to create workflow:', error);
+      const errorMessage =
+        (
+          error as {
+            response?: { data?: { message?: string } };
+            message?: string;
+          }
+        )?.response?.data?.message ||
+        (error as { message?: string })?.message ||
+        'Failed to create workflow';
+      toast.error(errorMessage);
     },
   });
 
@@ -130,16 +142,11 @@ export default function TextBuilder() {
             (dhis2Config.configuration as { orgUnits?: string[] })?.orgUnits ||
               []
           );
-          setTextConfig(
-            (dhis2Config.configuration as { textConfig?: typeof textConfig })
-              ?.textConfig || {
-              aiModel: 'gpt-3.5-turbo',
-              maxTokens: 1000,
-              temperature: 0.3,
-              enableNER: true,
-              language: 'en',
-            }
-          );
+          setBasicConfig({
+            language:
+              (dhis2Config.configuration as { language?: string })?.language ||
+              'en',
+          });
         }
       }
     }
@@ -234,7 +241,7 @@ export default function TextBuilder() {
               configuration: {
                 programId: selectedProgram,
                 orgUnits: selectedOrgUnits,
-                textConfig,
+                ...basicConfig,
               },
               isActive: true,
             },
@@ -253,47 +260,30 @@ export default function TextBuilder() {
   ];
 
   const renderTextStep = () => (
-    <div className="space-y-6">
-      <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 sm:p-4">
         <div className="mb-2 flex items-center gap-2">
-          <FileText className="h-5 w-5 text-blue-600" />
-          <h3 className="text-sm font-medium text-blue-900">
+          <FileText className="h-4 w-4 text-blue-600 sm:h-5 sm:w-5" />
+          <h3 className="text-xs font-medium text-blue-900 sm:text-sm">
             Text Processing Settings
           </h3>
         </div>
-        <p className="text-sm text-blue-700">
+        <p className="text-xs text-blue-700 sm:text-sm">
           Configure how text input will be processed and analyzed by AI.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-2">
         <div>
-          <label className="mb-2 block text-sm font-medium text-gray-700">
-            AI Model
-          </label>
-          <select
-            value={textConfig.aiModel}
-            onChange={(e) =>
-              setTextConfig({ ...textConfig, aiModel: e.target.value })
-            }
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-green-500 focus:outline-none"
-          >
-            <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
-            <option value="gpt-4">GPT-4</option>
-            <option value="claude-3">Claude 3</option>
-          </select>
-        </div>
-
-        <div>
-          <label className="mb-2 block text-sm font-medium text-gray-700">
+          <label className="mb-2 block text-xs font-medium text-gray-700 sm:text-sm">
             Language
           </label>
           <select
-            value={textConfig.language}
+            value={basicConfig.language}
             onChange={(e) =>
-              setTextConfig({ ...textConfig, language: e.target.value })
+              setBasicConfig({ ...basicConfig, language: e.target.value })
             }
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-green-500 focus:outline-none"
+            className="w-full rounded-lg border border-gray-300 px-2 py-2 text-xs focus:border-green-500 focus:outline-none sm:px-3 sm:text-sm"
           >
             <option value="en">English</option>
             <option value="yo">Yoruba</option>
@@ -303,79 +293,30 @@ export default function TextBuilder() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-        <div>
-          <label className="mb-2 block text-sm font-medium text-gray-700">
-            Max Tokens
-          </label>
-          <input
-            type="number"
-            value={textConfig.maxTokens}
-            onChange={(e) =>
-              setTextConfig({
-                ...textConfig,
-                maxTokens: Number(e.target.value),
-              })
-            }
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-green-500 focus:outline-none"
-            min="100"
-            max="4000"
-          />
-        </div>
-
-        <div>
-          <label className="mb-2 block text-sm font-medium text-gray-700">
-            Temperature: {textConfig.temperature}
-          </label>
-          <input
-            type="range"
-            min="0"
-            max="1"
-            step="0.1"
-            value={textConfig.temperature}
-            onChange={(e) =>
-              setTextConfig({
-                ...textConfig,
-                temperature: parseFloat(e.target.value),
-              })
-            }
-            className="w-full"
-          />
-          <div className="mt-1 flex justify-between text-xs text-gray-500">
-            <span>Focused</span>
-            <span>Creative</span>
-          </div>
-        </div>
-      </div>
-
-      <div className="space-y-4">
-        <label className="flex items-center space-x-2">
-          <input
-            type="checkbox"
-            checked={textConfig.enableNER}
-            onChange={(e) =>
-              setTextConfig({ ...textConfig, enableNER: e.target.checked })
-            }
-            className="rounded border-gray-300 text-green-600 focus:ring-green-500"
-          />
-          <span className="text-sm text-gray-700">
-            Enable Named Entity Recognition (NER)
-          </span>
-        </label>
-      </div>
-
       <div className="border-t border-gray-200 pt-6">
-        <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-lg font-medium text-gray-900">
+        <div className="mb-4 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+          <h3 className="text-sm font-medium text-gray-900 sm:text-lg">
             AI Field Extraction
           </h3>
-          <button
-            onClick={addAiFieldMapping}
-            className="flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-white hover:bg-green-700"
-          >
-            <Plus size={16} />
-            Add Field
-          </button>
+          <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:gap-3">
+
+            <button
+              onClick={() => setShowFieldPreview(true)}
+              className="flex items-center justify-center gap-2 rounded-lg border border-green-600 px-3 py-2 text-xs text-green-600 hover:bg-green-50 sm:px-4 sm:text-sm"
+            >
+              <Eye size={14} className="sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">Browse DHIS2 Fields</span>
+              <span className="sm:hidden">Browse Fields</span>
+            </button>
+            <button
+              onClick={addAiFieldMapping}
+              className="flex items-center justify-center gap-2 rounded-lg bg-green-600 px-3 py-2 text-xs text-white hover:bg-green-700 sm:px-4 sm:text-sm"
+            >
+              <Plus size={14} className="sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">Add Field</span>
+              <span className="sm:hidden">Add</span>
+            </button>
+          </div>
         </div>
 
         <div className="space-y-4">
@@ -508,7 +449,7 @@ export default function TextBuilder() {
                   }
                   className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-green-500 focus:outline-none"
                   rows={3}
-                  placeholder="e.g., Extract all symptoms mentioned in the text"
+                  placeholder="e.g., Extract all symptoms mentioned in the text input"
                 />
               </div>
             </div>
@@ -525,6 +466,8 @@ export default function TextBuilder() {
           <DHIS2ConfigStep
             selectedConnection={selectedConnection}
             setSelectedConnection={setSelectedConnection}
+            selectedType={selectedType}
+            setSelectedType={setSelectedType}
             selectedProgram={selectedProgram}
             setSelectedProgram={setSelectedProgram}
             selectedOrgUnits={selectedOrgUnits}
@@ -553,7 +496,10 @@ export default function TextBuilder() {
                 <strong>AI Fields:</strong> {aiFieldMappings.length} configured
               </div>
               <div>
-                <strong>DHIS2 Program:</strong> {selectedProgram}
+                <strong>
+                  DHIS2 {selectedType === 'program' ? 'Program' : 'Dataset'}:
+                </strong>{' '}
+                {selectedProgram}
               </div>
             </div>
           </div>
@@ -579,19 +525,62 @@ export default function TextBuilder() {
           upsertFieldsMutation.isPending
         }
         saveButtonText={currentStep === 'create' ? 'Create Workflow' : 'Next'}
+        canProceed={(() => {
+          switch (currentStep) {
+            case 'config':
+              return !!(
+                selectedConnection &&
+                selectedType &&
+                selectedProgram &&
+                selectedOrgUnits.length > 0
+              );
+            case 'text':
+              return aiFieldMappings.length > 0;
+            case 'create':
+              return !!(
+                selectedConnection &&
+                selectedType &&
+                selectedProgram &&
+                selectedOrgUnits.length > 0 &&
+                aiFieldMappings.length > 0
+              );
+            default:
+              return false;
+          }
+        })()}
         isEditMode={isEditMode}
       >
         {renderCurrentStep()}
       </WorkflowBuilderLayout>
 
-      <WorkflowTestModal
-        isOpen={showTestModal}
-        onClose={() => {
-          setShowTestModal(false);
-          window.location.href = '/admin/create-workflow';
+
+
+      <FieldPreviewModal
+        preSelectedConnection={selectedConnection}
+        preSelectedType={selectedType}
+        preSelectedProgram={selectedProgram}
+        isOpen={showFieldPreview}
+        onClose={() => setShowFieldPreview(false)}
+        onFieldsSelect={(selectedFields) => {
+          const newFields = selectedFields.map((field, index) => ({
+            id: Date.now().toString() + index,
+            fieldName: field.name.toLowerCase().replace(/\s+/g, '_'),
+            label: field.name,
+            fieldType:
+              field.valueType === 'NUMBER' || field.valueType === 'INTEGER'
+                ? ('number' as const)
+                : field.valueType === 'DATE'
+                  ? ('date' as const)
+                  : field.valueType === 'BOOLEAN' ||
+                      field.valueType === 'TRUE_ONLY'
+                    ? ('boolean' as const)
+                    : ('text' as const),
+            isRequired: field.mandatory || false,
+            displayOrder: aiFieldMappings.length + index + 1,
+            aiPrompt: `Extract ${field.name.toLowerCase()} from the provided text input`,
+          }));
+          setAiFieldMappings([...aiFieldMappings, ...newFields]);
         }}
-        workflowType="text"
-        fields={aiFieldMappings}
       />
     </>
   );
