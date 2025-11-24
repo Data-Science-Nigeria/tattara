@@ -1,0 +1,19 @@
+# Node.js
+node_modules/
+dist/
+
+# Environment & configs
+.env
+**/.env
+.vscode/
+
+# Docker
+Dockerfile
+docker-compose.yml
+
+# Git
+.git/
+.gitignore
+
+# Misc
+*.md

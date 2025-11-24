@@ -1,0 +1,864 @@
+openapi: 3.0.3
+info:
+  title: Tattara DSN AI Data Collection App API
+  description: |
+    Backend API for the Tattara DSN AI Data Collection App.
+    Features:
+      - JWT Authentication with RBAC (Roles & Permissions)
+      - Program & Workflow management
+      - AI-assisted data collection (Voice, OCR) with user confirmation step
+      - Dual integration: DHIS2 and Generic Database
+      - Offline sync & comprehensive audit logging
+  version: 2.0.0
+servers:
+  - url: https://api.tattara.app/v1
+tags:
+  - name: Authentication
+  - name: User Management
+  - name: Program Management
+  - name: Workflow Management
+  - name: Data Collection
+  - name: Sync
+  - name: Analytics & Export
+  - name: System Monitoring
+
+security:
+  - BearerAuth: []
+
+paths:
+  /auth/login:
+    post:
+      tags: [Authentication]
+      summary: User login
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+
+  /auth/change-password:
+    put:
+      tags: [Authentication]
+      summary: Change password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangePasswordRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/Success'
+
+  /users:
+    get:
+      tags: [User Management]
+      summary: List all users
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserListResponse'
+    post:
+      tags: [User Management]
+      summary: Create a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUserRequest'
+      responses:
+        '201':
+          description: User created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+
+  /programs:
+    get:
+      tags: [Program Management]
+      summary: List all programs (with optional pagination)
+      parameters:
+        - $ref: '#/components/parameters/PageQueryParam'
+        - $ref: '#/components/parameters/LimitQueryParam'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProgramListResponse'
+    post:
+      tags: [Program Management]
+      summary: Create a new program
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProgramRequest'
+      responses:
+        '201':
+          description: Program created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Program'
+
+  /programs/{programId}:
+    get:
+      tags: [Program Management]
+      summary: Get a specific program by its ID
+      parameters:
+        - name: programId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: Program details retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Program'
+        '404':
+          description: Program not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      tags: [Program Management]
+      summary: Update a specific program
+      parameters:
+        - name: programId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProgramRequest'
+      responses:
+        '200':
+          description: Program updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Program'
+        '404':
+          description: Program not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags: [Program Management]
+      summary: Delete a specific program
+      parameters:
+        - name: programId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: Program deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '404':
+          description: Program not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict. Cannot delete program because it has associated workflows.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /programs/{programId}/workflows:
+    get:
+      tags: [Program Management]
+      summary: List all workflows assigned to a specific program
+      parameters:
+        - name: programId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+        - $ref: '#/components/parameters/PageQueryParam'
+        - $ref: '#/components/parameters/LimitQueryParam'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkflowListResponse'
+    post:
+      tags: [Program Management]
+      summary: Assign one or more existing workflows to a program
+      parameters:
+        - name: programId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [workflowIds]
+              properties:
+                workflowIds:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/UUID'
+                  description: Array of existing workflow IDs to assign to this program
+      responses:
+        '200':
+          description: Workflows assigned to program successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '404':
+          description: Program or one of the workflows not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /workflows:
+    get:
+      tags: [Workflow Management]
+      summary: List all workflows
+      parameters:
+        - $ref: '#/components/parameters/ProgramIdQueryParam'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkflowListResponse'
+    post:
+      tags: [Workflow Management]
+      summary: Create a new workflow
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateWorkflowRequest'
+      responses:
+        '201':
+          description: Workflow created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Workflow'
+
+  /workflows/{workflowId}/configurations:
+    get:
+      tags: [Workflow Management]
+      summary: Get all external configurations for a workflow
+      parameters:
+        - $ref: '#/components/parameters/WorkflowIdPathParam'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkflowConfigurationListResponse'
+    post:
+      tags: [Workflow Management]
+      summary: Add a target configuration to a workflow
+      parameters:
+        - $ref: '#/components/parameters/WorkflowIdPathParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateWorkflowConfigRequest'
+      responses:
+        '201':
+          $ref: '#/components/responses/Success'
+
+  /workflows/{workflowId}/fields:
+    get:
+      tags: [Workflow Management]
+      summary: Get all fields for a workflow
+      parameters:
+        - $ref: '#/components/parameters/WorkflowIdPathParam'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkflowFieldListResponse'
+    post:
+      tags: [Workflow Management]
+      summary: Add a field to a workflow
+      parameters:
+        - $ref: '#/components/parameters/WorkflowIdPathParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateWorkflowFieldRequest'
+      responses:
+        '201':
+          $ref: '#/components/responses/Success'
+
+  /workflows/{workflowId}/fields/{fieldId}/mapping:
+    put:
+      tags: [Workflow Management]
+      summary: Create or update field mapping for a workflow field
+      parameters:
+        - $ref: '#/components/parameters/WorkflowIdPathParam'
+        - name: fieldId
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FieldMappingRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/Success'
+
+  /ai/process:
+    post:
+      tags: [Data Collection]
+      summary: Process audio or image via AI (Step 1 of 2)
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file, workflowId, processingType]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                workflowId:
+                  $ref: '#/components/schemas/UUID'
+                processingType:
+                  type: string
+                  enum: [voice_to_text, ocr]
+                language:
+                  type: string
+                  default: 'en'
+      responses:
+        '200':
+          description: AI processing successful. Returns structured data for user confirmation.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AIProcessResponse'
+
+  /submit:
+    post:
+      tags: [Data Collection]
+      summary: Submit confirmed data (Step 2 of 2)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DataSubmissionRequest'
+      responses:
+        '202':
+          description: Submission accepted and queued for sync.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataSubmissionResponse'
+
+  /sync:
+    post:
+      tags: [Sync]
+      summary: Initiate offline sync from a client device
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SyncRequest'
+      responses:
+        '202':
+          description: Sync request accepted.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncResponse'
+
+  /submissions:
+    get:
+      tags: [Data Collection]
+      summary: Get user's submission history
+      parameters:
+        - $ref: '#/components/parameters/WorkflowIdQueryParam'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubmissionListResponse'
+
+  /export:
+    post:
+      tags: [Analytics & Export]
+      summary: Export data
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExportRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExportResponse'
+
+  /audit-logs:
+    get:
+      tags: [System Monitoring]
+      summary: Get audit logs
+      parameters:
+        - $ref: '#/components/parameters/PageQueryParam'
+        - $ref: '#/components/parameters/LimitQueryParam'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditLogListResponse'
+
+  /health:
+    get:
+      tags: [System Monitoring]
+      summary: Health check
+      security: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    WorkflowIdPathParam:
+      name: workflowId
+      in: path
+      required: true
+      schema: { $ref: '#/components/schemas/UUID' }
+    WorkflowIdQueryParam:
+      name: workflowId
+      in: query
+      schema: { $ref: '#/components/schemas/UUID' }
+    ProgramIdQueryParam:
+      name: programId
+      in: query
+      schema: { $ref: '#/components/schemas/UUID' }
+    PageQueryParam:
+      name: page
+      in: query
+      schema: { type: integer, minimum: 1, default: 1 }
+    LimitQueryParam:
+      name: limit
+      in: query
+      schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+
+  responses:
+    Success:
+      description: Operation successful
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/SuccessResponse'
+
+  schemas:
+    UUID:
+      type: string
+      format: uuid
+      example: '123e4567-e89b-12d3-a456-426614174000'
+
+    # AUTH
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string }
+
+    LoginResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                token: { type: string }
+                user: { $ref: '#/components/schemas/User' }
+
+    ChangePasswordRequest:
+      type: object
+      required: [currentPassword, newPassword]
+      properties:
+        currentPassword: { type: string }
+        newPassword: { type: string }
+
+    # USERS & RBAC
+    User:
+      type: object
+      properties:
+        id: { $ref: '#/components/schemas/UUID' }
+        email: { type: string }
+        firstName: { type: string }
+        lastName: { type: string }
+        role: { $ref: '#/components/schemas/Role' }
+        isActive: { type: boolean }
+        lastLoginAt: { type: string, format: date-time }
+
+    CreateUserRequest:
+      type: object
+      required: [email, firstName, lastName, password, roleId]
+      properties:
+        email: { type: string, format: email }
+        firstName: { type: string }
+        lastName: { type: string }
+        password: { type: string }
+        roleId: { $ref: '#/components/schemas/UUID' }
+
+    UserListResponse:
+      type: object
+      properties:
+        users: { type: array, items: { $ref: '#/components/schemas/User' } }
+        pagination: { $ref: '#/components/schemas/PaginationInfo' }
+
+    Role:
+      type: object
+      properties:
+        id: { $ref: '#/components/schemas/UUID' }
+        name: { type: string }
+        permissions:
+          { type: array, items: { $ref: '#/components/schemas/Permission' } }
+
+    Permission:
+      type: object
+      properties:
+        id: { $ref: '#/components/schemas/UUID' }
+        resource: { type: string }
+        action: { type: string }
+
+    # PROGRAMS
+    Program:
+      type: object
+      properties:
+        id: { $ref: '#/components/schemas/UUID' }
+        name: { type: string }
+        description: { type: string }
+        workflows:
+          { type: array, items: { $ref: '#/components/schemas/Workflow' } }
+
+    CreateProgramRequest:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string }
+        description: { type: string }
+
+    ProgramListResponse:
+      type: object
+      properties:
+        programs:
+          { type: array, items: { $ref: '#/components/schemas/Program' } }
+        pagination: { $ref: '#/components/schemas/PaginationInfo' }
+
+    UpdateProgramRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          description: The updated name of the program
+        description:
+          type: string
+          description: The updated description of the program
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: string
+          description: A human-readable error message
+        code:
+          type: string
+          description: An error code for programmatic handling
+        details:
+          type: object
+          description: Additional error details
+
+    # WORKFLOWS
+    Workflow:
+      type: object
+      properties:
+        id: { $ref: '#/components/schemas/UUID' }
+        name: { type: string }
+        description: { type: string }
+        status: { type: string, enum: [active, inactive, archived] }
+        programId: { $ref: '#/components/schemas/UUID' }
+        fields:
+          { type: array, items: { $ref: '#/components/schemas/WorkflowField' } }
+        configurations:
+          {
+            type: array,
+            items: { $ref: '#/components/schemas/WorkflowConfiguration' },
+          }
+
+    CreateWorkflowRequest:
+      type: object
+      required: [name, programId]
+      properties:
+        name: { type: string }
+        description: { type: string }
+        programId: { $ref: '#/components/schemas/UUID' }
+
+    WorkflowListResponse:
+      type: object
+      properties:
+        workflows:
+          { type: array, items: { $ref: '#/components/schemas/Workflow' } }
+        pagination: { $ref: '#/components/schemas/PaginationInfo' }
+
+    WorkflowField:
+      type: object
+      properties:
+        id: { $ref: '#/components/schemas/UUID' }
+        fieldId: { type: string }
+        label: { type: string }
+        type:
+          { type: string, enum: [text, number, date, select, boolean, etc.] }
+        isRequired: { type: boolean }
+        validationRules: { type: object }
+
+    CreateWorkflowFieldRequest:
+      type: object
+      required: [fieldId, label, type]
+      properties:
+        fieldId: { type: string }
+        label: { type: string }
+        type: { type: string }
+        isRequired: { type: boolean, default: false }
+        validationRules: { type: object }
+
+    WorkflowFieldListResponse:
+      type: object
+      properties:
+        fields:
+          { type: array, items: { $ref: '#/components/schemas/WorkflowField' } }
+
+    WorkflowConfiguration:
+      type: object
+      properties:
+        id: { $ref: '#/components/schemas/UUID' }
+        type: { type: string, enum: [dhis2, postgresql, mysql, mssql, api] }
+        isActive: { type: boolean }
+        configuration: { type: object } # Discriminated union based on 'type'
+
+    CreateWorkflowConfigRequest:
+      type: object
+      required: [type, configuration]
+      properties:
+        type: { type: string }
+        configuration: { type: object }
+
+    WorkflowConfigurationListResponse:
+      type: object
+      properties:
+        configurations:
+          {
+            type: array,
+            items: { $ref: '#/components/schemas/WorkflowConfiguration' },
+          }
+
+    FieldMappingRequest:
+      type: object
+      required: [targetType, target]
+      properties:
+        targetType: { type: string, enum: [dhis2, generic_db] }
+        target: { type: object } # e.g., { "dataElementId": "abc" } or { "table": "tbl", "column": "col" }
+
+    # AI & DATA COLLECTION
+    AIProcessResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                aiProcessingLogId: { $ref: '#/components/schemas/UUID' }
+                structuredData: { type: object } # AI's guess: { "fieldId": "value" }
+                confidenceScore: { type: number }
+
+    DataSubmissionRequest:
+      type: object
+      required: [workflowId, data, aiProcessingLogId]
+      properties:
+        workflowId: { $ref: '#/components/schemas/UUID' }
+        data: { type: object } # Final confirmed data: { "fieldId": "value" }
+        aiProcessingLogId: { $ref: '#/components/schemas/UUID' }
+        localId: { type: string } # For offline clients
+        metadata: { type: object } # deviceInfo, location, etc.
+
+    DataSubmissionResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                submissionId: { $ref: '#/components/schemas/UUID' }
+                localId: { type: string }
+
+    SubmissionListResponse:
+      type: object
+      properties:
+        submissions:
+          { type: array, items: { $ref: '#/components/schemas/Submission' } }
+        pagination: { $ref: '#/components/schemas/PaginationInfo' }
+
+    Submission:
+      type: object
+      properties:
+        id: { $ref: '#/components/schemas/UUID' }
+        workflowId: { $ref: '#/components/schemas/UUID' }
+        status: { type: string }
+        submittedAt: { type: string, format: date-time }
+        syncedAt: { type: string, format: date-time }
+        data: { type: object }
+
+    # SYNC
+    SyncRequest:
+      type: object
+      properties:
+        submissions:
+          {
+            type: array,
+            items: { $ref: '#/components/schemas/DataSubmissionRequest' },
+          }
+
+    SyncResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                accepted: { type: integer }
+                errors: { type: array, items: { type: object } }
+
+    # EXPORT
+    ExportRequest:
+      type: object
+      properties:
+        workflowId: { $ref: '#/components/schemas/UUID' }
+        format: { type: string, enum: [csv, json, excel] }
+        startDate: { type: string, format: date-time }
+        endDate: { type: string, format: date-time }
+
+    ExportResponse:
+      type: object
+      properties:
+        downloadUrl: { type: string }
+        expiresAt: { type: string, format: date-time }
+
+    # SYSTEM
+    AuditLog:
+      type: object
+      properties:
+        id: { $ref: '#/components/schemas/UUID' }
+        userId: { $ref: '#/components/schemas/UUID' }
+        action: { type: string }
+        resourceType: { type: string }
+        resourceId: { $ref: '#/components/schemas/UUID' }
+        createdAt: { type: string, format: date-time }
+
+    AuditLogListResponse:
+      type: object
+      properties:
+        logs: { type: array, items: { $ref: '#/components/schemas/AuditLog' } }
+        pagination: { $ref: '#/components/schemas/PaginationInfo' }
+
+    HealthResponse:
+      type: object
+      properties:
+        status: { type: string, enum: [healthy, degraded, down] }
+        timestamp: { type: string, format: date-time }
+
+    # COMMON
+    SuccessResponse:
+      type: object
+      properties:
+        success: { type: boolean, example: true }
+        message: { type: string }
+
+    PaginationInfo:
+      type: object
+      properties:
+        page: { type: integer }
+        limit: { type: integer }
+        total: { type: integer }
+        totalPages: { type: integer }

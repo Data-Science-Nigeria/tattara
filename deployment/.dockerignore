@@ -1,0 +1,25 @@
+# Node.js
+node_modules/
+dist/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+uv.lock
+
+# Environment & configs
+.env
+**/.env
+.vscode/
+
+# Docker
+Dockerfile
+docker-compose.yml
+
+# Git
+.git/
+.gitignore
+
+# Misc
+*.md

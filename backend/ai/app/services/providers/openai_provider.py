@@ -9,15 +9,16 @@ except Exception:
 
 class OpenAIProvider:
     name = "openai"
-    supports_vision = True
+    supports_vision = True  # allow vision path
 
     def __init__(self, api_key: Optional[str], model: str):
         self.model = model
         self.client = OpenAIClient(api_key=api_key) if (api_key and OpenAIClient) else None
 
-    def complete(self, prompt: str, images: Optional[List[str]] = None, ocr_blocks: Optional[List[dict]] = None, locale: Optional[str] = None) -> tuple[str, Dict[str, Any]]:
+    def complete(self, prompt: str, images: Optional[List[str]] = None, ocr_blocks: Optional[List[dict]] = None, locale: Optional[str] = None, model: Optional[str] = None) -> tuple[str, Dict[str, Any]]:
+        model_used = model or self.model
         if not self.client:
-            return '{"_dev_note": "OpenAI client missing; echoing"}', {"prompt_tokens": 0, "completion_tokens": 0}
+            return '{"_dev_note": "OpenAI client missing; echoing"}', {"prompt_tokens": 0, "completion_tokens": 0, "model": model_used}
 
         content = [{"type": "text", "text": prompt}]
         if images:
@@ -27,7 +28,7 @@ class OpenAIProvider:
             content.append({"type": "text", "text": f"OCR blocks: {ocr_blocks[:10]}"})
 
         resp = self.client.chat.completions.create(
-            model=self.model,
+            model=(model or self.model),
             messages=[
                 {"role": "system", "content": "Respond ONLY with valid JSON. No markdown."},
                 {"role": "user", "content": content},
@@ -35,40 +36,42 @@ class OpenAIProvider:
             temperature=1,
         )
         text = resp.choices[0].message.content or "{}"
+        # Try to read model from the provider response if available (some SDKs include it)
+        model_from_resp = None
+        try:
+            model_from_resp = getattr(resp, "model", None)
+        except Exception:
+            model_from_resp = None
+        model_final = model_from_resp or model_used
         usage = {
             "prompt_tokens": getattr(resp, "usage", None).prompt_tokens if getattr(resp, "usage", None) else None,
             "completion_tokens": getattr(resp, "usage", None).completion_tokens if getattr(resp, "usage", None) else None,
+            "model": model_final,
         }
         return text, usage
 
     def process_image(self, image_bytes: bytes, filename: str) -> Dict[str, Any] | str:
-        """Basic adapter to send image bytes to OpenAI by embedding base64 in the prompt.
-
-        This is a fallback approach for providers that don't expose a direct image-processing SDK
-        in this codebase. It's not optimal for large images. For production, replace with
-        provider-native file upload or multimodal API call.
-        """
         if not self.client:
-            return {"text": "", "blocks": []}
+            return {"text": "", "blocks": [], "_error": "openai client not initialized"}
 
-        b64 = base64.b64encode(image_bytes).decode("ascii")
-        # keep prompt reasonably small by trimming base64 (provider may still accept large input)
-        preview = b64[:4096]
+        fn = filename.lower()
+        mime = "image/jpeg" if fn.endswith((".jpg", ".jpeg")) else "image/png"
+        data_url = f"data:{mime};base64,{base64.b64encode(image_bytes).decode('ascii')}"
 
-        prompt = (
-            "You are an OCR assistant. Extract all text from the provided base64-encoded image data. "
-            "Respond with JSON: {\"text\": <full_text> , \"blocks\": [ {\"text\": ..., \"bbox\": [x,y,w,h], \"confidence\": 0.9}, ... ] }\n"
-            f"Image filename: {filename}\n"
-            f"Base64 (truncated preview): {preview}"
-        )
-
-        text, usage = self.complete(prompt)
-
-        # Try to parse returned text as JSON; fallback to returning text blob
+        content = [
+            {"type": "image_url", "image_url": {"url": data_url}},
+            {"type": "text", "text": "Transcribe all visible text. Return plain text only, no JSON."},
+        ]
         try:
-            import json
-
-            parsed = json.loads(text)
-            return parsed
-        except Exception:
-            return text
+            resp = self.client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": "You are an OCR assistant. Return only raw text."},
+                    {"role": "user", "content": content},
+                ],
+                temperature=0.0,
+            )
+            text = resp.choices[0].message.content or ""
+            return {"text": text}
+        except Exception as e:
+            return {"text": "", "_error": f"{type(e).__name__}: {e}"}
