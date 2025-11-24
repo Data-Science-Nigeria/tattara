@@ -1,7 +1,7 @@
 import request from 'supertest';
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
-import { AppModule } from 'src/app.module';
+import { AppModule } from '@/app.module';
 import { ConfigModule } from '@nestjs/config';
 
 describe('FileManagerController (e2e)', () => {

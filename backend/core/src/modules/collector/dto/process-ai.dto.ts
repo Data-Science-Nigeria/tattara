@@ -5,7 +5,7 @@ import {
   IsString,
   IsUUID,
 } from 'class-validator';
-import { AiProviderType, ProcessingType } from 'src/common/enums';
+import { AiProviderType, ProcessingType } from '@/common/enums';
 
 export class ProcessAiDto {
   @IsUUID()

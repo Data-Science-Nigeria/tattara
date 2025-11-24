@@ -12,7 +12,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { Role, Workflow, AiProcessingLog, Program } from '.';
+import { Role, Workflow, AiProcessingLog, Program, Submission } from '.';
 import { ExternalConnection } from './external-connection.entity';
 
 @Entity('users')
@@ -92,6 +92,9 @@ export class User {
 
   @OneToMany(() => AiProcessingLog, aiProcessingLog => aiProcessingLog.user)
   aiProcessingLogs: AiProcessingLog[];
+
+  @OneToMany(() => Submission, submission => submission.user)
+  submissions: Submission[];
 
   @OneToMany(() => ExternalConnection, connection => connection.createdBy)
   externalConnections: ExternalConnection[];

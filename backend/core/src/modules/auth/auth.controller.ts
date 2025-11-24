@@ -8,8 +8,8 @@ import {
   Res,
   UseGuards,
 } from '@nestjs/common';
-import { CurrentUser, Public } from 'src/common/decorators';
-import { User } from 'src/database/entities';
+import { CurrentUser, Public } from '@/common/decorators';
+import { User } from '@/database/entities';
 import { AuthService } from './auth.service';
 import {
   AuthResponse,

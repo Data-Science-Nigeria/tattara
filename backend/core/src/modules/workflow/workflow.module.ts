@@ -1,19 +1,19 @@
-import { Module } from '@nestjs/common';
-import { WorkflowService } from './services/workflow.service';
-import { WorkflowController } from './controllers/workflow.controller';
-import { TypeOrmModule } from '@nestjs/typeorm';
 import {
   FieldMapping,
   Workflow,
   WorkflowConfiguration,
   WorkflowField,
-} from 'src/database/entities';
-import { FieldController } from './controllers/field.controller';
+} from '@/database/entities';
+import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigurationController } from './controllers/configuration.controller';
 import { FieldMappingController } from './controllers/field-mapping.controller';
-import { FieldService } from './services/field.service';
+import { FieldController } from './controllers/field.controller';
+import { WorkflowController } from './controllers/workflow.controller';
 import { ConfigurationService } from './services/configuration.service';
 import { FieldMappingService } from './services/field-mapping.service';
+import { FieldService } from './services/field.service';
+import { WorkflowService } from './services/workflow.service';
 
 @Module({
   imports: [

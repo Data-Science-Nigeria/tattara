@@ -1,7 +1,7 @@
 import { Process, Processor } from '@nestjs/bull';
 import { Logger } from '@nestjs/common';
 import type { Job } from 'bull';
-import { MailService } from 'src/shared/mail/mail.service';
+import { MailService } from '@/shared/mail/mail.service';
 import { QueueService } from '../queue.service';
 
 @Processor('mail')

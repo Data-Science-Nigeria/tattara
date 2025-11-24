@@ -6,8 +6,8 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
-import { CurrentUser, Roles } from 'src/common/decorators';
-import { User } from 'src/database/entities';
+import { CurrentUser, Roles } from '@/common/decorators';
+import { User } from '@/database/entities';
 import { CollectorService } from './collector.service';
 import { ProcessAiDto } from './dto';
 import { SubmitDto } from './dto/submit.dto';

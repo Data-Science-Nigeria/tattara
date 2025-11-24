@@ -10,7 +10,7 @@ import {
 import type { Cache } from 'cache-manager';
 import knex, { Knex } from 'knex';
 import { DatabaseError } from 'pg';
-import type { PostgresConnectionConfig } from 'src/common/interfaces';
+import type { PostgresConnectionConfig } from '@/common/interfaces';
 import type { PushPayload, SchemaMetadata, TableMetadata } from '../interfaces';
 import { ConnectorStrategy } from '../interfaces/connector.strategy';
 

@@ -1,5 +1,6 @@
 import {
   Body,
+  ClassSerializerInterceptor,
   Controller,
   Get,
   Param,
@@ -8,23 +9,52 @@ import {
   Post,
   Put,
   Query,
+  UseInterceptors,
 } from '@nestjs/common';
-import { Roles } from 'src/common/decorators';
-import { CreateWorkflowDto, UpdateWorkflowBasicDto } from '../dto';
+import { plainToInstance } from 'class-transformer';
+import { CurrentUser, Roles } from '@/common/decorators';
+import {
+  CreateWorkflowDto,
+  UpdateWorkflowBasicDto,
+  WorkflowResponseDto,
+} from '../dto';
 import { AssignUsersDto } from '../dto/assign-users.dto';
 import { WorkflowService } from '../services/workflow.service';
+import { User } from '@/database/entities';
+import { ApiQuery } from '@nestjs/swagger';
 
 @Controller('workflows')
+@UseInterceptors(ClassSerializerInterceptor)
 export class WorkflowController {
   constructor(private readonly workflowService: WorkflowService) {}
 
   @Get()
-  @Roles('admin')
-  async findAllWorkflows(
+  @Roles('admin', 'user')
+  @ApiQuery({ name: 'userId', required: false, type: String })
+  @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
+  @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
+  async getWorkflows(
+    @CurrentUser() currentUser: User,
+    @Query('userId') userId?: string,
     @Query('page', ParseIntPipe) page: number = 1,
     @Query('limit', ParseIntPipe) limit: number = 10,
   ) {
-    return this.workflowService.findWorkflowsWithPagination(page, limit);
+    const { workflows, total } = await this.workflowService.getWorkflows(
+      currentUser,
+      userId,
+      page,
+      limit,
+    );
+
+    return {
+      workflows: plainToInstance(WorkflowResponseDto, workflows, {
+        excludeExtraneousValues: true,
+      }),
+      page,
+      limit,
+      total,
+      pages: Math.ceil(total / limit),
+    };
   }
 
   @Get('/search')
@@ -42,7 +72,11 @@ export class WorkflowController {
   async findWorkflowById(
     @Param('workflowId', new ParseUUIDPipe()) workflowId: string,
   ) {
-    return this.workflowService.findWorkflowById(workflowId);
+    const workflow = await this.workflowService.findWorkflowById(workflowId);
+
+    return plainToInstance(WorkflowResponseDto, workflow, {
+      excludeExtraneousValues: true,
+    });
   }
 
   @Put('/:workflowId')
@@ -54,7 +88,7 @@ export class WorkflowController {
     return this.workflowService.updateWorkflowBasicInfo(workflowId, updateData);
   }
 
-  @Put('/:workflowId')
+  @Put('/:workflowId/archive')
   @Roles('admin')
   async archiveWorkflow(
     @Param('workflowId', new ParseUUIDPipe()) workflowId: string,
@@ -70,8 +104,9 @@ export class WorkflowController {
   async createWorkflow(
     @Body()
     createWorkflowDto: CreateWorkflowDto,
+    @CurrentUser() currentUser: User,
   ) {
-    return this.workflowService.createWorkflow(createWorkflowDto);
+    return this.workflowService.createWorkflow(createWorkflowDto, currentUser);
   }
 
   @Post('/:workflowId/users')
@@ -80,6 +115,30 @@ export class WorkflowController {
     @Param('workflowId', new ParseUUIDPipe()) workflowId: string,
     @Body() dto: AssignUsersDto,
   ) {
-    return this.workflowService.assignUsersToWorkflow(workflowId, dto.userIds);
+    return plainToInstance(
+      WorkflowResponseDto,
+      await this.workflowService.assignUsersToWorkflow(workflowId, dto.userIds),
+      {
+        excludeExtraneousValues: true,
+      },
+    );
+  }
+
+  @Post('/:workflowId/users/unassign')
+  @Roles('admin')
+  async unassignUsersFromWorkflow(
+    @Param('workflowId', new ParseUUIDPipe()) workflowId: string,
+    @Body() dto: AssignUsersDto,
+  ) {
+    return plainToInstance(
+      WorkflowResponseDto,
+      await this.workflowService.unassignUsersFromWorkflow(
+        workflowId,
+        dto.userIds,
+      ),
+      {
+        excludeExtraneousValues: true,
+      },
+    );
   }
 }

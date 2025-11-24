@@ -1,6 +1,6 @@
 import { Type } from 'class-transformer';
 import { IsEnum, IsNotEmpty, IsString, ValidateNested } from 'class-validator';
-import { IntegrationType } from 'src/common/enums';
+import { IntegrationType } from '@/common/enums';
 import { Dhis2ConnectionConfigDto, PostgresConnectionConfigDto } from '.';
 
 export class CreateConnectionDto {

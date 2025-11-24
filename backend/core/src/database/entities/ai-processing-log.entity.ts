@@ -7,7 +7,7 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { User, Workflow } from '.';
-import { ProcessingStatus, ProcessingType } from 'src/common/enums';
+import { ProcessingStatus, ProcessingType } from '@/common/enums';
 
 @Entity('ai_processing_logs')
 export class AiProcessingLog {

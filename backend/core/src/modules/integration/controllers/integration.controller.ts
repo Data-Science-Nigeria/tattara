@@ -7,7 +7,12 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
-import { ConnectionDto, GetSchemasQueryDto } from '../dto';
+import {
+  ConnectionDto,
+  GetDatasetsQueryDto,
+  GetProgramsQueryDto,
+  GetSchemasQueryDto,
+} from '../dto';
 import { IntegrationService } from '../services/integration.service';
 import { GetOrgUnitsQueryDto } from '../dto/get-orgunits-query.dto';
 
@@ -19,11 +24,7 @@ export class IntegrationController {
    */
   @Post('test-connection')
   async testConnection(@Body() connection: ConnectionDto): Promise<any> {
-    await this.integrationService.testConnection(connection);
-
-    return {
-      message: 'Connection ok',
-    };
+    return this.integrationService.testConnection(connection);
   }
 
   /**  Fetch schemas
@@ -42,15 +43,23 @@ export class IntegrationController {
   @Get('dhis2/programs/:connectionId')
   async getPrograms(
     @Param('connectionId', new ParseUUIDPipe()) connId: string,
+    @Query() query: GetProgramsQueryDto,
   ): Promise<any> {
-    return this.integrationService.getPrograms(connId);
+    return this.integrationService.getPrograms(connId, {
+      page: query.page ?? 1,
+      pageSize: query.pageSize ?? 50,
+    });
   }
 
   @Get('dhis2/datasets/:connectionId')
   async getDatasets(
     @Param('connectionId', new ParseUUIDPipe()) connId: string,
+    @Query() query: GetDatasetsQueryDto,
   ): Promise<any> {
-    return this.integrationService.getDatasets(connId);
+    return this.integrationService.getDatasets(connId, {
+      page: query.page ?? 1,
+      pageSize: query.pageSize ?? 50,
+    });
   }
 
   @Get('dhis2/:connectionId/orgunits')

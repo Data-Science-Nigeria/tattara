@@ -9,7 +9,7 @@ import { ConfigService } from '@nestjs/config';
 import { Repository } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
 import { InternalServerErrorException } from '@nestjs/common';
-import { FileUploads } from 'src/database/entities';
+import { FileUploads } from '@/database/entities';
 
 export class S3Strategy implements FileStorageStrategy {
   private readonly s3: S3Client;

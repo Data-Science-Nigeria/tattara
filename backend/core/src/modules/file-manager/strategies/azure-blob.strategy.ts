@@ -4,7 +4,7 @@ import { BlobServiceClient, BlockBlobClient } from '@azure/storage-blob';
 import { v4 as uuidv4 } from 'uuid';
 import { InternalServerErrorException } from '@nestjs/common';
 import { Repository } from 'typeorm';
-import { FileUploads } from 'src/database/entities';
+import { FileUploads } from '@/database/entities';
 import { InjectRepository } from '@nestjs/typeorm';
 
 export class AzureBlobStrategy implements FileStorageStrategy {

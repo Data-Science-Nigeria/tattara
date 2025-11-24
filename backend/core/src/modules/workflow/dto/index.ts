@@ -10,3 +10,7 @@ export * from './create-configuration.dto';
 export * from './update-configuration.dto';
 export * from './update-workflow-basic.dto';
 export * from './workflow-config.dto';
+export * from './workflow-response.dto';
+export * from './workflow-config-summary.dto';
+export * from './workflow-field-summary.dto';
+export * from './field-mapping-summary.dto';

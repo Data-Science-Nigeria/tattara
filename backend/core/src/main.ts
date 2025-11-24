@@ -77,11 +77,11 @@ All responses are wrapped in this format:
 - 🛡️ Use \`Authorization: Bearer <token>\` for secured routes`,
     )
     .setVersion('1.0')
-    .setExternalDoc('API Specification', '/api-json')
+    .setExternalDoc('API Specification', '/api/openapi-json')
     .build();
   const documentFactory = () => SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api/docs', app, documentFactory, {
-    jsonDocumentUrl: '/api-json',
+    jsonDocumentUrl: '/api/openapi-json',
   });
 
   await app.listen(port);
