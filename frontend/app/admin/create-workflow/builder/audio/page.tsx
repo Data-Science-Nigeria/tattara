@@ -13,7 +13,7 @@ import {
 import { toast } from 'sonner';
 import WorkflowBuilderLayout from '../components/workflow-builder-layout';
 import DHIS2ConfigStep from '../components/dhis2-config-step';
-import TestModal from '../components/test-modal';
+
 import FieldPreviewModal from '../components/field-preview-modal';
 
 export default function AudioBuilder() {
@@ -33,7 +33,7 @@ export default function AudioBuilder() {
   const [currentStep, setCurrentStep] = useState<'config' | 'audio' | 'create'>(
     'config'
   );
-  const [showTestModal, setShowTestModal] = useState(false);
+
   const [showFieldPreview, setShowFieldPreview] = useState(false);
 
   // DHIS2 Configuration
@@ -302,14 +302,7 @@ export default function AudioBuilder() {
             AI Field Extraction
           </h3>
           <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:gap-3">
-            <button
-              onClick={() => setShowTestModal(true)}
-              className="flex items-center justify-center gap-2 rounded-lg border border-blue-600 px-3 py-2 text-xs text-blue-600 hover:bg-blue-50 sm:px-4 sm:text-sm"
-            >
-              <Mic size={14} className="sm:h-4 sm:w-4" />
-              <span className="hidden sm:inline">Test Audio AI</span>
-              <span className="sm:hidden">Test AI</span>
-            </button>
+
             <button
               onClick={() => setShowFieldPreview(true)}
               className="flex items-center justify-center gap-2 rounded-lg border border-green-600 px-3 py-2 text-xs text-green-600 hover:bg-green-50 sm:px-4 sm:text-sm"
@@ -567,12 +560,7 @@ export default function AudioBuilder() {
         {renderCurrentStep()}
       </WorkflowBuilderLayout>
 
-      <TestModal
-        isOpen={showTestModal}
-        onClose={() => setShowTestModal(false)}
-        workflowType="audio"
-        workflowId={workflowId || 'test-workflow'}
-      />
+
 
       <FieldPreviewModal
         isOpen={showFieldPreview}

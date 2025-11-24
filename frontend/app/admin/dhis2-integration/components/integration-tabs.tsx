@@ -165,7 +165,7 @@ export default function IntegrationTabs({
     <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
       {/* Tab Headers */}
       <div className="border-b border-gray-200">
-        <nav className="flex space-x-4 overflow-x-auto px-3 sm:space-x-8 sm:px-6">
+        <nav className="flex space-x-4 overflow-x-auto custom-scrollbar px-3 sm:space-x-8 sm:px-6">
           {tabs.map((tab) => (
             <button
               key={tab.id}

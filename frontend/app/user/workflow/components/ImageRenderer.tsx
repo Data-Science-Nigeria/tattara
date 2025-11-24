@@ -207,7 +207,7 @@ export default function ImageRenderer({ workflow }: ImageRendererProps) {
       <div className="space-y-6">
         {showCamera ? (
           <div className="space-y-4">
-            <div className="relative overflow-hidden rounded-lg bg-black">
+            <div className="relative overflow-hidden rounded-lg bg-black/50">
               <video
                 ref={videoRef}
                 autoPlay

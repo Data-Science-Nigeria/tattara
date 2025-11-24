@@ -207,7 +207,7 @@ export default function WorkflowsSection({
 
           {/* Modal */}
           {showModal && (
-            <div className="bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black">
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
               <div className="m-4 max-h-[80vh] w-full max-w-2xl overflow-y-auto rounded-lg bg-white p-6">
                 <div className="mb-4 flex items-center justify-between">
                   <h3 className="text-lg font-semibold text-gray-900">

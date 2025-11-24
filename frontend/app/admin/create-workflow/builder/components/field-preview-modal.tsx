@@ -217,7 +217,7 @@ export default function FieldPreviewModal({
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-auto p-6">
+        <div className="flex-1 overflow-auto custom-scrollbar p-6">
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-4">
             {/* Configuration Panel */}
             <div className="flex-shrink-0 space-y-4 lg:col-span-1">

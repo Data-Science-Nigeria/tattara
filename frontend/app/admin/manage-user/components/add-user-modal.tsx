@@ -63,7 +63,7 @@ export default function AddUserModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(12,16,20,0.88)] p-2 backdrop-blur-sm sm:p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-2 sm:p-4">
       <div className="mx-2 max-h-[90vh] w-full max-w-md overflow-y-auto rounded-lg bg-white p-4 sm:mx-4 sm:p-6">
         <div className="mb-3 flex items-start justify-between sm:mb-4">
           <div className="pr-2">

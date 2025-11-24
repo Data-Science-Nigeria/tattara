@@ -163,7 +163,7 @@ const Programs = () => {
   return (
     <div className="relative min-h-screen p-3 sm:p-6">
       {showLoadingOverlay && (
-        <div className="bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black">
+        <div className="bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <div className="flex flex-col items-center rounded-lg bg-white p-6">
             <div className="mb-4 h-8 w-8 animate-spin rounded-full border-b-2 border-[#008647]"></div>
             <p className="text-gray-600">Processing...</p>
