@@ -13,7 +13,7 @@ import {
 import { toast } from 'sonner';
 import WorkflowBuilderLayout from '../components/workflow-builder-layout';
 import DHIS2ConfigStep from '../components/dhis2-config-step';
-import WorkflowTestModal from '../components/workflow-test-modal';
+import TestModal from '../components/test-modal';
 import FieldPreviewModal from '../components/field-preview-modal';
 
 export default function TextBuilder() {
@@ -301,6 +301,14 @@ export default function TextBuilder() {
           </h3>
           <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:gap-3">
             <button
+              onClick={() => setShowTestModal(true)}
+              className="flex items-center justify-center gap-2 rounded-lg border border-blue-600 px-3 py-2 text-xs text-blue-600 hover:bg-blue-50 sm:px-4 sm:text-sm"
+            >
+              <FileText size={14} className="sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">Test Text AI</span>
+              <span className="sm:hidden">Test AI</span>
+            </button>
+            <button
               onClick={() => setShowFieldPreview(true)}
               className="flex items-center justify-center gap-2 rounded-lg border border-green-600 px-3 py-2 text-xs text-green-600 hover:bg-green-50 sm:px-4 sm:text-sm"
             >
@@ -553,14 +561,11 @@ export default function TextBuilder() {
         {renderCurrentStep()}
       </WorkflowBuilderLayout>
 
-      <WorkflowTestModal
+      <TestModal
         isOpen={showTestModal}
-        onClose={() => {
-          setShowTestModal(false);
-          window.location.href = '/admin/create-workflow';
-        }}
+        onClose={() => setShowTestModal(false)}
         workflowType="text"
-        fields={aiFieldMappings}
+        workflowId={workflowId || 'test-workflow'}
       />
 
       <FieldPreviewModal

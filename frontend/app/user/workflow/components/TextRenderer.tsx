@@ -95,12 +95,24 @@ export default function TextRenderer({ workflow }: TextRendererProps) {
           />
         </div>
 
-        <FormRenderer
-          workflowId={workflow.id}
-          workflowType="text"
-          inputData={textInput}
-          onProcessingComplete={handleProcessingComplete}
-        />
+        {textInput.trim() && (
+          <div className="flex justify-end gap-4">
+            <button
+              type="button"
+              onClick={() => (window.location.href = '/user/overview')}
+              className="rounded-lg border border-gray-300 px-6 py-2 text-gray-700 hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleProcessingComplete}
+              className="rounded-lg bg-green-600 px-6 py-2 text-white hover:bg-green-700"
+            >
+              Process with AI
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

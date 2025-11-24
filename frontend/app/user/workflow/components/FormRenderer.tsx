@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import {
   collectorControllerSubmitDataMutation,
@@ -56,6 +56,13 @@ export default function FormRenderer({
   const [aiProcessingLogId, setAiProcessingLogId] = useState<string>('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Auto-process when component mounts with input data
+  useEffect(() => {
+    if (inputData && !aiReviewData && !isProcessing) {
+      handleProcess();
+    }
+  }, []);
 
   const { data: fieldsData } = useQuery({
     ...fieldControllerGetWorkflowFieldsOptions({
