@@ -163,6 +163,16 @@ export default function ImageAiReview({
               )}
             </div>
           </div>
+          <button
+            onClick={() => {
+              setAiReviewData(null);
+              setSelectedFile(null);
+              setPreviewUrl(null);
+            }}
+            className="mt-4 rounded-lg border border-gray-300 px-4 py-2 text-gray-700 hover:bg-gray-50"
+          >
+            Cancel
+          </button>
         </div>
       )}
     </div>

@@ -316,22 +316,33 @@ export default function FieldMapping() {
       </div>
 
       <div className="flex flex-col gap-3 border-t border-gray-200 pt-4 sm:flex-row sm:justify-end sm:pt-6">
-        <button
-          onClick={handleTest}
-          disabled={!allFieldsMapped || upsertMappingMutation.isPending}
-          className="w-full rounded-lg border border-green-600 px-4 py-2 text-sm text-green-600 hover:bg-green-50 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto sm:px-6 sm:text-base"
-        >
-          {upsertMappingMutation.isPending ? 'Saving...' : 'Test Mapping'}
-        </button>
-        <button
-          onClick={handleSaveAndContinue}
-          disabled={!allFieldsMapped || upsertMappingMutation.isPending}
-          className="w-full rounded-lg bg-green-600 px-4 py-2 text-sm text-white hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto sm:px-6 sm:text-base"
-        >
-          {upsertMappingMutation.isPending
-            ? 'Saving...'
-            : 'Save & Go to Workflows'}
-        </button>
+        {!showAiReview ? (
+          <button
+            onClick={handleTest}
+            disabled={!allFieldsMapped || upsertMappingMutation.isPending}
+            className="w-full rounded-lg border border-green-600 px-4 py-2 text-sm text-green-600 hover:bg-green-50 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto sm:px-6 sm:text-base"
+          >
+            {upsertMappingMutation.isPending ? 'Saving...' : 'Test Mapping'}
+          </button>
+        ) : (
+          <>
+            <button
+              onClick={() => setShowAiReview(false)}
+              className="w-full rounded-lg bg-red-600 px-4 py-2 text-sm text-white hover:bg-red-700 sm:w-auto sm:px-6 sm:text-base"
+            >
+              Reset
+            </button>
+            <button
+              onClick={handleSaveAndContinue}
+              disabled={!allFieldsMapped || upsertMappingMutation.isPending}
+              className="w-full rounded-lg bg-green-600 px-4 py-2 text-sm text-white hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto sm:px-6 sm:text-base"
+            >
+              {upsertMappingMutation.isPending
+                ? 'Saving...'
+                : 'Save & Go to Workflows'}
+            </button>
+          </>
+        )}
       </div>
     </div>
   );
