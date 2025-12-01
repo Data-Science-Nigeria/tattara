@@ -13,6 +13,7 @@ interface Workflow {
   description?: string;
   status?: 'active' | 'inactive' | 'archived';
   enabledModes?: string[];
+  fieldMappings?: Array<{ id: string; target: any }>;
 }
 
 interface WorkflowsResponse {
@@ -114,6 +115,15 @@ export default function CreateWorkflow() {
                           }`}
                         >
                           {workflow.status}
+                        </span>
+                        <span
+                          className={`rounded-full px-2 py-1 text-xs ${
+                            workflow.fieldMappings && workflow.fieldMappings.length > 0
+                              ? 'bg-blue-100 text-blue-700'
+                              : 'bg-red-100 text-red-700'
+                          }`}
+                        >
+                          {workflow.fieldMappings && workflow.fieldMappings.length > 0 ? 'Mapped' : 'Not Mapped'}
                         </span>
                         {workflow.enabledModes && (
                           <span className="text-xs text-gray-500">
