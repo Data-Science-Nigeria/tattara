@@ -1,10 +1,12 @@
-import type { ExternalConnectionConfiguration } from 'src/common/interfaces';
+import type { ExternalConnectionConfiguration } from '@/common/interfaces';
 import { Dhis2ImportSummary } from '.';
 
 export abstract class ConnectorStrategy {
   abstract testConnection(
     config: ExternalConnectionConfiguration,
-  ): Promise<boolean>;
+  ): Promise<
+    boolean | { success: boolean; message: string; instanceName: string }
+  >;
   abstract fetchSchemas(
     connectionConfig: ExternalConnectionConfiguration,
     options?: {

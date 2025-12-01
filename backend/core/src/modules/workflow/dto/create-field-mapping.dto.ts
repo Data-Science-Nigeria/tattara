@@ -5,7 +5,7 @@ import {
   IsObject,
   IsUUID,
 } from 'class-validator';
-import { IntegrationType } from 'src/common/enums';
+import { IntegrationType } from '@/common/enums';
 
 export class CreateFieldMappingDto {
   @IsUUID()

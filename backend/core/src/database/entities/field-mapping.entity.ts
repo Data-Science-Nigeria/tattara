@@ -7,8 +7,8 @@ import {
   PrimaryGeneratedColumn,
   Unique,
 } from 'typeorm';
-import { Workflow, WorkflowField } from '.';
-import { IntegrationType } from 'src/common/enums';
+import { User, Workflow, WorkflowField } from '.';
+import { IntegrationType } from '@/common/enums';
 
 @Entity('field_mappings')
 @Unique(['workflow', 'workflowField', 'targetType'])
@@ -43,6 +43,12 @@ export class FieldMapping {
 
   @Column({ type: 'jsonb' })
   target: Record<string, any>;
+
+  @ManyToOne(() => User, {
+    onDelete: 'CASCADE',
+    cascade: true,
+  })
+  createdBy: User;
 
   @CreateDateColumn()
   createdAt: Date;

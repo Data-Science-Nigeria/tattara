@@ -1,4 +1,4 @@
-import { ExtractionResponse } from 'src/modules/ai/interfaces';
+import { ExtractionResponse } from '@/modules/ai/interfaces';
 
 export interface ProcessAiResponse {
   aiData: ExtractionResponse;

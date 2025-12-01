@@ -1,10 +1,16 @@
 import { ExpressAdapter } from '@bull-board/express';
 import { BullBoardModule } from '@bull-board/nestjs';
+import KeyvRedis from '@keyv/redis';
 import { BullModule } from '@nestjs/bull';
+import { CacheModule } from '@nestjs/cache-manager';
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
+import { CacheableMemory } from 'cacheable';
 import basicAuth from 'express-basic-auth';
+import { Keyv } from 'keyv';
+import { ClsModule } from 'nestjs-cls';
+import { UserContextInterceptor } from './common/interceptors';
 import configuration from './config/configuration';
 import { DatabaseModule } from './database/database.module';
 import { AiModule } from './modules/ai/ai.module';
@@ -12,19 +18,22 @@ import { AuthModule } from './modules/auth/auth.module';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
 import { CollectorModule } from './modules/collector/collector.module';
 import { FileManagerModule } from './modules/file-manager/file-manager.module';
+import { IntegrationModule } from './modules/integration/integration.module';
 import { ProgramModule } from './modules/program/program.module';
 import { UserModule } from './modules/user/user.module';
 import { WorkflowModule } from './modules/workflow/workflow.module';
 import { MailModule } from './shared/mail/mail.module';
 import { QueueModule } from './shared/queue/queue.module';
-import { IntegrationModule } from './modules/integration/integration.module';
-import { CacheModule } from '@nestjs/cache-manager';
-import KeyvRedis from '@keyv/redis';
-import { Keyv } from 'keyv';
-import { CacheableMemory } from 'cacheable';
+import { RequestContextModule } from './shared/request-context/request-context.module';
 
 @Module({
   imports: [
+    ClsModule.forRoot({
+      global: true,
+      middleware: {
+        mount: true,
+      },
+    }),
     ConfigModule.forRoot({
       load: [configuration],
       isGlobal: true,
@@ -49,6 +58,7 @@ import { CacheableMemory } from 'cacheable';
         };
       },
     }),
+    RequestContextModule,
     DatabaseModule,
     AuthModule,
     UserModule,
@@ -81,6 +91,10 @@ import { CacheableMemory } from 'cacheable';
     IntegrationModule,
   ],
   providers: [
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: UserContextInterceptor,
+    },
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,

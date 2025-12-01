@@ -1,5 +1,5 @@
 import { IsArray, IsEnum, IsOptional, IsString } from 'class-validator';
-import { Mode } from 'src/common/enums';
+import { Mode } from '@/common/enums';
 
 export class UpdateWorkflowBasicDto {
   @IsString()

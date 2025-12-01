@@ -7,7 +7,7 @@ import {
   ParseUUIDPipe,
   Put,
 } from '@nestjs/common';
-import { Roles } from 'src/common/decorators';
+import { Roles } from '@/common/decorators';
 import { UpsertWorkflowFieldsDto } from '../dto';
 import { FieldService } from '../services/field.service';
 

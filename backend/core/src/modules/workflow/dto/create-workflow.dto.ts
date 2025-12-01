@@ -8,7 +8,7 @@ import {
   IsUUID,
   ValidateNested,
 } from 'class-validator';
-import { Mode } from 'src/common/enums';
+import { Mode } from '@/common/enums';
 import { CreateWorkflowConfigurationDto, CreateWorkflowFieldDto } from '.';
 
 export class CreateWorkflowDto {

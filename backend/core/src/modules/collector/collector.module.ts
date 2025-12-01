@@ -6,7 +6,7 @@ import {
   FileUploads,
   Submission,
   Workflow,
-} from 'src/database/entities';
+} from '@/database/entities';
 import { AiModule } from '../ai/ai.module';
 import { FileManagerModule } from '../file-manager/file-manager.module';
 import { WorkflowModule } from '../workflow/workflow.module';

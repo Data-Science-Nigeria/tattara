@@ -1,14 +1,15 @@
 import { Injectable } from '@nestjs/common';
-import { IntegrationType } from 'src/common/enums';
+import { IntegrationType } from '@/common/enums';
 import type {
   Dhis2ConnectionConfig,
   ExternalConnectionConfiguration,
-} from 'src/common/interfaces';
-import { WorkflowConfiguration } from 'src/database/entities';
+} from '@/common/interfaces';
+import { WorkflowConfiguration } from '@/database/entities';
 import { ExternalConnectionService } from '.';
 import { ConnectorStrategy } from '../interfaces/connector.strategy';
 import { Dhis2Strategy } from '../strategies/dhis2.strategy';
 import { PostgresStrategy } from '../strategies/postgres.strategy';
+import { Pagination } from '../interfaces';
 
 @Injectable()
 export class IntegrationService {
@@ -63,24 +64,30 @@ export class IntegrationService {
     return this.getStrategy(config.type).pushData(conn.configuration, payload);
   }
 
-  async getPrograms(connId: string): Promise<any> {
+  async getPrograms(connId: string, pagination: Pagination): Promise<any> {
     const conn = await this.externalConnService.findOne(connId);
 
     if (conn.type !== IntegrationType.DHIS2) {
       throw new Error('getPrograms is only supported for DHIS2 connectors');
     }
 
-    return this.dhis2.getPrograms(conn.configuration as Dhis2ConnectionConfig);
+    return this.dhis2.getPrograms(
+      conn.configuration as Dhis2ConnectionConfig,
+      pagination,
+    );
   }
 
-  async getDatasets(connId: string): Promise<any> {
+  async getDatasets(connId: string, pagination: Pagination): Promise<any> {
     const conn = await this.externalConnService.findOne(connId);
 
     if (conn.type !== IntegrationType.DHIS2) {
       throw new Error('getDatasets is only supported for DHIS2 connectors');
     }
 
-    return this.dhis2.getDatasets(conn.configuration as Dhis2ConnectionConfig);
+    return this.dhis2.getDatasets(
+      conn.configuration as Dhis2ConnectionConfig,
+      pagination,
+    );
   }
 
   async getOrgUnits(

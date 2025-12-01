@@ -1,29 +1,37 @@
+import { BaseRepository } from '@/common/repositories/base.repository';
+import { Program, User, Workflow } from '@/database/entities';
+import { RequestContext } from '@/shared/request-context/request-context.service';
 import { ConflictException, Injectable } from '@nestjs/common';
-import { Program, User } from 'src/database/entities';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Workflow } from 'src/database/entities';
-import { Repository } from 'typeorm';
+import { DataSource } from 'typeorm';
 
 @Injectable()
 export class ProgramService {
+  private readonly workflowRepository: BaseRepository<Workflow>;
+  private readonly userRepository: BaseRepository<User>;
+  private readonly programRepository: BaseRepository<Program>;
+
   constructor(
-    @InjectRepository(Program)
-    private programRepository: Repository<Program>,
-    @InjectRepository(Workflow)
-    private workflowRepository: Repository<Workflow>,
-    @InjectRepository(User)
-    private userRepository: Repository<User>,
-  ) {}
+    private dataSource: DataSource,
+    private readonly requestContext: RequestContext,
+  ) {
+    this.programRepository = new BaseRepository<Program>(
+      Program,
+      dataSource,
+      this.requestContext,
+    );
+    this.workflowRepository = new BaseRepository<Workflow>(
+      Workflow,
+      dataSource,
+      this.requestContext,
+    );
+    this.userRepository = new BaseRepository<User>(
+      User,
+      dataSource,
+      this.requestContext,
+    );
+  }
 
   async create(programData: Partial<Program>): Promise<Program> {
-    const existingProgram = await this.programRepository.findOne({
-      where: { name: programData.name },
-    });
-
-    if (existingProgram) {
-      throw new ConflictException('Program with this name already exists');
-    }
-
     const program = this.programRepository.create({
       ...programData,
     });
@@ -37,16 +45,36 @@ export class ProgramService {
     });
   }
 
-  async findAllWithPagination(
+  async getPrograms(
     page: number = 1,
     limit: number = 10,
+    currentUser: User,
+    userId?: string | string[],
   ): Promise<{ programs: Program[]; total: number }> {
-    const [programs, total] = await this.programRepository.findAndCount({
-      relations: ['workflows', 'users'],
-      skip: (page - 1) * limit,
-      take: limit,
-      order: { createdAt: 'DESC' },
-    });
+    const alias = 'program';
+    const qb = this.programRepository.withScope(alias);
+
+    qb.leftJoinAndSelect(`${alias}.workflows`, 'workflows');
+
+    if (currentUser.hasRole('user') && !currentUser.hasRole('admin')) {
+      qb.innerJoin(`${alias}.users`, 'user').andWhere('user.id = :userId', {
+        userId: currentUser.id,
+      });
+    } else if (userId) {
+      const targetUserIds = Array.isArray(userId) ? userId : [userId];
+      qb.innerJoin(`${alias}.users`, 'user').andWhere(
+        'user.id IN (:...targetUserIds)',
+        { targetUserIds },
+      );
+    } else {
+      qb.leftJoinAndSelect(`${alias}.users`, 'users');
+    }
+
+    qb.orderBy(`${alias}.createdAt`, 'DESC')
+      .skip((page - 1) * limit)
+      .take(limit);
+
+    const [programs, total] = await qb.getManyAndCount();
 
     return { programs, total };
   }
@@ -135,19 +163,48 @@ export class ProgramService {
       throw new ConflictException('One or more users not found');
     }
 
-    program.users.push(...users);
+    const existingUserIds = new Set(program.users.map(u => u.id));
+
+    const newUsers = users.filter(u => !existingUserIds.has(u.id));
+
+    program.users.push(...newUsers);
+
+    return this.programRepository.save(program);
+  }
+
+  async unassignUsersFromProgram(
+    userIds: string[],
+    programId: string,
+  ): Promise<Program> {
+    const program = await this.programRepository.findOne({
+      where: { id: programId },
+      relations: ['users'],
+    });
+
+    if (!program) {
+      throw new ConflictException('Program not found');
+    }
+
+    const removeSet = new Set(userIds);
+
+    program.users = program.users.filter(user => !removeSet.has(user.id));
 
     return this.programRepository.save(program);
   }
 
   async getAllProgramsForUser(userId: string): Promise<Program[]> {
-    return this.programRepository.find({
-      relations: ['users', 'workflows'],
-      where: {
-        users: {
-          id: userId,
-        },
-      },
+    const alias = 'program';
+    const qb = this.programRepository.withScope(alias);
+
+    qb.leftJoinAndSelect(`${alias}.workflows`, 'workflows').leftJoinAndSelect(
+      `${alias}.users`,
+      'users',
+    );
+
+    qb.innerJoin(`${alias}.users`, 'user').andWhere('user.id = :userId', {
+      userId,
     });
+
+    return qb.getMany();
   }
 }

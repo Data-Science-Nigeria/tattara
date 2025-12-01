@@ -7,8 +7,9 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { CreateWorkflowFieldDto } from '.';
+import { PartialType } from '@nestjs/swagger';
 
-export class Field extends CreateWorkflowFieldDto {
+export class Field extends PartialType(CreateWorkflowFieldDto) {
   @IsUUID()
   @IsOptional()
   id?: string;
