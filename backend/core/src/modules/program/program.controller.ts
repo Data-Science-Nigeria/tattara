@@ -10,9 +10,13 @@ import {
   ParseUUIDPipe,
 } from '@nestjs/common';
 import { ProgramService } from './program.service';
-import { RequirePermissions, Roles } from 'src/common/decorators';
+import { CurrentUser, RequirePermissions, Roles } from '@/common/decorators';
 import { AssignUsersToProgramDto, CreateProgramDto } from './dto';
 import { UpdateProgramDto } from './dto';
+import { User } from '@/database/entities';
+import { ApiQuery } from '@nestjs/swagger';
+import { plainToInstance } from 'class-transformer';
+import { ProgramResponseDto } from './dto/program-response.dto';
 
 @Controller('programs')
 export class ProgramController {
@@ -23,43 +27,30 @@ export class ProgramController {
   @Get()
   @Roles('admin')
   @RequirePermissions('program:read')
-  async findAll(
+  @ApiQuery({ name: 'userId', required: false, type: String })
+  @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
+  @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
+  async getPrograms(
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10,
+    @CurrentUser() currentUser: User,
+    @Query('userId') userId?: string,
   ) {
-    const { programs, total } = await this.programService.findAllWithPagination(
+    const { programs, total } = await this.programService.getPrograms(
       page,
       limit,
+      currentUser,
+      userId,
     );
 
     return {
-      programs: programs.map(program => ({
-        id: program.id,
-        name: program.name,
-        description: program.description,
-        createdAt: program.createdAt,
-        updatedAt: program.updatedAt,
-        workflows: program.workflows.map(workflow => ({
-          id: workflow.id,
-          name: workflow.name,
-          description: workflow.description,
-          createdAt: workflow.createdAt,
-          updatedAt: workflow.updatedAt,
-        })),
-        users:
-          program.users?.map(user => ({
-            id: user.id,
-            email: user.email,
-            firstName: user.firstName,
-            lastName: user.lastName,
-          })) || [],
-      })),
-      pagination: {
-        page,
-        limit,
-        total,
-        pages: Math.ceil(total / limit),
-      },
+      programs: plainToInstance(ProgramResponseDto, programs, {
+        excludeExtraneousValues: true,
+      }),
+      page,
+      limit,
+      total,
+      pages: Math.ceil(total / limit),
     };
   }
 
@@ -148,10 +139,27 @@ export class ProgramController {
   @Post(':id/users')
   @Roles('admin')
   @RequirePermissions('program:update')
-  addUsersToProgram(
+  assignUsersToProgram(
     @Param('id', new ParseUUIDPipe()) programId: string,
-    @Body('userIds') dto: AssignUsersToProgramDto,
+    @Body() dto: AssignUsersToProgramDto,
   ) {
-    return this.programService.assignUsersToProgram(dto.userIds, programId);
+    // return this.programService.assignUsersToProgram(dto.userIds, programId);
+    const program = this.programService.assignUsersToProgram(
+      dto.userIds,
+      programId,
+    );
+    return plainToInstance(ProgramResponseDto, program, {
+      excludeExtraneousValues: true,
+    });
+  }
+
+  @Post(':id/users/unassign')
+  @Roles('admin')
+  @RequirePermissions('program:update')
+  unassignUsersFromProgram(
+    @Param('id', new ParseUUIDPipe()) programId: string,
+    @Body() dto: AssignUsersToProgramDto,
+  ) {
+    return this.programService.unassignUsersFromProgram(dto.userIds, programId);
   }
 }

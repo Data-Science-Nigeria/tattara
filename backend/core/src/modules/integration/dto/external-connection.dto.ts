@@ -41,9 +41,9 @@ export class PostgresConnectionConfigDto {
  */
 export class Dhis2ConnectionConfigDto {
   @IsUrl({ require_tld: true, require_protocol: true })
-  @Matches(/^https:\/\/.*\/dhis$/, {
+  @Matches(/^https:\/\/(?:[a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}$/, {
     message:
-      'baseUrl must be a valid DHIS2 endpoint, e.g. https://example.org/dhis',
+      'baseUrl must be a valid HTTPS domain without a trailing slash or path (e.g. https://example.org or https://example.co.ng)',
   })
   baseUrl: string;
 

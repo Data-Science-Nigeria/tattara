@@ -9,7 +9,7 @@ import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import type { Queue } from 'bull';
 import * as crypto from 'crypto';
-import { Permission, Role, User } from 'src/database/entities';
+import { Permission, Role, User } from '@/database/entities';
 import { DataSource, In, Repository } from 'typeorm';
 import { RegisterDto } from '../auth/dto';
 

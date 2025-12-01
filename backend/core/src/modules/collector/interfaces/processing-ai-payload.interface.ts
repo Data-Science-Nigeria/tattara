@@ -1,4 +1,4 @@
-import { AiProviderType, ProcessingType } from 'src/common/enums';
+import { AiProviderType, ProcessingType } from '@/common/enums';
 
 export interface ProcessAiPayload {
   files?: Express.Multer.File[];

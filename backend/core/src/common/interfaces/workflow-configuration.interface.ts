@@ -1,7 +1,4 @@
-import {
-  EventPayload,
-  DatasetPayload,
-} from 'src/modules/integration/interfaces';
+import { EventPayload, DatasetPayload } from '@/modules/integration/interfaces';
 
 export type Dhis2WorkflowConfig = EventPayload | DatasetPayload;
 

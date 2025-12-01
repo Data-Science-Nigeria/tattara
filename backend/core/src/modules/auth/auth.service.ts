@@ -12,7 +12,7 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import type { Queue } from 'bull';
 import * as crypto from 'crypto';
-import { User } from 'src/database/entities';
+import { User } from '@/database/entities';
 import { UserService } from '../user/user.service';
 import {
   ForgotPasswordDto,

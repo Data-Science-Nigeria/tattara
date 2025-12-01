@@ -4,7 +4,7 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { FieldMapping, Workflow, WorkflowField } from 'src/database/entities';
+import { FieldMapping, Workflow, WorkflowField } from '@/database/entities';
 import { DataSource, In, Repository } from 'typeorm';
 import { CreateFieldMappingDto } from '../dto';
 import { InjectRepository } from '@nestjs/typeorm';

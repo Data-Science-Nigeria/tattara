@@ -8,8 +8,8 @@ import {
   Delete,
 } from '@nestjs/common';
 import { ExternalConnectionService } from '../services/external-connections.service';
-import { ExternalConnection, User } from 'src/database/entities';
-import { CurrentUser, Roles } from 'src/common/decorators';
+import { ExternalConnection, User } from '@/database/entities';
+import { CurrentUser, Roles } from '@/common/decorators';
 import { CreateConnectionDto } from '../dto';
 
 @Controller('external-connections')

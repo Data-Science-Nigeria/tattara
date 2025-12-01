@@ -1,23 +1,24 @@
-import { IntegrationType } from 'src/common/enums';
+import { IntegrationType } from '@/common/enums';
+import type { ExternalConnectionConfiguration } from '@/common/interfaces';
 import {
-  Entity,
-  PrimaryGeneratedColumn,
   Column,
   CreateDateColumn,
-  UpdateDateColumn,
-  ManyToOne,
+  Entity,
   JoinColumn,
-  OneToOne,
+  ManyToOne,
+  OneToMany,
+  PrimaryGeneratedColumn,
+  Unique,
+  UpdateDateColumn,
 } from 'typeorm';
 import { User, WorkflowConfiguration } from '.';
-import type { ExternalConnectionConfiguration } from 'src/common/interfaces';
 
 @Entity('external_connections')
+@Unique(['createdBy', 'name'])
 export class ExternalConnection {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ unique: true })
   @Column({ type: 'varchar', length: 255 })
   name: string;
 
@@ -42,8 +43,8 @@ export class ExternalConnection {
   @UpdateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   updatedAt: Date;
 
-  @OneToOne(() => WorkflowConfiguration, wConfig => wConfig.externalConnection)
-  workflowConfiguration: WorkflowConfiguration;
+  @OneToMany(() => WorkflowConfiguration, wConfig => wConfig.externalConnection)
+  workflowConfigurations: WorkflowConfiguration;
 
   @ManyToOne(() => User, user => user.externalConnections, {
     onDelete: 'SET NULL',

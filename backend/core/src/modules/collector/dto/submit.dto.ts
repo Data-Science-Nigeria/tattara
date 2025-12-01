@@ -24,6 +24,6 @@ export class SubmitDto {
   localId?: string;
 
   @IsUUID()
-  @IsNotEmpty()
-  aiProcessingLogId: string;
+  @IsOptional()
+  aiProcessingLogId?: string;
 }

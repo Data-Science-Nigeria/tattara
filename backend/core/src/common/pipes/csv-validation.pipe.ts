@@ -1,7 +1,7 @@
 import { PipeTransform, Injectable, BadRequestException } from '@nestjs/common';
 import { plainToClass } from 'class-transformer';
 import { validate } from 'class-validator';
-import { RegisterDto } from 'src/modules/auth/dto';
+import { RegisterDto } from '@/modules/auth/dto';
 import { parse } from 'csv-parse';
 import { PassThrough } from 'stream';
 

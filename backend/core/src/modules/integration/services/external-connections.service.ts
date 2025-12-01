@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { ExternalConnection, User } from 'src/database/entities';
+import { ExternalConnection, User } from '@/database/entities';
 
 @Injectable()
 export class ExternalConnectionService {
@@ -44,7 +44,13 @@ export class ExternalConnectionService {
   }
 
   async findOne(id: string): Promise<ExternalConnection> {
-    return this.connectionRepo.findOneOrFail({ where: { id } });
+    const connection = await this.connectionRepo.findOne({ where: { id } });
+    if (!connection) {
+      throw new NotFoundException(
+        `External connection with ID ${id} not found`,
+      );
+    }
+    return connection;
   }
 
   async findOneByUser(id: string, user: User): Promise<ExternalConnection> {

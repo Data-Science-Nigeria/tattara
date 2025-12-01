@@ -13,10 +13,10 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { CurrentUser, RequirePermissions, Roles } from 'src/common/decorators';
-import { PermissionsGuard, RolesGuard } from 'src/common/guards';
-import { CsvUsersValidationPipe } from 'src/common/pipes';
-import { User } from 'src/database/entities';
+import { CurrentUser, RequirePermissions, Roles } from '@/common/decorators';
+import { PermissionsGuard, RolesGuard } from '@/common/guards';
+import { CsvUsersValidationPipe } from '@/common/pipes';
+import { User } from '@/database/entities';
 import { RegisterDto } from '../auth/dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { UserService } from './user.service';

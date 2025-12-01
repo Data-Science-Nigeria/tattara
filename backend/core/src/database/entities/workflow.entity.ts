@@ -1,4 +1,4 @@
-import { Mode, WorkflowStatus } from 'src/common/enums';
+import { Mode, WorkflowStatus } from '@/common/enums';
 import {
   Column,
   CreateDateColumn,
@@ -8,6 +8,7 @@ import {
   ManyToOne,
   OneToMany,
   PrimaryGeneratedColumn,
+  Unique,
   UpdateDateColumn,
 } from 'typeorm';
 import { Program } from './program.entity';
@@ -16,12 +17,17 @@ import { FieldMapping } from './field-mapping.entity';
 import { WorkflowConfiguration } from './workflow-configuration.entity';
 import { User } from './user.entity';
 
-@Entity('workflows')
+@Entity('workflows', {
+  orderBy: {
+    createdAt: 'DESC',
+  },
+})
+@Unique(['createdBy', 'name'])
 export class Workflow {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ unique: true })
+  @Column()
   name: string;
 
   @Column()
@@ -73,6 +79,12 @@ export class Workflow {
 
   @ManyToMany(() => User, user => user.workflows)
   users: User[];
+
+  @ManyToOne(() => User, {
+    onDelete: 'CASCADE',
+    cascade: true,
+  })
+  createdBy: User;
 
   @Column({ default: 1 })
   version: number;

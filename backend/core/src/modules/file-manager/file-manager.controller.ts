@@ -10,7 +10,7 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { FileManagerService } from './file-manager.service';
-import { FileUploads } from 'src/database/entities';
+import { FileUploads } from '@/database/entities';
 import { ApiExcludeController } from '@nestjs/swagger';
 
 @ApiExcludeController()
