@@ -109,19 +109,18 @@ export default function TextAiReview({
               )}
             </div>
           </div>
-          {aiReviewData.missing_required?.length &&
-            aiReviewData.missing_required.length > 0 && (
-              <div className="mt-4 text-sm text-red-600">
-                <strong>Missing Required Fields:</strong>
-                <ul className="mt-1 list-inside list-disc">
-                  {aiReviewData.missing_required?.map(
-                    (field: string, index: number) => (
-                      <li key={index}>{field}</li>
-                    )
-                  )}
-                </ul>
-              </div>
-            )}
+          {(aiReviewData.missing_required?.length ?? 0) > 0 && (
+            <div className="mt-4 text-sm text-red-600">
+              <strong>Missing Required Fields:</strong>
+              <ul className="mt-1 list-inside list-disc">
+                {aiReviewData.missing_required?.map(
+                  (field: string, index: number) => (
+                    <li key={index}>{field}</li>
+                  )
+                )}
+              </ul>
+            </div>
+          )}
           <button
             onClick={() => {
               setAiReviewData(null);

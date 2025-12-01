@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { collectorControllerProcessAiMutation } from '@/client/@tanstack/react-query.gen';
 import { toast } from 'sonner';
-import { Mic, Square, X, RotateCcw } from 'lucide-react';
+import { Mic, Square, X, RotateCcw, Upload } from 'lucide-react';
 
 interface AudioAiReviewProps {
   workflowId: string;
@@ -27,6 +27,7 @@ export default function AudioAiReview({
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const aiProcessMutation = useMutation({
     ...collectorControllerProcessAiMutation(),
@@ -126,11 +127,26 @@ export default function AudioAiReview({
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file && file.type.startsWith('audio/')) {
+      setAudioBlob(file);
+      const url = URL.createObjectURL(file);
+      setAudioUrl(url);
+      setRecordingTime(Math.floor(file.size / 16000)); // Rough estimate
+    } else {
+      toast.error('Please select a valid audio file');
+    }
+  };
+
   const clearRecording = () => {
     setAudioBlob(null);
     setAudioUrl(null);
     setRecordingTime(0);
     setAiReviewData(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   const resetAll = () => {
@@ -149,13 +165,30 @@ export default function AudioAiReview({
             {formatTime(recordingTime)}
           </div>
           {!isRecording && !audioBlob ? (
-            <button
-              onClick={startRecording}
-              className="rounded-lg bg-red-600 px-4 py-2 text-white hover:bg-red-700"
-            >
-              <Mic className="mr-2 inline h-4 w-4" />
-              Start Recording
-            </button>
+            <div className="space-y-3">
+              <button
+                onClick={startRecording}
+                className="rounded-lg bg-red-600 px-4 py-2 text-white hover:bg-red-700"
+              >
+                <Mic className="mr-2 inline h-4 w-4" />
+                Start Recording
+              </button>
+              <div className="text-gray-500">or</div>
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
+              >
+                <Upload className="mr-2 inline h-4 w-4" />
+                Upload Audio File
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="audio/*"
+                onChange={handleFileUpload}
+                className="hidden"
+              />
+            </div>
           ) : isRecording ? (
             <button
               onClick={stopRecording}

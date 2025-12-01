@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Mic, Square, Play, Pause, Save } from 'lucide-react';
+import { Mic, Square, Play, Pause, Save, Upload } from 'lucide-react';
 import { useSaveDraft } from '../hooks/useSaveDraft';
 import { toast } from 'sonner';
 import FormRenderer from './FormRenderer';
@@ -30,6 +30,7 @@ export default function AudioRenderer({ workflow }: AudioRendererProps) {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const { saveDraft, loadDraft, clearDraft, isSaving } = useSaveDraft({
     workflowId: workflow.id,
@@ -123,6 +124,25 @@ export default function AudioRenderer({ workflow }: AudioRendererProps) {
     });
   };
 
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file && file.type.startsWith('audio/')) {
+      setAudioBlob(file);
+      const url = URL.createObjectURL(file);
+      setAudioUrl(url);
+      setRecordingTime(Math.floor(file.size / 16000)); // Rough estimate
+
+      // Convert to base64 for AI processing
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setAudioData(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    } else {
+      toast.error('Please select a valid audio file');
+    }
+  };
+
   const handleReset = () => {
     setAudioBlob(null);
     setAudioUrl(null);
@@ -130,6 +150,9 @@ export default function AudioRenderer({ workflow }: AudioRendererProps) {
     setShowForm(false);
     setAudioData('');
     clearDraft();
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   const handleProcessingComplete = () => {
@@ -191,13 +214,29 @@ export default function AudioRenderer({ workflow }: AudioRendererProps) {
 
           <div className="flex justify-center gap-4">
             {!isRecording && !audioBlob && (
-              <button
-                onClick={startRecording}
-                className="flex items-center justify-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-xs text-white hover:bg-red-700 sm:px-6 sm:py-3 sm:text-sm"
-              >
-                <Mic size={16} className="sm:h-5 sm:w-5" />
-                Start Recording
-              </button>
+              <>
+                <button
+                  onClick={startRecording}
+                  className="flex items-center justify-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-xs text-white hover:bg-red-700 sm:px-6 sm:py-3 sm:text-sm"
+                >
+                  <Mic size={16} className="sm:h-5 sm:w-5" />
+                  Start Recording
+                </button>
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-xs text-white hover:bg-blue-700 sm:px-6 sm:py-3 sm:text-sm"
+                >
+                  <Upload size={16} className="sm:h-5 sm:w-5" />
+                  Upload Audio
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="audio/*"
+                  onChange={handleFileUpload}
+                  className="hidden"
+                />
+              </>
             )}
 
             {isRecording && (
