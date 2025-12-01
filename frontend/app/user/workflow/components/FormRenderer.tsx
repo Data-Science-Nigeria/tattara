@@ -5,10 +5,10 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import {
   collectorControllerSubmitDataMutation,
   fieldControllerGetWorkflowFieldsOptions,
-  collectorControllerProcessAiMutation,
 } from '@/client/@tanstack/react-query.gen';
 import { toast } from 'sonner';
 import { validateFieldValue } from '@/lib/field-validation';
+import { useAuthStore } from '@/app/store/use-auth-store';
 
 interface AiReviewData {
   form_id: string;
@@ -56,13 +56,15 @@ export default function FormRenderer({
   const [aiProcessingLogId, setAiProcessingLogId] = useState<string>('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { auth } = useAuthStore();
 
   // Auto-process when component mounts with input data
   useEffect(() => {
     if (inputData && !aiReviewData && !isProcessing) {
       handleProcess();
     }
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inputData, aiReviewData, isProcessing]);
 
   const { data: fieldsData } = useQuery({
     ...fieldControllerGetWorkflowFieldsOptions({
@@ -71,7 +73,32 @@ export default function FormRenderer({
   });
 
   const aiProcessMutation = useMutation({
-    ...collectorControllerProcessAiMutation(),
+    mutationFn: async ({
+      body,
+      formData,
+    }: {
+      body?: Record<string, unknown>;
+      formData?: FormData;
+    }) => {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/collector/process-ai`,
+        {
+          method: 'POST',
+          body: formData || JSON.stringify(body),
+          credentials: 'include',
+          headers: {
+            Authorization: `Bearer ${auth?.token}`,
+            ...(formData ? {} : { 'Content-Type': 'application/json' }),
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return response.json();
+    },
   });
 
   const submitMutation = useMutation({
@@ -99,26 +126,41 @@ export default function FormRenderer({
   const handleProcess = async () => {
     setIsProcessing(true);
     try {
-      const body: {
-        workflowId: string;
-        processingType: 'text' | 'audio' | 'image';
-        text?: string;
-        audio?: string;
-        image?: string;
-      } = {
-        workflowId,
-        processingType: workflowType,
-      };
+      let aiResponse;
 
-      if (workflowType === 'text') {
-        body.text = inputData as string;
-      } else if (workflowType === 'audio') {
-        body.audio = inputData as string;
-      } else if (workflowType === 'image') {
-        body.image = inputData as string;
+      if (workflowType === 'image') {
+        // For images, convert base64 back to File and use FormData
+        const base64Data = inputData as string;
+        const response = await fetch(base64Data);
+        const blob = await response.blob();
+        const file = new File([blob], 'image.jpg', { type: 'image/jpeg' });
+
+        const formData = new FormData();
+        formData.append('workflowId', workflowId);
+        formData.append('processingType', 'image');
+        formData.append('files', file);
+
+        aiResponse = await aiProcessMutation.mutateAsync({ formData });
+      } else {
+        // For text and audio, use JSON body
+        const body: {
+          workflowId: string;
+          processingType: 'text' | 'audio';
+          text?: string;
+          audio?: string;
+        } = {
+          workflowId,
+          processingType: workflowType as 'text' | 'audio',
+        };
+
+        if (workflowType === 'text') {
+          body.text = inputData as string;
+        } else if (workflowType === 'audio') {
+          body.audio = inputData as string;
+        }
+
+        aiResponse = await aiProcessMutation.mutateAsync({ body });
       }
-
-      const aiResponse = await aiProcessMutation.mutateAsync({ body });
 
       const responseData = aiResponse as {
         data?: { aiData?: AiReviewData; aiProcessingLogId?: string };

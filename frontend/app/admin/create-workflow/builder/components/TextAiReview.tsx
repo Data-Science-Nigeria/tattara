@@ -17,7 +17,10 @@ export default function TextAiReview({
 }: TextAiReviewProps) {
   const [textInput, setTextInput] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
-  const [aiReviewData, setAiReviewData] = useState<any>(null);
+  const [aiReviewData, setAiReviewData] = useState<{
+    extracted?: Record<string, unknown>;
+    missing_required?: string[];
+  } | null>(null);
 
   const aiProcessMutation = useMutation({
     ...collectorControllerProcessAiMutation(),
@@ -37,11 +40,17 @@ export default function TextAiReview({
       });
 
       const responseData = aiResponse as {
-        data?: { aiData?: any; aiProcessingLogId?: string };
+        data?: {
+          aiData?: {
+            extracted?: Record<string, unknown>;
+            missing_required?: string[];
+          };
+          aiProcessingLogId?: string;
+        };
       };
 
       const reviewData = responseData?.data?.aiData;
-      setAiReviewData(reviewData);
+      setAiReviewData(reviewData || null);
 
       if (reviewData) {
         toast.success('Text processed successfully!');
@@ -51,7 +60,7 @@ export default function TextAiReview({
         );
         onAiTestStatusChange?.(true);
       }
-    } catch (error) {
+    } catch {
       toast.error('Failed to process text');
     } finally {
       setIsProcessing(false);
@@ -100,18 +109,19 @@ export default function TextAiReview({
               )}
             </div>
           </div>
-          {aiReviewData.missing_required?.length > 0 && (
-            <div className="mt-4 text-sm text-red-600">
-              <strong>Missing Required Fields:</strong>
-              <ul className="mt-1 list-inside list-disc">
-                {aiReviewData.missing_required.map(
-                  (field: string, index: number) => (
-                    <li key={index}>{field}</li>
-                  )
-                )}
-              </ul>
-            </div>
-          )}
+          {aiReviewData.missing_required?.length &&
+            aiReviewData.missing_required.length > 0 && (
+              <div className="mt-4 text-sm text-red-600">
+                <strong>Missing Required Fields:</strong>
+                <ul className="mt-1 list-inside list-disc">
+                  {aiReviewData.missing_required?.map(
+                    (field: string, index: number) => (
+                      <li key={index}>{field}</li>
+                    )
+                  )}
+                </ul>
+              </div>
+            )}
           <button
             onClick={() => {
               setAiReviewData(null);

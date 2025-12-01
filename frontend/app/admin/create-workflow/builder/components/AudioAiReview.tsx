@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { collectorControllerProcessAiMutation } from '@/client/@tanstack/react-query.gen';
 import { toast } from 'sonner';
-import { Mic, Square, Play, Pause, X, RotateCcw } from 'lucide-react';
+import { Mic, Square, X, RotateCcw } from 'lucide-react';
 
 interface AudioAiReviewProps {
   workflowId: string;
@@ -18,11 +18,12 @@ export default function AudioAiReview({
   const [isRecording, setIsRecording] = useState(false);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [aiReviewData, setAiReviewData] = useState<any>(null);
-
+  const [aiReviewData, setAiReviewData] = useState<{
+    transcription?: string;
+    extracted?: Record<string, unknown>;
+  } | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -57,7 +58,7 @@ export default function AudioAiReview({
       timerRef.current = setInterval(() => {
         setRecordingTime((prev) => prev + 1);
       }, 1000);
-    } catch (error) {
+    } catch {
       toast.error('Failed to access microphone');
     }
   };
@@ -92,11 +93,17 @@ export default function AudioAiReview({
       });
 
       const responseData = aiResponse as {
-        data?: { aiData?: any; aiProcessingLogId?: string };
+        data?: {
+          aiData?: {
+            transcription?: string;
+            extracted?: Record<string, unknown>;
+          };
+          aiProcessingLogId?: string;
+        };
       };
 
       const reviewData = responseData?.data?.aiData;
-      setAiReviewData(reviewData);
+      setAiReviewData(reviewData || null);
 
       if (reviewData) {
         toast.success('Audio processed successfully!');
@@ -106,7 +113,7 @@ export default function AudioAiReview({
         );
         onAiTestStatusChange?.(true);
       }
-    } catch (error) {
+    } catch {
       toast.error('Failed to process audio');
     } finally {
       setIsProcessing(false);

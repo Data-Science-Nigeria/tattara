@@ -1,9 +1,8 @@
 'use client';
 
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { Camera, Upload, X, Eye, Square, Save } from 'lucide-react';
+import { Upload, X, Eye, Save } from 'lucide-react';
 import { useSaveDraft } from '../hooks/useSaveDraft';
-import { toast } from 'sonner';
 import FormRenderer from './FormRenderer';
 
 interface ImageRendererProps {
@@ -22,14 +21,11 @@ export default function ImageRenderer({ workflow }: ImageRendererProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [dragActive, setDragActive] = useState(false);
-  const [showCamera, setShowCamera] = useState(false);
-  const [stream, setStream] = useState<MediaStream | null>(null);
+
   const [showForm, setShowForm] = useState(false);
   const [imageData, setImageData] = useState<string>('');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const { saveDraft, loadDraft, clearDraft, isSaving } = useSaveDraft({
     workflowId: workflow.id,
@@ -83,72 +79,6 @@ export default function ImageRenderer({ workflow }: ImageRendererProps) {
       handleFileSelect(e.dataTransfer.files[0]);
     }
   };
-
-  const openCamera = useCallback(async () => {
-    try {
-      const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment' },
-      });
-
-      setStream(mediaStream);
-      setShowCamera(true);
-
-      setTimeout(() => {
-        if (videoRef.current) {
-          videoRef.current.srcObject = mediaStream;
-        }
-      }, 100);
-    } catch {
-      toast.error(
-        'Camera access denied or not available. Please use "Browse Files" instead.'
-      );
-    }
-  }, []);
-
-  const closeCamera = useCallback(() => {
-    if (stream) {
-      stream.getTracks().forEach((track) => track.stop());
-      setStream(null);
-    }
-    setShowCamera(false);
-  }, [stream]);
-
-  const capturePhoto = useCallback(() => {
-    if (!videoRef.current || !canvasRef.current) {
-      return;
-    }
-
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-
-    if (video.videoWidth === 0 || video.videoHeight === 0) {
-      toast.error('Camera not ready. Please wait a moment and try again.');
-      return;
-    }
-
-    const context = canvas.getContext('2d');
-    if (!context) {
-      return;
-    }
-
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    context.drawImage(video, 0, 0);
-
-    canvas.toBlob(
-      (blob) => {
-        if (blob) {
-          const file = new File([blob], 'camera-photo.jpg', {
-            type: 'image/jpeg',
-          });
-          handleFileSelect(file);
-          closeCamera();
-        }
-      },
-      'image/jpeg',
-      0.9
-    );
-  }, [handleFileSelect, closeCamera]);
 
   const handleSave = async () => {
     if (!selectedFile || !imageData) return;
@@ -205,38 +135,7 @@ export default function ImageRenderer({ workflow }: ImageRendererProps) {
         </button>
       </div>
       <div className="space-y-6">
-        {showCamera ? (
-          <div className="space-y-4">
-            <div className="relative overflow-hidden rounded-lg bg-black/50">
-              <video
-                ref={videoRef}
-                autoPlay
-                playsInline
-                className="h-64 w-full object-cover"
-              />
-            </div>
-
-            <canvas ref={canvasRef} className="hidden" />
-
-            <div className="flex justify-center gap-4">
-              <button
-                onClick={capturePhoto}
-                className="flex items-center justify-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-xs text-white hover:bg-green-700 sm:px-6 sm:py-3 sm:text-sm"
-              >
-                <Square size={16} className="sm:h-5 sm:w-5" />
-                Capture Photo
-              </button>
-
-              <button
-                onClick={closeCamera}
-                className="flex items-center justify-center gap-2 rounded-lg bg-gray-600 px-4 py-2 text-xs text-white hover:bg-gray-700 sm:px-6 sm:py-3 sm:text-sm"
-              >
-                <X size={16} className="sm:h-5 sm:w-5" />
-                Cancel
-              </button>
-            </div>
-          </div>
-        ) : !selectedFile ? (
+        {!selectedFile ? (
           <div
             className={`relative rounded-lg border-2 border-dashed p-8 text-center transition-colors ${
               dragActive
@@ -270,14 +169,6 @@ export default function ImageRenderer({ workflow }: ImageRendererProps) {
                   <Upload size={14} className="sm:h-4 sm:w-4" />
                   Browse Files
                 </button>
-
-                <button
-                  onClick={openCamera}
-                  className="flex items-center justify-center gap-2 rounded-lg bg-green-600 px-3 py-2 text-xs text-white hover:bg-green-700 sm:px-4 sm:text-sm"
-                >
-                  <Camera size={14} className="sm:h-4 sm:w-4" />
-                  Take Photo
-                </button>
               </div>
             </div>
 
@@ -290,8 +181,6 @@ export default function ImageRenderer({ workflow }: ImageRendererProps) {
               }
               className="hidden"
             />
-
-            <canvas ref={canvasRef} className="hidden" />
           </div>
         ) : (
           <div className="space-y-4">

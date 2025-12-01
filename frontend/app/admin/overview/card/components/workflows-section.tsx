@@ -1,23 +1,14 @@
 'use client';
 
 import React, { useState } from 'react';
-import {
-  Plus,
-  FileText,
-  Edit,
-  Mic,
-  Image,
-  ClipboardList,
-  Eye,
-  X,
-} from 'lucide-react';
+import { Plus, FileText, Edit, Mic, Image, Eye, X } from 'lucide-react';
 
 interface Workflow {
   id: string;
   name: string;
   description?: string;
   status: 'active' | 'inactive' | 'archived';
-  enabledModes: Array<'audio' | 'text' | 'form' | 'image'>;
+  enabledModes: Array<'audio' | 'text' | 'image'>;
   users?: Array<{ firstName: string; lastName: string }>;
 }
 
@@ -36,12 +27,10 @@ export default function WorkflowsSection({
 }: WorkflowsSectionProps) {
   const [showModal, setShowModal] = useState(false);
 
-  const getIcon = (
-    enabledModes: Array<'audio' | 'text' | 'form' | 'image'>
-  ) => {
+  const getIcon = (enabledModes: Array<'audio' | 'text' | 'image'>) => {
     if (enabledModes.includes('audio')) return Mic;
     if (enabledModes.includes('image')) return Image;
-    if (enabledModes.includes('form')) return ClipboardList;
+    if (enabledModes.includes('text')) return FileText;
     return FileText;
   };
 

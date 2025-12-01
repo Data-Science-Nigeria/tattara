@@ -13,7 +13,10 @@ interface Workflow {
   description?: string;
   status?: 'active' | 'inactive' | 'archived';
   enabledModes?: string[];
-  fieldMappings?: Array<{ id: string; target: any }>;
+  fieldMappings?: Array<{
+    id: string;
+    target: string | Record<string, unknown>;
+  }>;
 }
 
 interface WorkflowsResponse {
@@ -131,7 +134,7 @@ export default function CreateWorkflow() {
                         </span>
                         {workflow.enabledModes && (
                           <span className="text-xs text-gray-500">
-                            {workflow.enabledModes.join(', ')} modes
+                            {workflow.enabledModes.join(', ')}
                           </span>
                         )}
                       </div>

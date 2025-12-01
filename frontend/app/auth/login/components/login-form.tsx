@@ -156,7 +156,7 @@ export function LoginForm() {
 
   return (
     <>
-      <div className="mb-4 text-center">
+      <div className="mb-2 text-center">
         <h1 className="mb-2 text-2xl font-bold text-[#373844]">
           Log Into Your Account
         </h1>

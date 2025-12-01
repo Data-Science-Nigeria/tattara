@@ -12,7 +12,7 @@ import type { ExternalConnection } from '@/client/types.gen';
 import { client } from '@/client/client.gen';
 import ConnectionsList from './components/connections-list';
 import ConnectionFormModal from './components/connection-form-modal';
-import TestConnectionModal from '../dhis2-integration/components/test-connection-modal';
+import TestConnectionModal from './components/test-connection-modal';
 
 type ApiResponse<T> = {
   success: boolean;

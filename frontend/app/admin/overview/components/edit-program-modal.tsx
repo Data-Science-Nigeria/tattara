@@ -2,8 +2,11 @@
 
 import { CircleX } from 'lucide-react';
 import React, { useState } from 'react';
-import { useMutation } from '@tanstack/react-query';
-import { programControllerUpdateMutation } from '@/client/@tanstack/react-query.gen';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import {
+  programControllerUpdateMutation,
+  programControllerGetProgramsOptions,
+} from '@/client/@tanstack/react-query.gen';
 import { toast } from 'sonner';
 
 interface EditProgramModalProps {
@@ -24,9 +27,15 @@ const EditProgramModal: React.FC<EditProgramModalProps> = ({
 }) => {
   const [title, setTitle] = useState(programData.title);
   const [description, setDescription] = useState(programData.description);
+  const queryClient = useQueryClient();
 
   const updateProgram = useMutation({
     ...programControllerUpdateMutation(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: programControllerGetProgramsOptions().queryKey,
+      });
+    },
   });
 
   const handleSubmit = async () => {

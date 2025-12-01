@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 
 interface SaveDraftOptions {
   workflowId: string;
-  type: 'form' | 'text' | 'audio' | 'image';
+  type: 'text' | 'audio' | 'image';
 }
 
 export function useSaveDraft({ workflowId, type }: SaveDraftOptions) {

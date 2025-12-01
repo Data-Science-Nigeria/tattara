@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import WorkflowCard from './components/workFlowCard';
-import { Mic, FileText, ClipboardList, Image } from 'lucide-react';
+import { Mic, FileText, Image } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import {
   authControllerGetProfileOptions,
@@ -22,7 +22,7 @@ interface ApiWorkflow {
   name: string;
   description: string;
   status: 'active' | 'inactive' | 'archived';
-  enabledModes: Array<'audio' | 'text' | 'form' | 'image'>;
+  enabledModes: Array<'audio' | 'text' | 'image'>;
   users?: Array<{ id: string }>;
 }
 
@@ -67,11 +67,10 @@ export default function Workflows() {
   });
 
   const getIconForWorkflow = (
-    enabledModes: Array<'audio' | 'text' | 'form' | 'image'>
+    enabledModes: Array<'audio' | 'text' | 'image'>
   ) => {
     if (enabledModes.includes('audio')) return Mic;
     if (enabledModes.includes('image')) return Image;
-    if (enabledModes.includes('form')) return ClipboardList;
     if (enabledModes.includes('text')) return FileText;
     return FileText;
   };

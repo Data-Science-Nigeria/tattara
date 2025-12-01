@@ -1,6 +1,5 @@
 import React, { useState, useRef } from 'react';
 import { useMutation } from '@tanstack/react-query';
-import { collectorControllerProcessAiMutation } from '@/client/@tanstack/react-query.gen';
 import { toast } from 'sonner';
 import { Upload } from 'lucide-react';
 import { useAuthStore } from '@/app/store/use-auth-store';
@@ -19,7 +18,10 @@ export default function ImageAiReview({
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [aiReviewData, setAiReviewData] = useState<any>(null);
+  const [aiReviewData, setAiReviewData] = useState<{
+    extractedText?: string;
+    extracted?: Record<string, unknown>;
+  } | null>(null);
   const { auth } = useAuthStore();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -37,6 +39,9 @@ export default function ImageAiReview({
           method: 'POST',
           body: formData,
           credentials: 'include',
+          headers: {
+            Authorization: `Bearer ${auth?.token}`,
+          },
         }
       );
 
@@ -89,11 +94,17 @@ export default function ImageAiReview({
       const aiResponse = await aiProcessMutation.mutateAsync({ formData });
 
       const responseData = aiResponse as {
-        data?: { aiData?: any; aiProcessingLogId?: string };
+        data?: {
+          aiData?: {
+            extractedText?: string;
+            extracted?: Record<string, unknown>;
+          };
+          aiProcessingLogId?: string;
+        };
       };
 
       const reviewData = responseData?.data?.aiData;
-      setAiReviewData(reviewData);
+      setAiReviewData(reviewData || null);
 
       if (reviewData) {
         toast.success('Image processed successfully!');
@@ -103,7 +114,7 @@ export default function ImageAiReview({
         );
         onAiTestStatusChange?.(true);
       }
-    } catch (error) {
+    } catch {
       toast.error('Failed to process image');
     } finally {
       setIsProcessing(false);

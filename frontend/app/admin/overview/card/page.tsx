@@ -55,7 +55,7 @@ export default function Card() {
     name: string;
     status?: string;
     completedAt?: string;
-    enabledModes?: Array<'audio' | 'text' | 'form' | 'image'>;
+    enabledModes?: Array<'audio' | 'text' | 'image'>;
     users?: Array<{
       id: string;
       firstName?: string;
@@ -91,7 +91,7 @@ export default function Card() {
     id: w.id,
     name: w.name,
     status: w.status as WorkflowData['status'],
-    enabledModes: w.enabledModes as Array<'audio' | 'text' | 'form' | 'image'>,
+    enabledModes: w.enabledModes as Array<'audio' | 'text' | 'image'>,
     users:
       w.users?.map((user) => ({
         id: user.id,
