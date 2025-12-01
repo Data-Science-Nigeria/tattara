@@ -2,7 +2,8 @@ import React, { useState, useRef } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { collectorControllerProcessAiMutation } from '@/client/@tanstack/react-query.gen';
 import { toast } from 'sonner';
-import { Upload, Camera, Eye } from 'lucide-react';
+import { Upload } from 'lucide-react';
+import { useAuthStore } from '@/app/store/use-auth-store';
 
 interface ImageAiReviewProps {
   workflowId: string;
@@ -19,11 +20,37 @@ export default function ImageAiReview({
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [aiReviewData, setAiReviewData] = useState<any>(null);
+  const { auth } = useAuthStore();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const aiProcessMutation = useMutation({
-    ...collectorControllerProcessAiMutation(),
+    mutationFn: async ({ formData }: { formData: FormData }) => {
+      console.log('Auth state:', auth);
+      console.log('Making request with credentials: include');
+      console.log('Cookies:', document.cookie);
+      console.log('LocalStorage auth:', localStorage.getItem('auth-storage'));
+      
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/collector/process-ai`,
+        {
+          method: 'POST',
+          body: formData,
+          credentials: 'include',
+        },
+      );
+      
+      console.log('Response status:', response.status);
+      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.log('Error response:', errorText);
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      return response.json();
+    },
   });
 
   const handleFileSelect = (file: File) => {
@@ -32,24 +59,31 @@ export default function ImageAiReview({
     setPreviewUrl(url);
   };
 
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const files = e.dataTransfer.files;
+    if (files?.[0] && files[0].type.startsWith('image/')) {
+      handleFileSelect(files[0]);
+    }
+  };
+
   const handleProcess = async () => {
     if (!selectedFile) return;
 
     setIsProcessing(true);
     try {
-      const imageBase64 = await new Promise<string>((resolve) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result as string);
-        reader.readAsDataURL(selectedFile);
-      });
+      const formData = new FormData();
+      formData.append('workflowId', workflowId);
+      formData.append('processingType', 'image');
+      formData.append('files', selectedFile);
 
-      const aiResponse = await aiProcessMutation.mutateAsync({
-        body: {
-          workflowId,
-          processingType: 'image',
-          text: imageBase64,
-        },
-      });
+      const aiResponse = await aiProcessMutation.mutateAsync({ formData });
 
       const responseData = aiResponse as {
         data?: { aiData?: any; aiProcessingLogId?: string };
@@ -75,14 +109,21 @@ export default function ImageAiReview({
 
   return (
     <div className="space-y-4">
-      <div className="rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 p-8 text-center">
+      <div 
+        className="rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 p-8 text-center hover:border-blue-400 hover:bg-blue-50 transition-colors"
+        onDragOver={handleDragOver}
+        onDrop={handleDrop}
+      >
         {!selectedFile ? (
           <div className="flex flex-col items-center">
             <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-blue-100">
               <Upload className="h-8 w-8 text-blue-600" />
             </div>
-            <p className="mb-4 text-gray-600">
-              Upload an image or take a photo
+            <p className="mb-2 text-gray-600">
+              Drag and drop an image here
+            </p>
+            <p className="mb-4 text-sm text-gray-500">
+              or click to browse
             </p>
             <input
               ref={fileInputRef}
@@ -123,7 +164,7 @@ export default function ImageAiReview({
               }}
               className="text-sm text-gray-600 hover:text-gray-800"
             >
-              Choose different image
+              Upload different image
             </button>
           </div>
         )}

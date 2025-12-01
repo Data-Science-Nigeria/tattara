@@ -3,7 +3,6 @@ import { useMutation } from '@tanstack/react-query';
 import { collectorControllerProcessAiMutation } from '@/client/@tanstack/react-query.gen';
 import { toast } from 'sonner';
 import { Mic, Square, Play, Pause, X, RotateCcw } from 'lucide-react';
-import AudioTranscriber from './AudioTranscriber';
 
 interface AudioAiReviewProps {
   workflowId: string;
@@ -23,7 +22,7 @@ export default function AudioAiReview({
   const [recordingTime, setRecordingTime] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
   const [aiReviewData, setAiReviewData] = useState<any>(null);
-  const [liveTranscription, setLiveTranscription] = useState('');
+
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -130,22 +129,11 @@ export default function AudioAiReview({
 
   const resetAll = () => {
     clearRecording();
-    setLiveTranscription('');
     onAiTestStatusChange?.(false);
   };
 
   return (
     <div className="space-y-6">
-      <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
-        <h3 className="mb-2 text-sm font-medium text-blue-900">
-          Live Transcription
-        </h3>
-        <AudioTranscriber
-          onTranscriptionChange={setLiveTranscription}
-          language="en-US"
-        />
-      </div>
-
       <div className="rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 p-8 text-center">
         <div className="flex flex-col items-center">
           <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-red-100">
