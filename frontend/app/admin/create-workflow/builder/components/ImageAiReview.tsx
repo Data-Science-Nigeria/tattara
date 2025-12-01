@@ -30,25 +30,28 @@ export default function ImageAiReview({
       console.log('Making request with credentials: include');
       console.log('Cookies:', document.cookie);
       console.log('LocalStorage auth:', localStorage.getItem('auth-storage'));
-      
+
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/v1/collector/process-ai`,
         {
           method: 'POST',
           body: formData,
           credentials: 'include',
-        },
+        }
       );
-      
+
       console.log('Response status:', response.status);
-      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
-      
+      console.log(
+        'Response headers:',
+        Object.fromEntries(response.headers.entries())
+      );
+
       if (!response.ok) {
         const errorText = await response.text();
         console.log('Error response:', errorText);
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       return response.json();
     },
   });
@@ -109,8 +112,8 @@ export default function ImageAiReview({
 
   return (
     <div className="space-y-4">
-      <div 
-        className="rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 p-8 text-center hover:border-blue-400 hover:bg-blue-50 transition-colors"
+      <div
+        className="rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 p-8 text-center transition-colors hover:border-blue-400 hover:bg-blue-50"
         onDragOver={handleDragOver}
         onDrop={handleDrop}
       >
@@ -119,12 +122,8 @@ export default function ImageAiReview({
             <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-blue-100">
               <Upload className="h-8 w-8 text-blue-600" />
             </div>
-            <p className="mb-2 text-gray-600">
-              Drag and drop an image here
-            </p>
-            <p className="mb-4 text-sm text-gray-500">
-              or click to browse
-            </p>
+            <p className="mb-2 text-gray-600">Drag and drop an image here</p>
+            <p className="mb-4 text-sm text-gray-500">or click to browse</p>
             <input
               ref={fileInputRef}
               type="file"
