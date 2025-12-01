@@ -299,7 +299,6 @@ export default function TextBuilder() {
             AI Field Extraction
           </h3>
           <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:gap-3">
-
             <button
               onClick={() => setShowFieldPreview(true)}
               className="flex items-center justify-center gap-2 rounded-lg border border-green-600 px-3 py-2 text-xs text-green-600 hover:bg-green-50 sm:px-4 sm:text-sm"
@@ -552,8 +551,6 @@ export default function TextBuilder() {
       >
         {renderCurrentStep()}
       </WorkflowBuilderLayout>
-
-
 
       <FieldPreviewModal
         preSelectedConnection={selectedConnection}

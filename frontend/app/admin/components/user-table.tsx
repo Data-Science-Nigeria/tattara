@@ -217,7 +217,7 @@ export default function UserTable({
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto custom-scrollbar rounded-md border bg-white">
+      <div className="custom-scrollbar overflow-x-auto rounded-md border bg-white">
         <table className="w-full min-w-[600px]">
           <thead className="bg-[#F2F3FF]">
             <tr>

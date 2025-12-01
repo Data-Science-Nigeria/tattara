@@ -49,7 +49,7 @@ export default function WorkflowBuilderLayout({
       </div>
 
       {/* Step Navigation */}
-      <div className="overflow-x-auto custom-scrollbar">
+      <div className="custom-scrollbar overflow-x-auto">
         <div className="flex min-w-max space-x-4 border-b border-gray-200">
           {steps.map((step) => (
             <div
