@@ -1,8 +1,6 @@
 services:
   app:
-    build:
-      context: ../backend/core
-      dockerfile: docker/Dockerfile
+    image: ${COMPOSE_APP_IMAGE:-ghcr.io/data-science-nigeria/tattara/app:latest}
     restart: always
     depends_on:
       - db
@@ -10,15 +8,11 @@ services:
       - ai
     expose:
       - "3000"
-    ports:
-      - "3000:3000" 
     env_file:
       - ../backend/core/.env
 
   migrate:
-    build:
-      context: ../backend/core
-      dockerfile: docker/Dockerfile
+    image: ${COMPOSE_APP_IMAGE:-ghcr.io/data-science-nigeria/tattara/app:latest}
     depends_on:
       db:
         condition: service_healthy
@@ -28,16 +22,45 @@ services:
       sh -c "pnpm typeorm migration:run -d ormconfig.js"
 
   ai:
-    build:
-      context: ../backend/ai
-      dockerfile: Dockerfile
+    image: ${COMPOSE_AI_IMAGE:-ghcr.io/data-science-nigeria/tattara/ai:latest}
     restart: always
     expose:
       - "8000"
-    ports:
-      - "8000:8000"
     env_file:
       - ../backend/ai/.env
+
+  frontend:
+    image: ${COMPOSE_FRONTEND_IMAGE:-ghcr.io/data-science-nigeria/tattara/frontend:latest}
+    restart: always
+    expose:
+      - "3001"
+    ports:
+      - "3001:3000"
+    depends_on:
+      - app
+
+  nginx:
+    image: nginx:latest
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf.template:/etc/nginx/nginx.conf.template:ro
+      - ./nginx/entrypoint.sh:/docker-entrypoint.d/10-entrypoint.sh:ro
+      - certbot_data:/etc/letsencrypt:ro
+      - certbot_www:/var/www/certbot:ro
+    environment:
+      - BASE_DOMAIN=${BASE_DOMAIN:-tattara.dsnsandbox.com}
+      - CERT_DOMAIN=${CERT_DOMAIN:-tattara.dsnsandbox.com}
+    depends_on:
+      - app
+      - ai
+    expose:
+      - "80"
+      - "443"
+    entrypoint: /bin/sh
+    command: /docker-entrypoint.d/10-entrypoint.sh
 
   db:
     image: postgres:15-alpine
@@ -48,7 +71,8 @@ services:
       - POSTGRES_PASSWORD=${DATABASE_PASSWORD}
       - POSTGRES_DB=${DATABASE_NAME}
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DATABASE_USERNAME} -d ${DATABASE_NAME}"]
+      test:
+        ["CMD-SHELL", "pg_isready -U ${DATABASE_USERNAME} -d ${DATABASE_NAME}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -60,9 +84,10 @@ services:
     restart: always
     command: redis-server --requirepass ${REDIS_PASSWORD}
     volumes:
-      - redis_data:/data 
-
+      - redis_data:/data
 
 volumes:
   postgres_data:
   redis_data:
+  certbot_data:
+  certbot_www:
