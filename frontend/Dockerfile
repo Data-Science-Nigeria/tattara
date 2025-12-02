@@ -15,9 +15,7 @@ WORKDIR /app
 
 # Add build args for environment variables
 ARG NEXT_PUBLIC_API_URL
-ARG OPENAPI_URL
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
-ENV OPENAPI_URL=$OPENAPI_URL
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
