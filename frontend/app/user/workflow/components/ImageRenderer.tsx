@@ -15,9 +15,15 @@ interface ImageRendererProps {
       configuration: Record<string, unknown>;
     }>;
   };
+  onDataChange?: (data: string) => void;
+  hideButtons?: boolean;
 }
 
-export default function ImageRenderer({ workflow }: ImageRendererProps) {
+export default function ImageRenderer({
+  workflow,
+  onDataChange,
+  hideButtons = false,
+}: ImageRendererProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [dragActive, setDragActive] = useState(false);
@@ -101,7 +107,13 @@ export default function ImageRenderer({ workflow }: ImageRendererProps) {
     setShowForm(true);
   };
 
-  if (showForm) {
+  useEffect(() => {
+    if (onDataChange && imageData) {
+      onDataChange(imageData);
+    }
+  }, [imageData, onDataChange]);
+
+  if (showForm && !hideButtons) {
     return (
       <FormRenderer
         workflowId={workflow.id}
@@ -113,7 +125,7 @@ export default function ImageRenderer({ workflow }: ImageRendererProps) {
   }
 
   return (
-    <div className="rounded-lg bg-white p-6 shadow-md">
+    <div className="rounded-lg bg-white p-6">
       <div className="mb-4 flex justify-end gap-2">
         {selectedFile && (
           <button
@@ -226,12 +238,14 @@ export default function ImageRenderer({ workflow }: ImageRendererProps) {
           </div>
         )}
 
-        <FormRenderer
-          workflowId={workflow.id}
-          workflowType="image"
-          inputData={imageData}
-          onProcessingComplete={handleProcessingComplete}
-        />
+        {!hideButtons && (
+          <FormRenderer
+            workflowId={workflow.id}
+            workflowType="image"
+            inputData={imageData}
+            onProcessingComplete={handleProcessingComplete}
+          />
+        )}
       </div>
     </div>
   );

@@ -1,15 +1,19 @@
 'use client';
 
-import React from 'react';
-import { ArrowLeft } from 'lucide-react';
+import React, { useState } from 'react';
 import { useParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { workflowControllerFindWorkflowByIdOptions } from '@/client/@tanstack/react-query.gen';
 import TextRenderer from '../components/TextRenderer';
 import AudioRenderer from '../components/AudioRenderer';
 import ImageRenderer from '../components/ImageRenderer';
+import FormRenderer from '../components/FormSaver';
 
 export default function WorkflowExecution() {
+  const [currentStep, setCurrentStep] = useState('input');
+  const [inputData, setInputData] = useState<string>('');
+  const [isProcessing, setIsProcessing] = useState(false);
+
   const params = useParams();
   const workflowId = params.id as string;
 
@@ -25,6 +29,11 @@ export default function WorkflowExecution() {
       data?: { id: string; name: string; enabledModes?: string[] };
     }
   )?.data;
+
+  const steps = [
+    { id: 'input', label: 'Complete this workflow' },
+    { id: 'form', label: 'Fill form' },
+  ];
 
   if (isLoading) {
     return (
@@ -52,51 +61,161 @@ export default function WorkflowExecution() {
     );
   }
 
-  const renderWorkflowContent = () => {
-    const enabledModes = workflow.enabledModes || [];
-
-    if (enabledModes.includes('text')) {
-      return (
-        <TextRenderer
-          workflow={{ ...workflow, type: 'text', workflowConfigurations: [] }}
-        />
-      );
-    } else if (enabledModes.includes('audio')) {
-      return (
-        <AudioRenderer
-          workflow={{ ...workflow, type: 'audio', workflowConfigurations: [] }}
-        />
-      );
-    } else if (enabledModes.includes('image')) {
-      return (
-        <ImageRenderer
-          workflow={{ ...workflow, type: 'image', workflowConfigurations: [] }}
-        />
-      );
-    } else {
-      return <div>Unsupported workflow type</div>;
+  const handleNext = async () => {
+    if (currentStep === 'input') {
+      if (!inputData.trim()) return;
+      setIsProcessing(true);
+      // Simulate AI processing delay
+      setTimeout(() => {
+        setIsProcessing(false);
+        setCurrentStep('form');
+      }, 2000);
     }
   };
 
-  return (
-    <div className="min-h-screen py-8">
-      <div className="mx-auto max-w-4xl px-4">
-        <button
-          onClick={() => (window.location.href = '/user/overview')}
-          className="mb-4 flex items-center gap-2 text-gray-600 hover:text-gray-900"
-        >
-          <ArrowLeft size={20} />
-          Back to Overview
-        </button>
+  const handlePrevious = () => {
+    if (currentStep === 'form') {
+      setCurrentStep('input');
+    }
+  };
 
-        <div className="mb-6">
-          <h1 className="text-2xl font-semibold text-gray-800">
+  const renderStepContent = () => {
+    const enabledModes = workflow.enabledModes || [];
+
+    if (currentStep === 'input') {
+      if (enabledModes.includes('text')) {
+        return (
+          <TextRenderer
+            workflow={{ ...workflow, type: 'text', workflowConfigurations: [] }}
+            onDataChange={setInputData}
+            hideButtons={true}
+          />
+        );
+      } else if (enabledModes.includes('audio')) {
+        return (
+          <AudioRenderer
+            workflow={{
+              ...workflow,
+              type: 'audio',
+              workflowConfigurations: [],
+            }}
+            onDataChange={setInputData}
+            hideButtons={true}
+          />
+        );
+      } else if (enabledModes.includes('image')) {
+        return (
+          <ImageRenderer
+            workflow={{
+              ...workflow,
+              type: 'image',
+              workflowConfigurations: [],
+            }}
+            onDataChange={setInputData}
+            hideButtons={true}
+          />
+        );
+      }
+    } else if (currentStep === 'form') {
+      const workflowType = enabledModes.includes('text')
+        ? 'text'
+        : enabledModes.includes('audio')
+          ? 'audio'
+          : 'image';
+      return (
+        <FormRenderer
+          workflowId={workflow.id}
+          workflowType={workflowType as 'text' | 'audio' | 'image'}
+          inputData={inputData}
+          hideButtons={true}
+        />
+      );
+    }
+
+    return <div>Unsupported workflow type</div>;
+  };
+
+  return (
+    <div className="relative min-h-screen p-3 sm:p-6">
+      <div className="w-full">
+        <div className="mb-6 px-0 sm:mb-8 sm:px-2">
+          <h1 className="text-xl font-semibold text-gray-800 sm:text-2xl">
             {workflow.name}
           </h1>
-          <p className="text-gray-600">Complete this workflow</p>
         </div>
 
-        {renderWorkflowContent()}
+        {/* Step Navigation */}
+        <div className="mb-6 px-0 sm:px-2">
+          <div className="flex space-x-8 border-b border-gray-200">
+            {steps.map((step) => (
+              <div
+                key={step.id}
+                className={`border-b-2 px-1 pb-2 text-sm font-medium whitespace-nowrap ${
+                  currentStep === step.id
+                    ? 'border-green-500 text-green-600'
+                    : 'border-transparent text-gray-500'
+                }`}
+              >
+                {step.label}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="max-w-4xl">{renderStepContent()}</div>
+
+        {/* Navigation Buttons */}
+        <div className="mt-8 flex justify-between border-t border-gray-200 pt-6">
+          <button
+            onClick={handlePrevious}
+            disabled={currentStep === 'input'}
+            className="rounded-lg border border-gray-300 px-6 py-2 text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Previous
+          </button>
+
+          {currentStep === 'input' ? (
+            <button
+              onClick={handleNext}
+              disabled={!inputData.trim() || isProcessing}
+              className="flex items-center gap-2 rounded-lg bg-green-600 px-6 py-2 text-white hover:bg-green-700 disabled:opacity-50"
+            >
+              {isProcessing ? (
+                <>
+                  <svg
+                    className="h-4 w-4 animate-spin"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
+                  </svg>
+                  Processing...
+                </>
+              ) : (
+                'Next'
+              )}
+            </button>
+          ) : (
+            <button
+              onClick={() => (window.location.href = '/user/overview')}
+              className="rounded-lg bg-green-600 px-6 py-2 text-white hover:bg-green-700"
+            >
+              Submit Data to DHIS2
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

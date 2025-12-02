@@ -40,7 +40,7 @@ export default function ContactAdminPage() {
         </div>
 
         <div className="px-0 sm:px-2">
-          <div className="w-full max-w-md rounded-xl bg-white p-5 shadow-lg sm:max-w-lg sm:p-6 lg:max-w-2xl lg:p-8">
+          <div className="w-full max-w-md rounded-xl bg-white p-5 sm:max-w-lg sm:p-6 lg:max-w-2xl lg:p-8">
             <form onSubmit={handleSubmit} className="space-y-6 sm:space-y-8">
               <div className="space-y-2 sm:space-y-3">
                 <Label

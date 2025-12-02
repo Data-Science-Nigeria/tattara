@@ -16,9 +16,15 @@ interface AudioRendererProps {
       configuration: Record<string, unknown>;
     }>;
   };
+  onDataChange?: (data: string) => void;
+  hideButtons?: boolean;
 }
 
-export default function AudioRenderer({ workflow }: AudioRendererProps) {
+export default function AudioRenderer({
+  workflow,
+  onDataChange,
+  hideButtons = false,
+}: AudioRendererProps) {
   const [isRecording, setIsRecording] = useState(false);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
@@ -159,13 +165,19 @@ export default function AudioRenderer({ workflow }: AudioRendererProps) {
     setShowForm(true);
   };
 
+  useEffect(() => {
+    if (onDataChange && audioData) {
+      onDataChange(audioData);
+    }
+  }, [audioData, onDataChange]);
+
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  if (showForm) {
+  if (showForm && !hideButtons) {
     return (
       <FormRenderer
         workflowId={workflow.id}
@@ -177,7 +189,7 @@ export default function AudioRenderer({ workflow }: AudioRendererProps) {
   }
 
   return (
-    <div className="rounded-lg bg-white p-6 shadow-md">
+    <div className="rounded-lg bg-white p-6">
       <div className="mb-4 flex justify-end gap-2">
         {audioBlob && (
           <button
@@ -290,12 +302,14 @@ export default function AudioRenderer({ workflow }: AudioRendererProps) {
           </div>
         )}
 
-        <FormRenderer
-          workflowId={workflow.id}
-          workflowType="audio"
-          inputData={audioData}
-          onProcessingComplete={handleProcessingComplete}
-        />
+        {!hideButtons && (
+          <FormRenderer
+            workflowId={workflow.id}
+            workflowType="audio"
+            inputData={audioData}
+            onProcessingComplete={handleProcessingComplete}
+          />
+        )}
       </div>
     </div>
   );

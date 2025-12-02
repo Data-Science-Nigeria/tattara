@@ -1,8 +1,8 @@
 import React, { useState, useRef } from 'react';
 import { useMutation } from '@tanstack/react-query';
-import { collectorControllerProcessAiMutation } from '@/client/@tanstack/react-query.gen';
 import { toast } from 'sonner';
 import { Mic, Square, X, RotateCcw, Upload } from 'lucide-react';
+import { useAuthStore } from '@/app/store/use-auth-store';
 
 interface AudioAiReviewProps {
   workflowId: string;
@@ -28,9 +28,28 @@ export default function AudioAiReview({
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const { auth } = useAuthStore();
 
   const aiProcessMutation = useMutation({
-    ...collectorControllerProcessAiMutation(),
+    mutationFn: async ({ formData }: { formData: FormData }) => {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/collector/process-ai`,
+        {
+          method: 'POST',
+          body: formData,
+          credentials: 'include',
+          headers: {
+            Authorization: `Bearer ${auth?.token}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return response.json();
+    },
   });
 
   const startRecording = async () => {
@@ -79,19 +98,12 @@ export default function AudioAiReview({
 
     setIsProcessing(true);
     try {
-      const audioBase64 = await new Promise<string>((resolve) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result as string);
-        reader.readAsDataURL(audioBlob);
-      });
+      const formData = new FormData();
+      formData.append('workflowId', workflowId);
+      formData.append('processingType', 'audio');
+      formData.append('files', audioBlob, 'audio.wav');
 
-      const aiResponse = await aiProcessMutation.mutateAsync({
-        body: {
-          workflowId,
-          processingType: 'audio',
-          text: audioBase64,
-        },
-      });
+      const aiResponse = await aiProcessMutation.mutateAsync({ formData });
 
       const responseData = aiResponse as {
         data?: {

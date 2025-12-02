@@ -15,9 +15,15 @@ interface TextRendererProps {
       configuration: Record<string, unknown>;
     }>;
   };
+  onDataChange?: (data: string) => void;
+  hideButtons?: boolean;
 }
 
-export default function TextRenderer({ workflow }: TextRendererProps) {
+export default function TextRenderer({
+  workflow,
+  onDataChange,
+  hideButtons = false,
+}: TextRendererProps) {
   const [textInput, setTextInput] = useState('');
   const [showForm, setShowForm] = useState(false);
 
@@ -48,7 +54,13 @@ export default function TextRenderer({ workflow }: TextRendererProps) {
     setShowForm(true);
   };
 
-  if (showForm) {
+  useEffect(() => {
+    if (onDataChange) {
+      onDataChange(textInput);
+    }
+  }, [textInput, onDataChange]);
+
+  if (showForm && !hideButtons) {
     return (
       <FormRenderer
         workflowId={workflow.id}
@@ -60,7 +72,7 @@ export default function TextRenderer({ workflow }: TextRendererProps) {
   }
 
   return (
-    <div className="rounded-lg bg-white p-6 shadow-md">
+    <div className="rounded-lg bg-white p-6">
       <div className="mb-4 flex justify-end gap-2">
         {textInput.trim() && (
           <button
@@ -95,7 +107,7 @@ export default function TextRenderer({ workflow }: TextRendererProps) {
           />
         </div>
 
-        {textInput.trim() && (
+        {!hideButtons && textInput.trim() && (
           <div className="flex justify-end gap-4">
             <button
               type="button"

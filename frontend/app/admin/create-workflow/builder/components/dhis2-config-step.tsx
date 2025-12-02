@@ -1,6 +1,7 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
+import { useEffect } from 'react';
 import {
   externalConnectionsControllerFindAllOptions,
   integrationControllerGetProgramsOptions,
@@ -30,6 +31,10 @@ export default function DHIS2ConfigStep({
   selectedOrgUnits,
   setSelectedOrgUnits,
 }: DHIS2ConfigStepProps) {
+  useEffect(() => {
+    setSelectedOrgUnits([]);
+  }, [selectedConnection, selectedType, selectedProgram, setSelectedOrgUnits]);
+
   const { data: connectionsData } = useQuery({
     ...externalConnectionsControllerFindAllOptions(),
   });

@@ -24,13 +24,15 @@ export default function ProfilePage() {
     : '';
 
   return (
-    <div className="px-3 py-4 sm:px-6 sm:py-6 lg:px-8">
-      <div className="mx-auto max-w-4xl">
-        <h1 className="mb-4 text-lg font-semibold text-gray-800 sm:mb-6 sm:text-xl lg:text-2xl">
-          Profile
-        </h1>
+    <div className="relative min-h-screen p-3 sm:p-6">
+      <div className="w-full">
+        <div className="mb-6 px-0 sm:mb-8 sm:px-2">
+          <h1 className="text-xl font-semibold text-gray-800 sm:text-2xl">
+            Profile
+          </h1>
+        </div>
 
-        <div className="rounded-lg bg-white p-4 shadow-sm sm:rounded-2xl sm:p-6 lg:p-8">
+        <div className="max-w-4xl rounded-lg bg-white p-4 sm:rounded-2xl sm:p-6 lg:p-8">
           {/* Profile Header */}
           <div className="mb-6 flex flex-col items-center gap-4 border-b border-gray-200 pb-6 sm:mb-8 sm:flex-row sm:items-start sm:gap-6 sm:pb-8">
             {/* Profile Avatar */}

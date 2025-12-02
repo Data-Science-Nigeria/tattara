@@ -42,6 +42,11 @@ export default function AudioBuilder() {
   const [selectedProgram, setSelectedProgram] = useState('');
   const [selectedOrgUnits, setSelectedOrgUnits] = useState<string[]>([]);
 
+  // Clear AI fields when DHIS2 config changes
+  useEffect(() => {
+    setAiFieldMappings([]);
+  }, [selectedConnection, selectedType, selectedProgram]);
+
   // Basic Configuration
   const [basicConfig, setBasicConfig] = useState({
     language: 'en',

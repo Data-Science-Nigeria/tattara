@@ -174,6 +174,11 @@ export default function FieldPreviewModal({
     });
   }
 
+  // Clear selected fields when config changes
+  React.useEffect(() => {
+    setSelectedFields([]);
+  }, [preSelectedConnection, preSelectedType, preSelectedProgram]);
+
   // Auto-select all available fields when data loads
   React.useEffect(() => {
     if (dataElements.length > 0 && selectedFields.length === 0) {
