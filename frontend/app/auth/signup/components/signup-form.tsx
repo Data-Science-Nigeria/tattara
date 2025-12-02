@@ -17,16 +17,49 @@ import { useAuthStore } from '@/app/store/use-auth-store';
 
 const signUpSchema = z
   .object({
-    firstName: z.string().min(1, 'First name is required'),
-    lastName: z.string().min(1, 'Last name is required'),
-    email: z.string().min(1, 'Email is required').email('Invalid email'),
+    firstName: z
+      .string()
+      .max(15, 'First name must be at most 15 characters')
+      .min(1, 'First name is required')
+      .transform((val) => val.trim())
+      .refine(
+        (val) => val.length > 0,
+        'First name cannot be empty after trimming'
+      )
+      .refine(
+        (val) => /^[a-zA-Z]+$/.test(val),
+        'Only letters allowed, no spaces'
+      ),
+    lastName: z
+      .string()
+      .max(15, 'Last name must be at most 15 characters')
+      .min(1, 'Last name is required')
+      .transform((val) => val.trim())
+      .refine(
+        (val) => val.length > 0,
+        'Last name cannot be empty after trimming'
+      )
+      .refine(
+        (val) => /^[a-zA-Z]+$/.test(val),
+        'Only letters allowed, no spaces'
+      ),
+    email: z
+      .string()
+      .min(1, 'Email is required')
+      .email('Invalid email')
+      .transform((val) => val.toLowerCase()),
     password: z
       .string()
       .min(8, 'Password must be at least 8 characters')
+      .max(128, 'Password must be at most 128 characters')
+      .regex(/^\S*$/, 'No spaces allowed in password')
       .regex(/[A-Z]/, 'Must include at least one uppercase letter')
       .regex(/[a-z]/, 'Must include at least one lowercase letter')
       .regex(/[0-9]/, 'Must include at least one number'),
     confirmPassword: z.string().min(1, 'Please confirm your password'),
+    agreeToTerms: z
+      .boolean()
+      .refine((val) => val === true, 'Must agree to terms'),
     role: z.literal('admin').optional(),
   })
   .refine((data) => data.password === data.confirmPassword, {
@@ -168,6 +201,28 @@ export function SignUpForm() {
           />
         </div>
 
+        <div className="flex items-center space-x-2">
+          <input
+            type="checkbox"
+            {...register('agreeToTerms')}
+            className="h-4 w-4 rounded border-gray-300 text-[#008647] focus:ring-[#008647]"
+          />
+          <label className="text-sm text-gray-600">
+            By clicking Create account, I agree that I have read and accepted
+            the{' '}
+            <Link href="/terms" className="text-[#008647] underline">
+              Terms of Use
+            </Link>{' '}
+            and{' '}
+            <Link href="/privacy" className="text-[#008647] underline">
+              Privacy Policy
+            </Link>
+          </label>
+        </div>
+        {errors.agreeToTerms && (
+          <p className="text-sm text-red-600">{errors.agreeToTerms.message}</p>
+        )}
+
         <input type="hidden" {...register('role')} value="admin" />
 
         <Button
@@ -178,7 +233,7 @@ export function SignUpForm() {
           {isSubmitting ? (
             <LoaderCircle className="animate-spin" />
           ) : (
-            'Continue'
+            'Create Account'
           )}
         </Button>
 
