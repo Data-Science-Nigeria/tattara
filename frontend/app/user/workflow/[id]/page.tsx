@@ -127,7 +127,6 @@ export default function WorkflowExecution() {
           workflowId={workflow.id}
           workflowType={workflowType as 'text' | 'audio' | 'image'}
           inputData={inputData}
-          hideButtons={true}
         />
       );
     }
@@ -174,7 +173,7 @@ export default function WorkflowExecution() {
             Previous
           </button>
 
-          {currentStep === 'input' ? (
+          {currentStep === 'input' && (
             <button
               onClick={handleNext}
               disabled={!inputData.trim() || isProcessing}
@@ -206,13 +205,6 @@ export default function WorkflowExecution() {
               ) : (
                 'Next'
               )}
-            </button>
-          ) : (
-            <button
-              onClick={() => (window.location.href = '/user/overview')}
-              className="rounded-lg bg-green-600 px-6 py-2 text-white hover:bg-green-700"
-            >
-              Submit Data to DHIS2
             </button>
           )}
         </div>

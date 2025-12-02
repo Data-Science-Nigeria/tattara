@@ -79,26 +79,6 @@ export default function FormRenderer({
     return fields.sort((a, b) => a.displayOrder - b.displayOrder);
   }, [fieldsData]);
 
-  // Re-validate all fields when formData changes
-  useEffect(() => {
-    if (Object.keys(formData).length > 0 && sortedFields.length > 0) {
-      const newErrors: Record<string, string> = {};
-      sortedFields.forEach((field) => {
-        const value = formData[field.fieldName];
-        if (value !== undefined && value !== null && value !== '') {
-          const validation = validateFieldValue(
-            value as string | boolean,
-            field.fieldType
-          );
-          if (!validation.isValid) {
-            newErrors[field.fieldName] = validation.error || '';
-          }
-        }
-      });
-      setFieldErrors(newErrors);
-    }
-  }, [formData, sortedFields]);
-
   const aiProcessMutation = useMutation({
     mutationFn: async ({
       body,
@@ -141,7 +121,8 @@ export default function FormRenderer({
     if (field) {
       const validation = validateFieldValue(
         value as string | boolean,
-        field.fieldType
+        field.fieldType,
+        field.options
       );
       setFieldErrors((prev) => ({
         ...prev,
@@ -215,20 +196,18 @@ export default function FormRenderer({
       (error) => error !== ''
     );
 
-    // Check for empty required fields
-    const hasRequiredFieldsEmpty = sortedFields
-      .filter((field) => field.isRequired)
-      .some((field) => {
-        const value = formData[field.fieldName];
-        return (
-          value === undefined ||
-          value === null ||
-          value === '' ||
-          (typeof value === 'string' && value.trim() === '')
-        );
-      });
+    // Check for empty fields (ALL fields must be completed)
+    const hasEmptyFields = sortedFields.some((field) => {
+      const value = formData[field.fieldName];
+      return (
+        value === undefined ||
+        value === null ||
+        value === '' ||
+        (typeof value === 'string' && value.trim() === '')
+      );
+    });
 
-    return hasFieldErrors || hasRequiredFieldsEmpty;
+    return hasFieldErrors || hasEmptyFields;
   };
 
   const handleSubmit = async () => {
@@ -390,29 +369,7 @@ export default function FormRenderer({
   };
 
   if (!aiReviewData) {
-    return (
-      <div className="flex justify-end gap-4">
-        {!hideButtons && (
-          <>
-            <button
-              type="button"
-              onClick={() => (window.location.href = '/user/overview')}
-              className="rounded-lg border border-gray-300 px-6 py-2 text-gray-700 hover:bg-gray-50"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={handleProcess}
-              disabled={isProcessing}
-              className="rounded-lg bg-green-600 px-6 py-2 text-white hover:bg-green-700 disabled:opacity-50"
-            >
-              {isProcessing ? 'Processing...' : 'Process with AI'}
-            </button>
-          </>
-        )}
-      </div>
-    );
+    return null;
   }
 
   return (
@@ -448,7 +405,10 @@ export default function FormRenderer({
                 <div className="relative">
                   {renderField(field)}
                   {aiReviewData?.extracted?.[field.fieldName] !== undefined &&
-                    aiReviewData?.extracted?.[field.fieldName] !== null && (
+                    aiReviewData?.extracted?.[field.fieldName] !== null &&
+                    formData[field.fieldName] !== undefined &&
+                    formData[field.fieldName] !== null &&
+                    formData[field.fieldName] !== '' && (
                       <div className="absolute -top-2 right-2">
                         <span className="inline-flex items-center rounded bg-blue-100 px-1 py-0.5 text-xs text-blue-800">
                           AI Extracted
@@ -507,66 +467,41 @@ export default function FormRenderer({
 
         {/* Footer */}
         <div className="rounded-b-xl border-t border-gray-200 bg-gray-50 px-8 py-6">
-          <div className="flex items-center justify-between">
-            <div></div>
+          <div className="flex items-center justify-end">
             {!hideButtons && (
-              <div className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => (window.location.href = '/user/overview')}
-                  className="rounded-lg border border-gray-300 bg-white px-6 py-2 font-medium text-gray-700 transition-colors hover:bg-gray-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={handleSubmit}
-                  disabled={isSubmitting || hasValidationErrors()}
-                  className="flex items-center gap-2 rounded-lg bg-green-600 px-8 py-2 font-medium text-white transition-colors hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  {isSubmitting ? (
-                    <>
-                      <svg
-                        className="h-4 w-4 animate-spin"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                      >
-                        <circle
-                          className="opacity-25"
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          strokeWidth="4"
-                        ></circle>
-                        <path
-                          className="opacity-75"
-                          fill="currentColor"
-                          d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                        ></path>
-                      </svg>
-                      Submitting...
-                    </>
-                  ) : (
-                    <>
-                      <svg
-                        className="h-4 w-4"
-                        fill="none"
+              <button
+                type="button"
+                onClick={handleSubmit}
+                disabled={isSubmitting || hasValidationErrors()}
+                className="flex items-center gap-2 rounded-lg bg-green-600 px-8 py-2 font-medium text-white transition-colors hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {isSubmitting ? (
+                  <>
+                    <svg
+                      className="h-4 w-4 animate-spin"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
                         stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M5 13l4 4L19 7"
-                        />
-                      </svg>
-                      Submit Data
-                    </>
-                  )}
-                </button>
-              </div>
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
+                    </svg>
+                    Submitting...
+                  </>
+                ) : (
+                  'Submit Data to DHIS2'
+                )}
+              </button>
             )}
           </div>
         </div>
