@@ -19,6 +19,7 @@ __pycache__/
 .eggs/
 .Python
 .venv/
+venv-ai/
 env/
 venv/
 ENV/
