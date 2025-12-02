@@ -211,21 +211,15 @@ export default function FormRenderer({
   };
 
   const handleSubmit = async () => {
-    console.log('Submit clicked');
-    console.log('Form data:', formData);
-    console.log('Has validation errors:', hasValidationErrors());
-    console.log('Field errors:', fieldErrors);
-
     if (hasValidationErrors()) {
       toast.error('Please fix all validation errors before submitting.');
       return;
     }
 
     setIsSubmitting(true);
-    console.log('Starting submission...');
 
     try {
-      const result = await submitMutation.mutateAsync({
+      await submitMutation.mutateAsync({
         body: {
           workflowId,
           data: formData,
@@ -236,7 +230,6 @@ export default function FormRenderer({
         },
       });
 
-      console.log('Submission successful:', result);
       toast.success('Data submitted successfully!');
 
       // Only redirect on successful submission

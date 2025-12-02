@@ -251,7 +251,7 @@ export default function FieldMapping() {
             <select
               value={selectedConnection}
               onChange={(e) => setSelectedConnection(e.target.value)}
-              className="mb-3 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-green-500 focus:outline-none"
+              className="mb-3 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-green-500 focus:outline-none sm:text-base"
             >
               <option value="">Select a connection...</option>
               {availableConnections.map((conn) => (
@@ -269,7 +269,7 @@ export default function FieldMapping() {
               onChange={(e) =>
                 setSelectedType(e.target.value as 'program' | 'dataSet' | '')
               }
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-green-500 focus:outline-none"
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-green-500 focus:outline-none sm:text-base"
             >
               <option value="">Select type...</option>
               <option value="program">Program</option>

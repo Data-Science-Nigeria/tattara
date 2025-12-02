@@ -1,18 +1,18 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Plus, TestTube } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   externalConnectionsControllerFindAllOptions,
   externalConnectionsControllerCreateMutation,
   externalConnectionsControllerRemoveMutation,
+  integrationControllerTestConnectionMutation,
 } from '@/client/@tanstack/react-query.gen';
 import type { ExternalConnection } from '@/client/types.gen';
 import { client } from '@/client/client.gen';
 import ConnectionsList from './components/connections-list';
 import ConnectionFormModal from './components/connection-form-modal';
-import TestConnectionModal from './components/test-connection-modal';
 
 type ApiResponse<T> = {
   success: boolean;
@@ -33,7 +33,10 @@ export default function ExternalConnections() {
   const [deleteConnectionId, setDeleteConnectionId] = useState<string | null>(
     null
   );
-  const [showTestModal, setShowTestModal] = useState(false);
+
+  const [isTestingConnection, setIsTestingConnection] = useState(false);
+  const [connectionTested, setConnectionTested] = useState(false);
+  const [testError, setTestError] = useState<string>();
 
   const { data: connections, isLoading } = useQuery({
     ...externalConnectionsControllerFindAllOptions(),
@@ -95,11 +98,38 @@ export default function ExternalConnections() {
     },
   });
 
+  const testConnectionMutation = useMutation({
+    ...integrationControllerTestConnectionMutation(),
+  });
+
   const resetForm = () => {
     setName('');
     setBaseUrl('');
     setPat('');
     setShowToken(false);
+    setConnectionTested(false);
+    setTestError(undefined);
+  };
+
+  const handleTestConnection = async () => {
+    setIsTestingConnection(true);
+    setTestError(undefined);
+    setConnectionTested(false);
+
+    try {
+      await testConnectionMutation.mutateAsync({
+        body: {
+          type: type as 'dhis2',
+          config: { baseUrl, pat },
+        },
+      });
+      setConnectionTested(true);
+    } catch (error: unknown) {
+      setTestError((error as Error)?.message || 'Connection test failed');
+      setConnectionTested(false);
+    } finally {
+      setIsTestingConnection(false);
+    }
   };
 
   const handleEdit = (connection: ExternalConnection) => {
@@ -150,14 +180,6 @@ export default function ExternalConnections() {
         </div>
         <div className="flex flex-col gap-2 sm:flex-row sm:gap-3">
           <button
-            onClick={() => setShowTestModal(true)}
-            className="flex items-center justify-center gap-2 rounded-lg border border-green-600 bg-white px-3 py-2 text-sm text-green-600 hover:bg-green-50 sm:px-4"
-          >
-            <TestTube className="h-4 w-4" />
-            <span className="hidden sm:inline">Test Connection</span>
-            <span className="sm:hidden">Test</span>
-          </button>
-          <button
             onClick={() => {
               resetForm();
               setEditingConnection(null);
@@ -198,7 +220,11 @@ export default function ExternalConnections() {
           setEditingConnection(null);
           resetForm();
         }}
+        onTestConnection={handleTestConnection}
         isLoading={createMutation.isPending || updateMutation.isPending}
+        isTestingConnection={isTestingConnection}
+        connectionTested={connectionTested}
+        testError={testError}
         error={
           createMutation.error
             ? { message: createMutation.error.message }
@@ -206,11 +232,6 @@ export default function ExternalConnections() {
               ? { message: updateMutation.error.message }
               : undefined
         }
-      />
-
-      <TestConnectionModal
-        isOpen={showTestModal}
-        onClose={() => setShowTestModal(false)}
       />
 
       {/* Delete Confirmation Modal */}

@@ -52,6 +52,7 @@ const EditProgramModal: React.FC<EditProgramModalProps> = ({
 
       toast.success('Program updated successfully');
       onClose();
+      window.location.reload();
     } catch {
       toast.error('Failed to update program');
     }

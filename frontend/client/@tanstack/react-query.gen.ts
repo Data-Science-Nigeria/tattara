@@ -27,13 +27,16 @@ import {
   programControllerFindWorkflowsByProgram,
   programControllerAddWorkflowToProgram,
   programControllerGetAllProgramsForUser,
-  programControllerAddUsersToProgram,
+  programControllerAssignUsersToProgram,
+  programControllerUnassignUsersFromProgram,
   workflowControllerGetWorkflows,
   workflowControllerCreateWorkflow,
   workflowControllerSearchWorkflows,
   workflowControllerFindWorkflowById,
+  workflowControllerUpdateWorkflowBasicInfo,
   workflowControllerArchiveWorkflow,
   workflowControllerAssignUsersToWorkflow,
+  workflowControllerUnassignUsersFromWorkflow,
   fieldControllerGetWorkflowFields,
   fieldControllerUpsertWorkflowFields,
   fieldControllerRemoveWorkflowField,
@@ -94,16 +97,22 @@ import type {
   ProgramControllerAddWorkflowToProgramData,
   ProgramControllerAddWorkflowToProgramResponse,
   ProgramControllerGetAllProgramsForUserData,
-  ProgramControllerAddUsersToProgramData,
-  ProgramControllerAddUsersToProgramResponse,
+  ProgramControllerAssignUsersToProgramData,
+  ProgramControllerAssignUsersToProgramResponse,
+  ProgramControllerUnassignUsersFromProgramData,
+  ProgramControllerUnassignUsersFromProgramResponse,
   WorkflowControllerGetWorkflowsData,
   WorkflowControllerCreateWorkflowData,
   WorkflowControllerCreateWorkflowResponse,
   WorkflowControllerSearchWorkflowsData,
   WorkflowControllerFindWorkflowByIdData,
+  WorkflowControllerUpdateWorkflowBasicInfoData,
+  WorkflowControllerUpdateWorkflowBasicInfoResponse,
   WorkflowControllerArchiveWorkflowData,
   WorkflowControllerAssignUsersToWorkflowData,
   WorkflowControllerAssignUsersToWorkflowResponse,
+  WorkflowControllerUnassignUsersFromWorkflowData,
+  WorkflowControllerUnassignUsersFromWorkflowResponse,
   FieldControllerGetWorkflowFieldsData,
   FieldControllerUpsertWorkflowFieldsData,
   FieldControllerRemoveWorkflowFieldData,
@@ -983,20 +992,44 @@ export const programControllerGetAllProgramsForUserOptions = (
 /**
  * Assign multiple users to a specific program
  */
-export const programControllerAddUsersToProgramMutation = (
-  options?: Partial<Options<ProgramControllerAddUsersToProgramData>>
+export const programControllerAssignUsersToProgramMutation = (
+  options?: Partial<Options<ProgramControllerAssignUsersToProgramData>>
 ): UseMutationOptions<
-  ProgramControllerAddUsersToProgramResponse,
+  ProgramControllerAssignUsersToProgramResponse,
   DefaultError,
-  Options<ProgramControllerAddUsersToProgramData>
+  Options<ProgramControllerAssignUsersToProgramData>
 > => {
   const mutationOptions: UseMutationOptions<
-    ProgramControllerAddUsersToProgramResponse,
+    ProgramControllerAssignUsersToProgramResponse,
     DefaultError,
-    Options<ProgramControllerAddUsersToProgramData>
+    Options<ProgramControllerAssignUsersToProgramData>
   > = {
     mutationFn: async (fnOptions) => {
-      const { data } = await programControllerAddUsersToProgram({
+      const { data } = await programControllerAssignUsersToProgram({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const programControllerUnassignUsersFromProgramMutation = (
+  options?: Partial<Options<ProgramControllerUnassignUsersFromProgramData>>
+): UseMutationOptions<
+  ProgramControllerUnassignUsersFromProgramResponse,
+  DefaultError,
+  Options<ProgramControllerUnassignUsersFromProgramData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    ProgramControllerUnassignUsersFromProgramResponse,
+    DefaultError,
+    Options<ProgramControllerUnassignUsersFromProgramData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await programControllerUnassignUsersFromProgram({
         ...options,
         ...fnOptions,
         throwOnError: true,
@@ -1190,6 +1223,30 @@ export const workflowControllerFindWorkflowByIdOptions = (
   });
 };
 
+export const workflowControllerUpdateWorkflowBasicInfoMutation = (
+  options?: Partial<Options<WorkflowControllerUpdateWorkflowBasicInfoData>>
+): UseMutationOptions<
+  WorkflowControllerUpdateWorkflowBasicInfoResponse,
+  DefaultError,
+  Options<WorkflowControllerUpdateWorkflowBasicInfoData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    WorkflowControllerUpdateWorkflowBasicInfoResponse,
+    DefaultError,
+    Options<WorkflowControllerUpdateWorkflowBasicInfoData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await workflowControllerUpdateWorkflowBasicInfo({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
 export const workflowControllerArchiveWorkflowMutation = (
   options?: Partial<Options<WorkflowControllerArchiveWorkflowData>>
 ): UseMutationOptions<
@@ -1228,6 +1285,30 @@ export const workflowControllerAssignUsersToWorkflowMutation = (
   > = {
     mutationFn: async (fnOptions) => {
       const { data } = await workflowControllerAssignUsersToWorkflow({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const workflowControllerUnassignUsersFromWorkflowMutation = (
+  options?: Partial<Options<WorkflowControllerUnassignUsersFromWorkflowData>>
+): UseMutationOptions<
+  WorkflowControllerUnassignUsersFromWorkflowResponse,
+  DefaultError,
+  Options<WorkflowControllerUnassignUsersFromWorkflowData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    WorkflowControllerUnassignUsersFromWorkflowResponse,
+    DefaultError,
+    Options<WorkflowControllerUnassignUsersFromWorkflowData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await workflowControllerUnassignUsersFromWorkflow({
         ...options,
         ...fnOptions,
         throwOnError: true,

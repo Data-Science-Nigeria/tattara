@@ -1,7 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { ChevronDown, Download, ArrowUp, ArrowDown } from 'lucide-react';
+import {
+  ChevronDown,
+  Download,
+  ArrowUp,
+  ArrowDown,
+  UserMinus,
+} from 'lucide-react';
 import SearchInput from './search-input';
 import { exportToJSON, exportToCSV, exportToPDF } from '../utils/export-utils';
 
@@ -10,12 +16,20 @@ interface ProgramData {
   program: string;
   completedOn: string;
   status: string;
+  userId?: string;
+  workflowId?: string;
 }
 
 interface ProgramTableProps {
   data?: ProgramData[];
   isLoading?: boolean;
   programName?: string;
+  onUnassign?: (
+    userId: string,
+    workflowId: string,
+    userName: string,
+    workflowName: string
+  ) => void;
 }
 
 const StatusBadge = ({ status }: { status: string }) => {
@@ -43,6 +57,7 @@ export default function ProgramTable({
   data = [],
   isLoading = false,
   programName = 'Program',
+  onUnassign,
 }: ProgramTableProps) {
   const [search, setSearch] = useState('');
   const [showLimit, setShowLimit] = useState(10);
@@ -216,7 +231,7 @@ export default function ProgramTable({
 
       {/* Table */}
       <div className="custom-scrollbar overflow-x-auto rounded-md border bg-white">
-        <table className="w-full min-w-[600px]">
+        <table className="relative w-full min-w-[700px]">
           <thead className="bg-[#F2F3FF]">
             <tr>
               <th className="px-3 py-4 text-left font-semibold text-gray-700 sm:px-6">
@@ -323,6 +338,9 @@ export default function ProgramTable({
                   </div>
                 </div>
               </th>
+              <th className="sticky right-0 border-l bg-[#F2F3FF] px-3 py-4 text-left font-semibold text-gray-700 sm:px-6">
+                <span className="text-sm sm:text-base">Actions</span>
+              </th>
             </tr>
           </thead>
 
@@ -330,7 +348,7 @@ export default function ProgramTable({
             {isLoading ? (
               <tr>
                 <td
-                  colSpan={4}
+                  colSpan={5}
                   className="px-3 py-4 text-center text-gray-500 sm:px-6"
                 >
                   <div className="flex items-center justify-center py-4">
@@ -342,7 +360,7 @@ export default function ProgramTable({
             ) : currentData.length === 0 ? (
               <tr>
                 <td
-                  colSpan={4}
+                  colSpan={5}
                   className="px-3 py-4 text-center text-sm text-gray-500 sm:px-6"
                 >
                   No users found
@@ -362,6 +380,23 @@ export default function ProgramTable({
                   </td>
                   <td className="px-3 py-4 text-gray-700 sm:px-6">
                     <StatusBadge status={item.status || 'Pending'} />
+                  </td>
+                  <td className="sticky right-0 border-l bg-white px-3 py-4 sm:px-6">
+                    <button
+                      onClick={() =>
+                        onUnassign?.(
+                          item.userId || '',
+                          item.workflowId || '',
+                          item.name,
+                          item.program
+                        )
+                      }
+                      className="flex items-center gap-1 rounded-md border border-red-300 bg-red-50 px-2 py-1 text-xs text-red-600 transition-colors hover:bg-red-100"
+                      disabled={!item.userId || !item.workflowId}
+                    >
+                      <UserMinus size={14} />
+                      Unassign
+                    </button>
                   </td>
                 </tr>
               ))

@@ -49,7 +49,7 @@ export default function UserProfileTable({
   return (
     <div className="rounded-lg bg-white shadow">
       <div className="custom-scrollbar overflow-x-auto">
-        <table className="w-full">
+        <table className="relative w-full min-w-[800px]">
           <thead className="border-b border-gray-200 bg-gray-50">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
@@ -67,7 +67,7 @@ export default function UserProfileTable({
               <th className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
                 Joined
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
+              <th className="sticky right-0 border-l bg-gray-50 px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
                 Actions
               </th>
             </tr>
@@ -119,7 +119,7 @@ export default function UserProfileTable({
                   <td className="px-6 py-4 text-sm whitespace-nowrap text-gray-900">
                     {new Date(user.createdAt).toLocaleDateString()}
                   </td>
-                  <td className="px-6 py-4 text-sm font-medium whitespace-nowrap">
+                  <td className="sticky right-0 border-l bg-white px-6 py-4 text-sm font-medium whitespace-nowrap">
                     <Link
                       href={`/admin/user-profile/${user.id}`}
                       className="inline-flex items-center gap-2 rounded-lg bg-green-100 px-3 py-2 text-green-700 transition-colors hover:bg-green-200"

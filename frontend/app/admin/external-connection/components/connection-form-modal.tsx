@@ -22,7 +22,11 @@ interface ConnectionFormModalProps {
   setShowToken: (show: boolean) => void;
   onSubmit: () => void;
   onCancel: () => void;
+  onTestConnection: () => void;
   isLoading: boolean;
+  isTestingConnection: boolean;
+  connectionTested: boolean;
+  testError?: string;
   error?: FormError;
 }
 
@@ -41,7 +45,11 @@ export default function ConnectionFormModal({
   setShowToken,
   onSubmit,
   onCancel,
+  onTestConnection,
   isLoading,
+  isTestingConnection,
+  connectionTested,
+  testError,
   error,
 }: ConnectionFormModalProps) {
   if (!isOpen) return null;
@@ -119,6 +127,45 @@ export default function ConnectionFormModal({
             </div>
           </div>
         </div>
+
+        {/* Test Connection Section */}
+        {!editingConnection && (
+          <div className="mt-4 rounded border border-gray-200 bg-gray-50 p-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-700">
+                  Test Connection
+                </p>
+                <p className="text-xs text-gray-500">
+                  Verify your credentials before creating
+                </p>
+              </div>
+              <button
+                onClick={onTestConnection}
+                disabled={!name || !pat || !baseUrl || isTestingConnection}
+                className="flex items-center gap-2 rounded bg-blue-600 px-3 py-2 text-sm text-white hover:bg-blue-700 disabled:opacity-50"
+              >
+                {isTestingConnection && (
+                  <div className="h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                )}
+                {isTestingConnection ? 'Testing...' : 'Test Connection'}
+              </button>
+            </div>
+            {connectionTested && (
+              <div className="mt-2 flex items-center gap-2">
+                <div className="h-2 w-2 rounded-full bg-green-500"></div>
+                <p className="text-xs text-green-600">Connection successful!</p>
+              </div>
+            )}
+            {testError && (
+              <div className="mt-2 flex items-center gap-2">
+                <div className="h-2 w-2 rounded-full bg-red-500"></div>
+                <p className="text-xs text-red-600">{testError}</p>
+              </div>
+            )}
+          </div>
+        )}
+
         {error && (
           <div className="mt-3 rounded border border-red-200 bg-red-50 p-2 sm:mt-4 sm:p-3">
             <p className="mb-1 text-xs font-medium text-red-600 sm:text-sm">
@@ -147,7 +194,10 @@ export default function ConnectionFormModal({
           <button
             onClick={onSubmit}
             disabled={
-              !name || !pat || (!editingConnection && !baseUrl) || isLoading
+              !name ||
+              !pat ||
+              (!editingConnection && (!baseUrl || !connectionTested)) ||
+              isLoading
             }
             className="flex w-full items-center justify-center gap-2 rounded bg-green-600 px-3 py-2 text-sm text-white hover:bg-green-700 disabled:opacity-50 sm:w-auto sm:px-4"
           >

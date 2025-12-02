@@ -262,6 +262,27 @@ export type AssignUsersToProgramDto = {
   userIds: Array<string>;
 };
 
+export type WorkflowSummaryDto = {
+  id: string;
+  name: string;
+};
+
+export type UsersSummaryDto = {
+  id: string;
+  firstName: string;
+  lastName: string;
+};
+
+export type ProgramResponseDto = {
+  id: string;
+  name: string;
+  description: string;
+  createdAt: string;
+  updatedAt: string;
+  workflows: Array<WorkflowSummaryDto>;
+  users: Array<UsersSummaryDto>;
+};
+
 export type ProgramSummaryDto = {
   id: string;
   name: string;
@@ -794,7 +815,7 @@ export type ProgramControllerGetAllProgramsForUserResponses = {
   200: unknown;
 };
 
-export type ProgramControllerAddUsersToProgramData = {
+export type ProgramControllerAssignUsersToProgramData = {
   body: AssignUsersToProgramDto;
   path: {
     id: string;
@@ -803,12 +824,28 @@ export type ProgramControllerAddUsersToProgramData = {
   url: '/api/v1/programs/{id}/users';
 };
 
-export type ProgramControllerAddUsersToProgramResponses = {
+export type ProgramControllerAssignUsersToProgramResponses = {
+  201: ProgramResponseDto;
+};
+
+export type ProgramControllerAssignUsersToProgramResponse =
+  ProgramControllerAssignUsersToProgramResponses[keyof ProgramControllerAssignUsersToProgramResponses];
+
+export type ProgramControllerUnassignUsersFromProgramData = {
+  body: AssignUsersToProgramDto;
+  path: {
+    id: string;
+  };
+  query?: never;
+  url: '/api/v1/programs/{id}/users/unassign';
+};
+
+export type ProgramControllerUnassignUsersFromProgramResponses = {
   201: Program;
 };
 
-export type ProgramControllerAddUsersToProgramResponse =
-  ProgramControllerAddUsersToProgramResponses[keyof ProgramControllerAddUsersToProgramResponses];
+export type ProgramControllerUnassignUsersFromProgramResponse =
+  ProgramControllerUnassignUsersFromProgramResponses[keyof ProgramControllerUnassignUsersFromProgramResponses];
 
 export type WorkflowControllerGetWorkflowsData = {
   body?: never;
@@ -870,13 +907,29 @@ export type WorkflowControllerFindWorkflowByIdResponses = {
 export type WorkflowControllerFindWorkflowByIdResponse =
   WorkflowControllerFindWorkflowByIdResponses[keyof WorkflowControllerFindWorkflowByIdResponses];
 
+export type WorkflowControllerUpdateWorkflowBasicInfoData = {
+  body: UpdateWorkflowBasicDto;
+  path: {
+    workflowId: string;
+  };
+  query?: never;
+  url: '/api/v1/workflows/{workflowId}';
+};
+
+export type WorkflowControllerUpdateWorkflowBasicInfoResponses = {
+  200: Workflow;
+};
+
+export type WorkflowControllerUpdateWorkflowBasicInfoResponse =
+  WorkflowControllerUpdateWorkflowBasicInfoResponses[keyof WorkflowControllerUpdateWorkflowBasicInfoResponses];
+
 export type WorkflowControllerArchiveWorkflowData = {
   body?: never;
   path: {
     workflowId: string;
   };
   query?: never;
-  url: '/api/v1/workflows/{workflowId}';
+  url: '/api/v1/workflows/{workflowId}/archive';
 };
 
 export type WorkflowControllerArchiveWorkflowResponses = {
@@ -893,11 +946,27 @@ export type WorkflowControllerAssignUsersToWorkflowData = {
 };
 
 export type WorkflowControllerAssignUsersToWorkflowResponses = {
-  201: Workflow;
+  201: WorkflowResponseDto;
 };
 
 export type WorkflowControllerAssignUsersToWorkflowResponse =
   WorkflowControllerAssignUsersToWorkflowResponses[keyof WorkflowControllerAssignUsersToWorkflowResponses];
+
+export type WorkflowControllerUnassignUsersFromWorkflowData = {
+  body: AssignUsersDto;
+  path: {
+    workflowId: string;
+  };
+  query?: never;
+  url: '/api/v1/workflows/{workflowId}/users/unassign';
+};
+
+export type WorkflowControllerUnassignUsersFromWorkflowResponses = {
+  201: WorkflowResponseDto;
+};
+
+export type WorkflowControllerUnassignUsersFromWorkflowResponse =
+  WorkflowControllerUnassignUsersFromWorkflowResponses[keyof WorkflowControllerUnassignUsersFromWorkflowResponses];
 
 export type FieldControllerGetWorkflowFieldsData = {
   body?: never;

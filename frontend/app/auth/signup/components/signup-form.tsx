@@ -125,11 +125,8 @@ export function SignUpForm() {
         </p>
       </div>
 
-      <form
-        onSubmit={handleSubmit(onSubmit)}
-        className="mx-auto w-full max-w-lg space-y-4 px-4 sm:max-w-xl sm:px-6 md:max-w-2xl lg:max-w-4xl lg:px-8 xl:max-w-5xl"
-      >
-        <div className="flex gap-4">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <div className="flex flex-col gap-4 sm:flex-row">
           <div className="flex-1">
             <label className="block text-sm font-medium text-gray-600">
               First Name
@@ -183,22 +180,24 @@ export function SignUpForm() {
           )}
         </div>
 
-        <div>
-          <PasswordInput
-            {...register('password')}
-            error={errors.password?.message}
-            label="Password"
-            placeholder="Enter your Password"
-          />
-        </div>
+        <div className="flex flex-col gap-4 sm:flex-row">
+          <div className="flex-1">
+            <PasswordInput
+              {...register('password')}
+              error={errors.password?.message}
+              label="Password"
+              placeholder="Enter your Password"
+            />
+          </div>
 
-        <div>
-          <PasswordInput
-            {...register('confirmPassword')}
-            error={errors.confirmPassword?.message}
-            label="Confirm Password"
-            placeholder="Confirm your password"
-          />
+          <div className="flex-1">
+            <PasswordInput
+              {...register('confirmPassword')}
+              error={errors.confirmPassword?.message}
+              label="Confirm Password"
+              placeholder="Confirm your password"
+            />
+          </div>
         </div>
 
         <div className="flex items-center space-x-2">

@@ -249,11 +249,6 @@ export default function AssignUsersModal({
                         <p className="text-sm font-medium text-gray-800">
                           {workflow.name}
                         </p>
-                        {workflow.description && (
-                          <p className="text-xs text-gray-500">
-                            {workflow.description}
-                          </p>
-                        )}
                         <p className="text-xs text-blue-600">
                           {currentUserCount} user(s) currently assigned
                         </p>
@@ -309,16 +304,12 @@ export default function AssignUsersModal({
                         className="h-4 w-4 text-green-600 focus:ring-green-500"
                       />
                       <div className="flex flex-1 items-center gap-2">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-200">
-                          <User size={16} className="text-gray-600" />
-                        </div>
                         <div className="flex-1">
                           <p className="text-sm font-medium text-gray-800">
                             {user.firstName && user.lastName
                               ? `${user.firstName} ${user.lastName}`
                               : user.email}
                           </p>
-                          <p className="text-xs text-gray-500">{user.email}</p>
                           {isAlreadyAssigned && (
                             <p className="text-xs font-medium text-blue-600">
                               Already assigned to selected workflow(s)
