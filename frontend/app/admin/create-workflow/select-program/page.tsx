@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { ArrowLeft, FileText, Plus } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
+import { getIconForProgram } from '../../components/getIconForProgram';
 import { programControllerGetProgramsOptions } from '@/client/@tanstack/react-query.gen';
 
 interface Program {
@@ -13,7 +14,7 @@ interface Program {
 
 interface ApiResponse {
   data?: {
-    data?: Program[];
+    programs?: Program[];
   };
 }
 
@@ -26,7 +27,8 @@ export default function SelectProgram() {
     }),
   });
 
-  const programs: Program[] = (programsData as ApiResponse)?.data?.data || [];
+  const programs: Program[] =
+    (programsData as ApiResponse)?.data?.programs || [];
 
   const handleNext = () => {
     if (selectedProgram) {
@@ -97,22 +99,22 @@ export default function SelectProgram() {
               />
               <label
                 htmlFor={program.id}
-                className={`flex cursor-pointer rounded-xl border-2 p-3 transition-all hover:border-green-600 hover:shadow-lg sm:rounded-2xl sm:p-4 lg:p-6 ${
+                className={`flex cursor-pointer rounded-xl border-2 p-3 transition-all hover:border-green-600 hover:shadow-lg sm:p-4 ${
                   selectedProgram === program.id
                     ? 'border-green-600 bg-green-50'
                     : 'border-gray-200 bg-white'
                 }`}
               >
-                <div className="flex w-full items-start gap-2 sm:gap-3 lg:gap-4">
+                <div className="flex w-full items-start gap-2 sm:gap-3">
                   <div
-                    className={`mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full border-2 sm:mt-1 sm:h-6 sm:w-6 ${
+                    className={`mt-0.5 flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full border-2 sm:h-5 sm:w-5 ${
                       selectedProgram === program.id
                         ? 'border-green-600 bg-green-600'
                         : 'border-gray-300 bg-white'
                     }`}
                   >
                     <div
-                      className={`h-1.5 w-1.5 rounded-full bg-white sm:h-2 sm:w-2 ${
+                      className={`h-1.5 w-1.5 rounded-full bg-white ${
                         selectedProgram === program.id
                           ? 'opacity-100'
                           : 'opacity-0'
@@ -120,13 +122,18 @@ export default function SelectProgram() {
                     ></div>
                   </div>
                   <div className="min-w-0 flex-1">
-                    <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-lg bg-green-100 sm:mb-3 sm:h-10 sm:w-10">
-                      <FileText className="h-4 w-4 text-green-600 sm:h-5 sm:w-5" />
+                    <div className="mb-2 flex h-7 w-7 items-center justify-center rounded-lg bg-green-100 sm:h-8 sm:w-8">
+                      {(() => {
+                        const IconComponent = getIconForProgram(program.name);
+                        return (
+                          <IconComponent className="h-3.5 w-3.5 text-green-600 sm:h-4 sm:w-4" />
+                        );
+                      })()}
                     </div>
-                    <h3 className="mb-1 text-base font-semibold break-words text-gray-900 sm:mb-2 sm:text-lg">
+                    <h3 className="mb-1 text-base font-semibold break-words text-gray-900">
                       {program.name}
                     </h3>
-                    <p className="text-xs leading-relaxed break-words text-gray-600 sm:text-sm">
+                    <p className="text-xs leading-relaxed break-words text-gray-600">
                       {program.description || 'No description available'}
                     </p>
                   </div>

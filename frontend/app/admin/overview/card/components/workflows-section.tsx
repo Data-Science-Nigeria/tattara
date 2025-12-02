@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Plus, FileText, Edit, Mic, Image, Eye, X } from 'lucide-react';
+import { Plus, FileText, Mic, Image, Eye, X } from 'lucide-react';
 
 interface Workflow {
   id: string;
@@ -39,8 +39,8 @@ export default function WorkflowsSection({
   };
 
   const activeWorkflows = workflows.filter((w) => w.status === 'active');
-  const displayedWorkflows = activeWorkflows.slice(0, 3);
-  const hasMore = activeWorkflows.length > 3;
+  const displayedWorkflows = activeWorkflows.slice(0, 5);
+  const hasMore = activeWorkflows.length > 5;
 
   if (isLoading) {
     return (
@@ -82,123 +82,55 @@ export default function WorkflowsSection({
         </div>
       ) : (
         <>
-          {/* Card view for lg+ screens */}
-          <div className="hidden lg:block">
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {displayedWorkflows.map((workflow) => {
-                const IconComponent = getIcon(workflow.enabledModes);
-                return (
-                  <div
-                    key={workflow.id}
-                    className="rounded-lg border border-gray-200 p-4 hover:border-green-300"
-                  >
-                    <div className="mb-3 flex items-start justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="rounded-lg bg-green-100 p-2">
-                          <IconComponent className="h-5 w-5 text-green-600" />
-                        </div>
-                        <div>
-                          <h3 className="font-medium text-gray-900">
-                            {workflow.name}
-                          </h3>
-                          <p className="text-sm text-gray-500">
-                            {workflow.enabledModes.join(', ')} modes
-                          </p>
-                        </div>
-                      </div>
-                      <button
-                        onClick={() =>
-                          (window.location.href = `/admin/create-workflow/workflow-details?workflowId=${workflow.id}`)
-                        }
-                        className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-                        title="Edit workflow"
-                      >
-                        <Edit className="h-4 w-4" />
-                      </button>
+          {/* List view for all screens */}
+          <div className="space-y-3">
+            {displayedWorkflows.map((workflow) => {
+              const IconComponent = getIcon(workflow.enabledModes);
+              return (
+                <div
+                  key={workflow.id}
+                  className="flex items-center justify-between rounded-lg border border-gray-200 p-3 hover:border-green-300"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="rounded-lg bg-green-100 p-2">
+                      <IconComponent className="h-4 w-4 text-green-600" />
                     </div>
-                    {workflow.description && (
-                      <p className="mb-3 text-sm text-gray-600">
-                        {workflow.description}
-                      </p>
-                    )}
-                    <div className="flex items-center justify-between text-xs text-gray-500">
-                      <span>{workflow.users?.length || 0} users assigned</span>
-                      <span className="rounded-full bg-green-100 px-2 py-1 text-green-700">
-                        {workflow.status}
-                      </span>
+                    <div className="min-w-0 flex-1">
+                      <h3 className="truncate font-medium text-gray-900">
+                        {workflow.name}
+                      </h3>
+                      <div className="flex items-center gap-2 text-xs text-gray-500">
+                        {workflow.description && (
+                          <span className="truncate">
+                            {workflow.description}
+                          </span>
+                        )}
+                        {workflow.description && <span>•</span>}
+                        <span>{workflow.users?.length || 0} users</span>
+                      </div>
                     </div>
                   </div>
-                );
-              })}
-            </div>
-            {hasMore && (
-              <div className="mt-4 text-center">
-                <button
-                  onClick={() => setShowModal(true)}
-                  className="flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-                >
-                  <Eye className="h-4 w-4" />
-                  View All ({activeWorkflows.length})
-                </button>
-              </div>
-            )}
+                </div>
+              );
+            })}
           </div>
-
-          {/* List view for md and below */}
-          <div className="lg:hidden">
-            <div className="space-y-3">
-              {activeWorkflows.slice(0, 3).map((workflow) => {
-                const IconComponent = getIcon(workflow.enabledModes);
-                return (
-                  <div
-                    key={workflow.id}
-                    className="flex items-center justify-between rounded-lg border border-gray-200 p-3 hover:border-green-300"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="rounded-lg bg-green-100 p-2">
-                        <IconComponent className="h-4 w-4 text-green-600" />
-                      </div>
-                      <div>
-                        <h3 className="font-medium text-gray-900">
-                          {workflow.name}
-                        </h3>
-                        <p className="text-xs text-gray-500">
-                          {workflow.enabledModes.join(', ')} •{' '}
-                          {workflow.users?.length || 0} users
-                        </p>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() =>
-                        (window.location.href = `/admin/create-workflow/workflow-details?workflowId=${workflow.id}`)
-                      }
-                      className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-                      title="Edit workflow"
-                    >
-                      <Edit className="h-4 w-4" />
-                    </button>
-                  </div>
-                );
-              })}
+          {hasMore && (
+            <div className="mt-4 text-center">
+              <button
+                onClick={() => setShowModal(true)}
+                className="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
+                <Eye className="h-4 w-4" />
+                View All ({activeWorkflows.length})
+              </button>
             </div>
-            {hasMore && (
-              <div className="mt-4 text-center">
-                <button
-                  onClick={() => setShowModal(true)}
-                  className="flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-                >
-                  <Eye className="h-4 w-4" />
-                  View All ({activeWorkflows.length})
-                </button>
-              </div>
-            )}
-          </div>
+          )}
 
-          {/* Modal */}
+          {/* Modal with List View */}
           {showModal && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-              <div className="m-4 max-h-[80vh] w-full max-w-2xl overflow-y-auto rounded-lg bg-white p-6">
-                <div className="mb-4 flex items-center justify-between">
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+              <div className="flex max-h-[80vh] w-full max-w-2xl flex-col rounded-lg bg-white">
+                <div className="flex items-center justify-between border-b p-6">
                   <h3 className="text-lg font-semibold text-gray-900">
                     All Workflows ({activeWorkflows.length})
                   </h3>
@@ -209,45 +141,36 @@ export default function WorkflowsSection({
                     <X className="h-5 w-5" />
                   </button>
                 </div>
-                <div className="space-y-3">
-                  {activeWorkflows.map((workflow) => {
-                    const IconComponent = getIcon(workflow.enabledModes);
-                    return (
-                      <div
-                        key={workflow.id}
-                        className="flex items-center justify-between rounded-lg border border-gray-200 p-3 hover:border-green-300"
-                      >
-                        <div className="flex items-center gap-3">
+                <div className="custom-scrollbar flex-1 overflow-y-auto p-6">
+                  <div className="space-y-3">
+                    {activeWorkflows.map((workflow) => {
+                      const IconComponent = getIcon(workflow.enabledModes);
+                      return (
+                        <div
+                          key={workflow.id}
+                          className="flex items-center gap-3 rounded-lg border border-gray-200 p-3 hover:border-green-300"
+                        >
                           <div className="rounded-lg bg-green-100 p-2">
                             <IconComponent className="h-4 w-4 text-green-600" />
                           </div>
-                          <div>
-                            <h4 className="font-medium text-gray-900">
+                          <div className="min-w-0 flex-1">
+                            <h4 className="truncate font-medium text-gray-900">
                               {workflow.name}
                             </h4>
-                            <p className="text-sm text-gray-500">
-                              {workflow.enabledModes.join(', ')} •{' '}
-                              {workflow.users?.length || 0} users assigned
-                            </p>
-                            {workflow.description && (
-                              <p className="mt-1 text-xs text-gray-400">
-                                {workflow.description}
-                              </p>
-                            )}
+                            <div className="flex items-center gap-2 text-xs text-gray-500">
+                              {workflow.description && (
+                                <span className="truncate">
+                                  {workflow.description}
+                                </span>
+                              )}
+                              {workflow.description && <span>•</span>}
+                              <span>{workflow.users?.length || 0} users</span>
+                            </div>
                           </div>
                         </div>
-                        <button
-                          onClick={() =>
-                            (window.location.href = `/admin/create-workflow/workflow-details?workflowId=${workflow.id}`)
-                          }
-                          className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-                          title="Edit workflow"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </button>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             </div>

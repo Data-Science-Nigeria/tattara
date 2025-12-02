@@ -1,21 +1,9 @@
 'use client';
 
 import React, { useState } from 'react';
-import {
-  FileText,
-  Users,
-  ClipboardList,
-  Plus,
-  Heart,
-  Shield,
-  Activity,
-  Baby,
-  Stethoscope,
-  Pill,
-  Eye,
-  Brain,
-} from 'lucide-react';
+import { Plus } from 'lucide-react';
 import Link from 'next/link';
+import { getIconForProgram } from '../components/getIconForProgram';
 import {
   Tooltip,
   TooltipContent,
@@ -84,7 +72,7 @@ const Programs = () => {
   interface ApiResponse {
     success: boolean;
     data: {
-      data: ApiProgram[];
+      programs: ApiProgram[];
       page: number;
       limit: number;
       total: number;
@@ -95,25 +83,10 @@ const Programs = () => {
 
   // Extract programs and pagination from API response
   const apiData = (programsData as unknown as ApiResponse)?.data;
-  const programsArray = apiData?.data || [];
+  const programsArray = apiData?.programs || [];
   const pagination = {
     total: apiData?.total || 0,
     pages: apiData?.pages || 1,
-  };
-
-  const getIconForProgram = (programName: string) => {
-    const name = programName.toLowerCase();
-    if (name.includes('child') || name.includes('baby')) return Baby;
-    if (name.includes('malaria') || name.includes('disease')) return Shield;
-    if (name.includes('health') || name.includes('medical')) return Stethoscope;
-    if (name.includes('staff') || name.includes('user')) return Users;
-    if (name.includes('asset') || name.includes('audit')) return ClipboardList;
-    if (name.includes('heart') || name.includes('cardiac')) return Heart;
-    if (name.includes('surveillance') || name.includes('monitor')) return Eye;
-    if (name.includes('mental') || name.includes('brain')) return Brain;
-    if (name.includes('drug') || name.includes('medicine')) return Pill;
-    if (name.includes('activity') || name.includes('exercise')) return Activity;
-    return FileText; // default
   };
 
   const programs: Program[] = programsArray.map((program: ApiProgram) => ({
@@ -134,23 +107,23 @@ const Programs = () => {
     return (
       <Link href={`/admin/overview/card?id=${program.id}`}>
         <div
-          className={`rounded-2xl border-2 bg-white p-3 sm:p-6 ${program.borderColor} transition-all duration-300 hover:border-[#008647] hover:shadow-lg focus:border-[#008647] focus:outline-none`}
+          className={`rounded-xl border-2 bg-white p-3 sm:p-4 ${program.borderColor} transition-all duration-300 hover:border-[#008647] hover:shadow-lg focus:border-[#008647] focus:outline-none`}
         >
-          <div className="mb-3 flex items-start gap-3 sm:mb-4 sm:gap-4">
+          <div className="mb-2 flex items-start gap-2 sm:mb-3 sm:gap-3">
             <div
-              className={`flex-shrink-0 rounded-xl p-2 sm:p-3 ${program.isActive ? 'border-green-500 bg-green-100' : 'bg-gray-100'}`}
+              className={`flex-shrink-0 rounded-lg p-2 ${program.isActive ? 'border-green-500 bg-green-100' : 'bg-gray-100'}`}
             >
               {program.isActive ? (
-                <div className="h-3 w-3 rounded-full bg-green-500"></div>
+                <div className="h-2.5 w-2.5 rounded-full bg-green-500"></div>
               ) : (
-                <IconComponent className="h-5 w-5 text-gray-600 sm:h-6 sm:w-6" />
+                <IconComponent className="h-4 w-4 text-gray-600 sm:h-5 sm:w-5" />
               )}
             </div>
             <div className="min-w-0 flex-1">
-              <h3 className="mb-1 text-lg font-semibold break-words text-gray-800 sm:mb-2 sm:text-xl">
+              <h3 className="mb-1 text-base font-semibold break-words text-gray-800 sm:text-lg">
                 {program.name}
               </h3>
-              <p className="text-xs leading-relaxed break-words whitespace-break-spaces text-gray-600 sm:text-sm">
+              <p className="text-xs leading-relaxed break-words whitespace-break-spaces text-gray-600">
                 {program.description}
               </p>
             </div>

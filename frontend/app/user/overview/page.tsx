@@ -35,7 +35,7 @@ interface ProfileResponse {
 interface WorkflowsResponse {
   success: boolean;
   data: {
-    data: ApiWorkflow[];
+    workflows: ApiWorkflow[];
     page: number;
     limit: number;
     total: number;
@@ -77,7 +77,7 @@ export default function Workflows() {
 
   // Extract workflows from API response
   const allUserWorkflows =
-    (workflowsData as WorkflowsResponse)?.data?.data || [];
+    (workflowsData as WorkflowsResponse)?.data?.workflows || [];
   const activeWorkflows = allUserWorkflows.filter((w) => w.status === 'active');
   const finalWorkflows = activeWorkflows;
 
@@ -88,6 +88,15 @@ export default function Workflows() {
   const endIndex = startIndex + itemsPerPage;
   const currentWorkflows = finalWorkflows.slice(startIndex, endIndex);
 
+  const getActionLabel = (
+    enabledModes: Array<'audio' | 'text' | 'image'>
+  ): string => {
+    if (enabledModes.includes('text')) return 'Fill';
+    if (enabledModes.includes('image')) return 'Upload Image';
+    if (enabledModes.includes('audio')) return 'Upload or Record Audio';
+    return 'Start Collection';
+  };
+
   const workflows: Workflow[] = currentWorkflows.map(
     (workflow: ApiWorkflow) => ({
       icon: React.createElement(getIconForWorkflow(workflow.enabledModes), {
@@ -95,7 +104,7 @@ export default function Workflows() {
       }),
       title: workflow.name,
       description: workflow.description || 'No description available',
-      actionLabel: 'Start Collection',
+      actionLabel: getActionLabel(workflow.enabledModes),
       onClick: () => (window.location.href = `/user/workflow/${workflow.id}`),
     })
   );

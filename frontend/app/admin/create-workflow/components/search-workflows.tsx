@@ -32,7 +32,8 @@ export default function SearchWorkflows({
   React.useEffect(() => {
     if (searchResults) {
       const workflows =
-        (searchResults as { data?: { data?: Workflow[] } })?.data?.data || [];
+        (searchResults as { data?: { workflows?: Workflow[] } })?.data
+          ?.workflows || [];
       onResults(workflows);
     }
   }, [searchResults, onResults]);

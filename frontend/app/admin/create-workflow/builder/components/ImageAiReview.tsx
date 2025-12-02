@@ -19,8 +19,8 @@ export default function ImageAiReview({
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [aiReviewData, setAiReviewData] = useState<{
-    extractedText?: string;
     extracted?: Record<string, unknown>;
+    missing_required?: string[];
   } | null>(null);
   const { auth } = useAuthStore();
 
@@ -28,11 +28,6 @@ export default function ImageAiReview({
 
   const aiProcessMutation = useMutation({
     mutationFn: async ({ formData }: { formData: FormData }) => {
-      console.log('Auth state:', auth);
-      console.log('Making request with credentials: include');
-      console.log('Cookies:', document.cookie);
-      console.log('LocalStorage auth:', localStorage.getItem('auth-storage'));
-
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/v1/collector/process-ai`,
         {
@@ -45,15 +40,7 @@ export default function ImageAiReview({
         }
       );
 
-      console.log('Response status:', response.status);
-      console.log(
-        'Response headers:',
-        Object.fromEntries(response.headers.entries())
-      );
-
       if (!response.ok) {
-        const errorText = await response.text();
-        console.log('Error response:', errorText);
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
@@ -96,8 +83,8 @@ export default function ImageAiReview({
       const responseData = aiResponse as {
         data?: {
           aiData?: {
-            extractedText?: string;
             extracted?: Record<string, unknown>;
+            missing_required?: string[];
           };
           aiProcessingLogId?: string;
         };
@@ -193,14 +180,6 @@ export default function ImageAiReview({
       {aiReviewData && (
         <div className="rounded-lg border border-gray-300 bg-white p-4">
           <h3 className="mb-3 text-lg font-semibold">AI Processing Results</h3>
-          {aiReviewData.extractedText && (
-            <div className="mb-4">
-              <strong>Extracted Text:</strong>
-              <div className="mt-2 rounded-lg bg-blue-50 p-3">
-                <p className="text-blue-800">{aiReviewData.extractedText}</p>
-              </div>
-            </div>
-          )}
           <div>
             <strong>Extracted Data:</strong>
             <div className="mt-2 space-y-1">
@@ -214,6 +193,18 @@ export default function ImageAiReview({
               )}
             </div>
           </div>
+          {(aiReviewData.missing_required?.length ?? 0) > 0 && (
+            <div className="mt-4 text-sm text-red-600">
+              <strong>Missing Required Fields:</strong>
+              <ul className="mt-1 list-inside list-disc">
+                {aiReviewData.missing_required?.map(
+                  (field: string, index: number) => (
+                    <li key={index}>{field}</li>
+                  )
+                )}
+              </ul>
+            </div>
+          )}
           <button
             onClick={() => {
               setAiReviewData(null);

@@ -16,6 +16,7 @@ interface WorkflowBuilderLayoutProps {
   saveButtonText?: string;
   canProceed?: boolean;
   isEditMode?: boolean;
+  disableBack?: boolean;
 }
 
 export default function WorkflowBuilderLayout({
@@ -31,6 +32,7 @@ export default function WorkflowBuilderLayout({
   saveButtonText = 'Save Workflow',
   canProceed = true,
   isEditMode = false,
+  disableBack = false,
 }: WorkflowBuilderLayoutProps) {
   return (
     <div className="space-y-4 p-3 sm:space-y-6 sm:p-6 lg:space-y-8 lg:p-8">
@@ -79,7 +81,10 @@ export default function WorkflowBuilderLayout({
               setCurrentStep(steps[currentIndex - 1].id);
             }
           }}
-          disabled={steps.findIndex((step) => step.id === currentStep) === 0}
+          disabled={
+            steps.findIndex((step) => step.id === currentStep) === 0 ||
+            disableBack
+          }
           className="w-full rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto sm:px-6 sm:text-base"
         >
           Previous
@@ -111,8 +116,9 @@ export default function WorkflowBuilderLayout({
                 (step) => step.id === currentStep
               );
               const isLastStep = currentIndex === steps.length - 1;
+              const isCreateStep = currentStep === 'create';
 
-              if (isLastStep) {
+              if (isLastStep || isCreateStep) {
                 onSave();
               } else {
                 setCurrentStep(steps[currentIndex + 1].id);

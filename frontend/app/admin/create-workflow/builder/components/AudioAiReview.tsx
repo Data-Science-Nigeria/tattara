@@ -21,8 +21,8 @@ export default function AudioAiReview({
   const [recordingTime, setRecordingTime] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
   const [aiReviewData, setAiReviewData] = useState<{
-    transcription?: string;
     extracted?: Record<string, unknown>;
+    missing_required?: string[];
   } | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -96,8 +96,8 @@ export default function AudioAiReview({
       const responseData = aiResponse as {
         data?: {
           aiData?: {
-            transcription?: string;
             extracted?: Record<string, unknown>;
+            missing_required?: string[];
           };
           aiProcessingLogId?: string;
         };
@@ -253,14 +253,6 @@ export default function AudioAiReview({
               Reset All
             </button>
           </div>
-          {aiReviewData.transcription && (
-            <div className="mb-4">
-              <strong>Transcription:</strong>
-              <div className="mt-2 rounded-lg bg-blue-50 p-3">
-                <p className="text-blue-800">{aiReviewData.transcription}</p>
-              </div>
-            </div>
-          )}
           <div>
             <strong>Extracted Data:</strong>
             <div className="mt-2 space-y-1">
@@ -274,6 +266,18 @@ export default function AudioAiReview({
               )}
             </div>
           </div>
+          {(aiReviewData.missing_required?.length ?? 0) > 0 && (
+            <div className="mt-4 text-sm text-red-600">
+              <strong>Missing Required Fields:</strong>
+              <ul className="mt-1 list-inside list-disc">
+                {aiReviewData.missing_required?.map(
+                  (field: string, index: number) => (
+                    <li key={index}>{field}</li>
+                  )
+                )}
+              </ul>
+            </div>
+          )}
           <button
             onClick={() => {
               setAiReviewData(null);

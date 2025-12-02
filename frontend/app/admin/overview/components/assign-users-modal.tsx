@@ -228,7 +228,7 @@ export default function AssignUsersModal({
                 : 'Select All'}
             </button>
           </div>
-          <div className="mb-4 max-h-32 overflow-y-auto rounded-lg border p-2">
+          <div className="custom-scrollbar mb-4 max-h-32 overflow-y-auto rounded-lg border p-2">
             {workflows.length > 0 ? (
               <div className="space-y-2">
                 {workflows.map((workflow: Workflow) => {
@@ -282,7 +282,7 @@ export default function AssignUsersModal({
                 : 'Select All'}
             </button>
           </div>
-          <div className="max-h-64 overflow-y-auto rounded-lg border p-2">
+          <div className="custom-scrollbar max-h-64 overflow-y-auto rounded-lg border p-2">
             {usersLoading ? (
               <div className="flex items-center justify-center py-8">
                 <div className="h-6 w-6 animate-spin rounded-full border-b-2 border-green-600"></div>

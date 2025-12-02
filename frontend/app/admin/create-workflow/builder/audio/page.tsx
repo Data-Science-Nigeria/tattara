@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { Plus, Trash2, Mic, GripVertical, Eye } from 'lucide-react';
+import { Mic } from 'lucide-react';
 import {
   workflowControllerCreateWorkflowMutation,
   workflowControllerFindWorkflowByIdOptions,
@@ -13,8 +13,8 @@ import {
 import { toast } from 'sonner';
 import WorkflowBuilderLayout from '../components/workflow-builder-layout';
 import DHIS2ConfigStep from '../components/dhis2-config-step';
-
 import FieldPreviewModal from '../components/field-preview-modal';
+import AiFieldMappingSection from '../components/AiFieldMappingSection';
 
 export default function AudioBuilder() {
   const searchParams = useSearchParams();
@@ -71,7 +71,6 @@ export default function AudioBuilder() {
       dhis2DataElement?: string;
     }>
   >([]);
-  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
 
   // Fetch workflow data if editing
   const { data: workflowData } = useQuery({
@@ -122,66 +121,36 @@ export default function AudioBuilder() {
   // Load existing data in edit mode
   useEffect(() => {
     if (workflowData && isEditMode) {
-      const workflow = (
-        workflowData as {
-          data?: {
-            workflowFields?: typeof aiFieldMappings;
-            workflowConfigurations?: Array<{
-              type: string;
-              externalConnection?: { id: string };
-              configuration?: {
-                programId: string;
-                orgUnits: string[];
-                language?: string;
-              };
-            }>;
-          };
-        }
-      )?.data;
+      const workflow = (workflowData as { data?: Record<string, unknown> })
+        ?.data;
       if (workflow) {
-        setAiFieldMappings(workflow.workflowFields || []);
-        const dhis2Config = workflow.workflowConfigurations?.find(
-          (config) => config.type === 'dhis2'
+        setAiFieldMappings(
+          (workflow.workflowFields as typeof aiFieldMappings) || []
         );
+        const dhis2Config = (
+          workflow.workflowConfigurations as Array<Record<string, unknown>>
+        )?.find((config: Record<string, unknown>) => config.type === 'dhis2');
         if (dhis2Config) {
-          setSelectedConnection(dhis2Config.externalConnection?.id || '');
-          setSelectedProgram(dhis2Config.configuration?.programId || '');
-          setSelectedOrgUnits(dhis2Config.configuration?.orgUnits || []);
+          setSelectedConnection(
+            (dhis2Config.externalConnection as { id?: string })?.id || ''
+          );
+          setSelectedProgram(
+            (dhis2Config.configuration as { programId?: string })?.programId ||
+              ''
+          );
+          setSelectedOrgUnits(
+            (dhis2Config.configuration as { orgUnits?: string[] })?.orgUnits ||
+              []
+          );
           setBasicConfig({
-            language: dhis2Config.configuration?.language || 'en',
+            language:
+              (dhis2Config.configuration as { language?: string })?.language ||
+              'en',
           });
         }
       }
     }
   }, [workflowData, isEditMode]);
-
-  const addAiFieldMapping = () => {
-    const newMapping = {
-      id: Date.now().toString(),
-      fieldName: '',
-      label: '',
-      fieldType: 'text' as const,
-      isRequired: false,
-      displayOrder: aiFieldMappings.length + 1,
-      aiPrompt: '',
-    };
-    setAiFieldMappings([...aiFieldMappings, newMapping]);
-  };
-
-  const updateAiFieldMapping = (
-    id: string,
-    updates: Partial<(typeof aiFieldMappings)[0]>
-  ) => {
-    setAiFieldMappings(
-      aiFieldMappings.map((mapping) =>
-        mapping.id === id ? { ...mapping, ...updates } : mapping
-      )
-    );
-  };
-
-  const removeAiFieldMapping = (id: string) => {
-    setAiFieldMappings(aiFieldMappings.filter((mapping) => mapping.id !== id));
-  };
 
   const handleSave = async () => {
     if (isEditMode && workflowId) {
@@ -276,190 +245,14 @@ export default function AudioBuilder() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-2">
-        <div>
-          <label className="mb-2 block text-xs font-medium text-gray-700 sm:text-sm">
-            Language
-          </label>
-          <select
-            value={basicConfig.language}
-            onChange={(e) =>
-              setBasicConfig({ ...basicConfig, language: e.target.value })
-            }
-            className="w-full rounded-lg border border-gray-300 px-2 py-2 text-xs focus:border-green-500 focus:outline-none sm:px-3 sm:text-sm"
-          >
-            <option value="en">English</option>
-            <option value="yo">Yoruba</option>
-            <option value="ig">Igbo</option>
-            <option value="ha">Hausa</option>
-          </select>
-        </div>
-      </div>
-
-      <div className="border-t border-gray-200 pt-6">
-        <div className="mb-4 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
-          <h3 className="text-sm font-medium text-gray-900 sm:text-lg">
-            AI Field Extraction
-          </h3>
-          <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:gap-3">
-            <button
-              onClick={() => setShowFieldPreview(true)}
-              className="flex items-center justify-center gap-2 rounded-lg border border-green-600 px-3 py-2 text-xs text-green-600 hover:bg-green-50 sm:px-4 sm:text-sm"
-            >
-              <Eye size={14} className="sm:h-4 sm:w-4" />
-              <span className="hidden sm:inline">Browse DHIS2 Fields</span>
-              <span className="sm:hidden">Browse Fields</span>
-            </button>
-            <button
-              onClick={addAiFieldMapping}
-              className="flex items-center justify-center gap-2 rounded-lg bg-green-600 px-3 py-2 text-xs text-white hover:bg-green-700 sm:px-4 sm:text-sm"
-            >
-              <Plus size={14} className="sm:h-4 sm:w-4" />
-              <span className="hidden sm:inline">Add Field</span>
-              <span className="sm:hidden">Add</span>
-            </button>
-          </div>
-        </div>
-
-        <div className="space-y-4">
-          {aiFieldMappings.map((mapping, index) => (
-            <div
-              key={mapping.id}
-              className="relative rounded-lg border border-gray-200 p-3 sm:p-4"
-              draggable
-              onDragStart={(e) => {
-                setDraggedIndex(index);
-                e.dataTransfer.effectAllowed = 'move';
-              }}
-              onDragOver={(e) => {
-                e.preventDefault();
-                e.dataTransfer.dropEffect = 'move';
-              }}
-              onDrop={(e) => {
-                e.preventDefault();
-                if (draggedIndex === null || draggedIndex === index) return;
-                const newMappings = [...aiFieldMappings];
-                const draggedMapping = newMappings[draggedIndex];
-                newMappings.splice(draggedIndex, 1);
-                newMappings.splice(index, 0, draggedMapping);
-                const updatedMappings = newMappings.map((m, i) => ({
-                  ...m,
-                  displayOrder: i + 1,
-                }));
-                setAiFieldMappings(updatedMappings);
-                setDraggedIndex(null);
-              }}
-            >
-              <div className="absolute top-4 left-2 cursor-move text-gray-400 hover:text-gray-600">
-                <GripVertical size={16} />
-              </div>
-              <div className="ml-6 grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4">
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-gray-700 sm:text-sm">
-                    Field Name
-                  </label>
-                  <input
-                    type="text"
-                    value={mapping.fieldName}
-                    onChange={(e) =>
-                      updateAiFieldMapping(mapping.id, {
-                        fieldName: e.target.value,
-                      })
-                    }
-                    className="w-full rounded-lg border border-gray-300 px-2 py-2 text-xs focus:border-green-500 focus:outline-none sm:px-3 sm:text-sm"
-                    placeholder="e.g., patient_age"
-                  />
-                </div>
-
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-gray-700 sm:text-sm">
-                    Label
-                  </label>
-                  <input
-                    type="text"
-                    value={mapping.label}
-                    onChange={(e) =>
-                      updateAiFieldMapping(mapping.id, {
-                        label: e.target.value,
-                      })
-                    }
-                    className="w-full rounded-lg border border-gray-300 px-2 py-2 text-xs focus:border-green-500 focus:outline-none sm:px-3 sm:text-sm"
-                    placeholder="Patient Age"
-                  />
-                </div>
-
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-gray-700 sm:text-sm">
-                    Field Type
-                  </label>
-                  <select
-                    value={mapping.fieldType}
-                    onChange={(e) =>
-                      updateAiFieldMapping(mapping.id, {
-                        fieldType: e.target.value as typeof mapping.fieldType,
-                      })
-                    }
-                    className="w-full rounded-lg border border-gray-300 px-2 py-2 text-xs focus:border-green-500 focus:outline-none sm:px-3 sm:text-sm"
-                  >
-                    <option value="text">Text</option>
-                    <option value="number">Number</option>
-                    <option value="date">Date</option>
-                    <option value="datetime">Date & Time</option>
-                    <option value="select">Select</option>
-                    <option value="multiselect">Multi-select</option>
-                    <option value="boolean">Boolean</option>
-                    <option value="email">Email</option>
-                    <option value="phone">Phone</option>
-                    <option value="url">URL</option>
-                    <option value="textarea">Textarea</option>
-                  </select>
-                </div>
-
-                <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-end sm:gap-4">
-                  <label className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      checked={mapping.isRequired}
-                      onChange={(e) =>
-                        updateAiFieldMapping(mapping.id, {
-                          isRequired: e.target.checked,
-                        })
-                      }
-                      className="rounded border-gray-300 text-green-600 focus:ring-green-500"
-                    />
-                    <span className="text-xs text-gray-700 sm:text-sm">
-                      Required
-                    </span>
-                  </label>
-                  <button
-                    onClick={() => removeAiFieldMapping(mapping.id)}
-                    className="text-red-600 hover:text-red-800"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                </div>
-              </div>
-
-              <div className="mt-3 sm:mt-4">
-                <label className="mb-1 block text-xs font-medium text-gray-700 sm:text-sm">
-                  AI Extraction Prompt
-                </label>
-                <textarea
-                  value={mapping.aiPrompt}
-                  onChange={(e) =>
-                    updateAiFieldMapping(mapping.id, {
-                      aiPrompt: e.target.value,
-                    })
-                  }
-                  className="w-full rounded-lg border border-gray-300 px-2 py-2 text-xs focus:border-green-500 focus:outline-none sm:px-3 sm:text-sm"
-                  rows={3}
-                  placeholder="e.g., Extract the patient's age from the audio recording"
-                />
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
+      <AiFieldMappingSection
+        aiFieldMappings={aiFieldMappings}
+        setAiFieldMappings={setAiFieldMappings}
+        basicConfig={basicConfig}
+        setBasicConfig={setBasicConfig}
+        onShowFieldPreview={() => setShowFieldPreview(true)}
+        workflowType="audio"
+      />
     </div>
   );
 
@@ -523,7 +316,13 @@ export default function AudioBuilder() {
           setCurrentStep(step as 'config' | 'audio' | 'create')
         }
         steps={steps}
-        onSave={isEditMode ? handleSave : handleCreateWorkflow}
+        onSave={
+          currentStep === 'create'
+            ? handleCreateWorkflow
+            : isEditMode
+              ? handleSave
+              : () => {}
+        }
         onSaveAndContinue={isEditMode ? handleSaveAndContinue : undefined}
         isSaving={
           createWorkflowMutation.isPending ||
@@ -565,25 +364,45 @@ export default function AudioBuilder() {
         preSelectedConnection={selectedConnection}
         preSelectedType={selectedType}
         preSelectedProgram={selectedProgram}
+        existingFields={aiFieldMappings.map((mapping) => ({
+          id: mapping.dhis2DataElement || mapping.id,
+          name: mapping.label,
+          displayName: mapping.label,
+          valueType: mapping.fieldType.toUpperCase(),
+          mandatory: mapping.isRequired,
+        }))}
         onFieldsSelect={(selectedFields) => {
           const newFields = selectedFields.map((field, index) => ({
             id: Date.now().toString() + index,
             fieldName: field.name.toLowerCase().replace(/\s+/g, '_'),
             label: field.name,
             fieldType:
-              field.valueType === 'NUMBER' || field.valueType === 'INTEGER'
+              field.valueType === 'NUMBER' ||
+              field.valueType === 'INTEGER' ||
+              field.valueType === 'INTEGER_ZERO_OR_POSITIVE'
                 ? ('number' as const)
                 : field.valueType === 'DATE'
                   ? ('date' as const)
-                  : field.valueType === 'BOOLEAN' ||
-                      field.valueType === 'TRUE_ONLY'
-                    ? ('boolean' as const)
-                    : ('text' as const),
+                  : field.valueType === 'DATETIME'
+                    ? ('datetime' as const)
+                    : field.valueType === 'BOOLEAN' ||
+                        field.valueType === 'TRUE_ONLY'
+                      ? ('boolean' as const)
+                      : field.valueType === 'EMAIL'
+                        ? ('email' as const)
+                        : field.valueType === 'PHONE_NUMBER'
+                          ? ('phone' as const)
+                          : field.valueType === 'URL'
+                            ? ('url' as const)
+                            : field.valueType === 'LONG_TEXT'
+                              ? ('textarea' as const)
+                              : ('text' as const),
             isRequired: field.mandatory || false,
             displayOrder: aiFieldMappings.length + index + 1,
             aiPrompt: `Extract ${field.name.toLowerCase()} from the audio recording transcription`,
+            dhis2DataElement: field.id,
           }));
-          setAiFieldMappings([...aiFieldMappings, ...newFields]);
+          setAiFieldMappings(newFields);
         }}
       />
     </>
