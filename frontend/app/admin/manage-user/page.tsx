@@ -25,7 +25,7 @@ export default function ManageUsers() {
     refetch,
   } = useQuery({
     ...userControllerFindAllForLoggedInUserOptions({
-      query: { page: 1, limit: 100 },
+      query: { page: 1, limit: 1000000 },
     }),
   });
 

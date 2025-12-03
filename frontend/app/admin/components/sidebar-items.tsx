@@ -1,12 +1,4 @@
-import {
-  Computer,
-  Lock,
-  LogOut,
-  PlusSquare,
-  User,
-  Users,
-  Database,
-} from 'lucide-react';
+import { Computer, Lock, LogOut, PlusSquare, User, Users } from 'lucide-react';
 
 export const sidebarItems = [
   {
@@ -38,12 +30,6 @@ export const sidebarItems = [
     href: '/admin/external-connection',
     icon: Lock,
     alt: 'External Connection icon',
-  },
-  {
-    name: 'DHIS2 Integration',
-    href: '/admin/dhis2-integration',
-    icon: Database,
-    alt: 'DHIS2 Integration icon',
   },
 ];
 

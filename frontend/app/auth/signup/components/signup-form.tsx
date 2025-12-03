@@ -17,16 +17,49 @@ import { useAuthStore } from '@/app/store/use-auth-store';
 
 const signUpSchema = z
   .object({
-    firstName: z.string().min(1, 'First name is required'),
-    lastName: z.string().min(1, 'Last name is required'),
-    email: z.string().min(1, 'Email is required').email('Invalid email'),
+    firstName: z
+      .string()
+      .max(15, 'First name must be at most 15 characters')
+      .min(1, 'First name is required')
+      .transform((val) => val.trim())
+      .refine(
+        (val) => val.length > 0,
+        'First name cannot be empty after trimming'
+      )
+      .refine(
+        (val) => /^[a-zA-Z]+$/.test(val),
+        'Only letters allowed, no spaces'
+      ),
+    lastName: z
+      .string()
+      .max(15, 'Last name must be at most 15 characters')
+      .min(1, 'Last name is required')
+      .transform((val) => val.trim())
+      .refine(
+        (val) => val.length > 0,
+        'Last name cannot be empty after trimming'
+      )
+      .refine(
+        (val) => /^[a-zA-Z]+$/.test(val),
+        'Only letters allowed, no spaces'
+      ),
+    email: z
+      .string()
+      .min(1, 'Email is required')
+      .email('Invalid email')
+      .transform((val) => val.toLowerCase()),
     password: z
       .string()
       .min(8, 'Password must be at least 8 characters')
+      .max(128, 'Password must be at most 128 characters')
+      .regex(/^\S*$/, 'No spaces allowed in password')
       .regex(/[A-Z]/, 'Must include at least one uppercase letter')
       .regex(/[a-z]/, 'Must include at least one lowercase letter')
       .regex(/[0-9]/, 'Must include at least one number'),
     confirmPassword: z.string().min(1, 'Please confirm your password'),
+    agreeToTerms: z
+      .boolean()
+      .refine((val) => val === true, 'Must agree to terms'),
     role: z.literal('admin').optional(),
   })
   .refine((data) => data.password === data.confirmPassword, {
@@ -82,7 +115,7 @@ export function SignUpForm() {
   };
 
   return (
-    <>
+    <div>
       <div className="mb-4 text-center">
         <h1 className="mb-2 text-2xl font-bold text-[#373844]">
           Create Admin Account
@@ -92,11 +125,8 @@ export function SignUpForm() {
         </p>
       </div>
 
-      <form
-        onSubmit={handleSubmit(onSubmit)}
-        className="mx-auto w-full max-w-lg space-y-4 px-4 sm:max-w-xl sm:px-6 md:max-w-2xl lg:max-w-4xl lg:px-8 xl:max-w-5xl"
-      >
-        <div className="flex gap-4">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <div className="flex flex-col gap-4 sm:flex-row">
           <div className="flex-1">
             <label className="block text-sm font-medium text-gray-600">
               First Name
@@ -150,23 +180,47 @@ export function SignUpForm() {
           )}
         </div>
 
-        <div>
-          <PasswordInput
-            {...register('password')}
-            error={errors.password?.message}
-            label="Password"
-            placeholder="Enter your Password"
-          />
+        <div className="flex flex-col gap-4 sm:flex-row">
+          <div className="flex-1">
+            <PasswordInput
+              {...register('password')}
+              error={errors.password?.message}
+              label="Password"
+              placeholder="Enter your Password"
+            />
+          </div>
+
+          <div className="flex-1">
+            <PasswordInput
+              {...register('confirmPassword')}
+              error={errors.confirmPassword?.message}
+              label="Confirm Password"
+              placeholder="Confirm your password"
+            />
+          </div>
         </div>
 
-        <div>
-          <PasswordInput
-            {...register('confirmPassword')}
-            error={errors.confirmPassword?.message}
-            label="Confirm Password"
-            placeholder="Confirm your password"
+        <div className="flex items-center space-x-2">
+          <input
+            type="checkbox"
+            {...register('agreeToTerms')}
+            className="h-4 w-4 rounded border-gray-300 text-[#008647] focus:ring-[#008647]"
           />
+          <label className="text-sm text-gray-600">
+            By clicking Create account, I agree that I have read and accepted
+            the{' '}
+            <Link href="#" className="text-[#008647] underline">
+              Terms of Use
+            </Link>{' '}
+            and{' '}
+            <Link href="#" className="text-[#008647] underline">
+              Privacy Policy
+            </Link>
+          </label>
         </div>
+        {errors.agreeToTerms && (
+          <p className="text-sm text-red-600">{errors.agreeToTerms.message}</p>
+        )}
 
         <input type="hidden" {...register('role')} value="admin" />
 
@@ -178,7 +232,7 @@ export function SignUpForm() {
           {isSubmitting ? (
             <LoaderCircle className="animate-spin" />
           ) : (
-            'Continue'
+            'Create Account'
           )}
         </Button>
 
@@ -191,6 +245,6 @@ export function SignUpForm() {
           </Link>
         </div>
       </form>
-    </>
+    </div>
   );
 }

@@ -2,8 +2,11 @@
 
 import { Trash2, X } from 'lucide-react';
 import React from 'react';
-import { useMutation } from '@tanstack/react-query';
-import { programControllerRemoveMutation } from '@/client/@tanstack/react-query.gen';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import {
+  programControllerRemoveMutation,
+  programControllerGetProgramsOptions,
+} from '@/client/@tanstack/react-query.gen';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 
@@ -21,6 +24,7 @@ const DeleteProgramModal: React.FC<DeleteProgramModalProps> = ({
   programId,
 }) => {
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   const deleteProgram = useMutation({
     ...programControllerRemoveMutation(),
@@ -35,6 +39,12 @@ const DeleteProgramModal: React.FC<DeleteProgramModalProps> = ({
       });
 
       toast.success('Program deleted successfully!');
+
+      // Invalidate programs cache to refresh the list
+      queryClient.invalidateQueries({
+        queryKey: programControllerGetProgramsOptions().queryKey,
+      });
+
       onClose();
       router.push('/admin/overview');
     } catch (error: unknown) {
@@ -48,7 +58,7 @@ const DeleteProgramModal: React.FC<DeleteProgramModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(12,16,20,0.88)] p-4 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       <div className="w-full max-w-md rounded-3xl bg-white p-6">
         <div className="mb-6 flex items-start justify-between">
           <div className="flex items-center gap-3">

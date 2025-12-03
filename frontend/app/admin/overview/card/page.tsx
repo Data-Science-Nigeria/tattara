@@ -19,6 +19,7 @@ import WorkflowsSection from './components/workflows-section';
 import EditProgramModal from '../components/edit-program-modal';
 import DeleteProgramModal from '../components/delete-program-modal';
 import AssignUsersModal from '../components/assign-users-modal';
+import UnassignUserModal from '../components/unassign-user-modal';
 import ProgramTable from '../../components/program-table';
 import {
   Tooltip,
@@ -33,6 +34,13 @@ export default function Card() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showAssignModal, setShowAssignModal] = useState(false);
+  const [showUnassignModal, setShowUnassignModal] = useState(false);
+  const [unassignData, setUnassignData] = useState<{
+    userId: string;
+    workflowId: string;
+    userName: string;
+    workflowName: string;
+  } | null>(null);
 
   // Fetch program details
   const { data: programData, isLoading: programLoading } = useQuery({
@@ -55,7 +63,7 @@ export default function Card() {
     name: string;
     status?: string;
     completedAt?: string;
-    enabledModes?: Array<'audio' | 'text' | 'form' | 'image'>;
+    enabledModes?: Array<'audio' | 'text' | 'image'>;
     users?: Array<{
       id: string;
       firstName?: string;
@@ -91,7 +99,7 @@ export default function Card() {
     id: w.id,
     name: w.name,
     status: w.status as WorkflowData['status'],
-    enabledModes: w.enabledModes as Array<'audio' | 'text' | 'form' | 'image'>,
+    enabledModes: w.enabledModes as Array<'audio' | 'text' | 'image'>,
     users:
       w.users?.map((user) => ({
         id: user.id,
@@ -249,8 +257,14 @@ export default function Card() {
                     user.completedAt || workflow.completedAt
                       ? 'Completed'
                       : 'Pending',
+                  userId: user.id,
+                  workflowId: workflow.id,
                 })) || []
             )}
+            onUnassign={(userId, workflowId, userName, workflowName) => {
+              setUnassignData({ userId, workflowId, userName, workflowName });
+              setShowUnassignModal(true);
+            }}
           />
         </div>
 
@@ -281,6 +295,20 @@ export default function Card() {
           programName={program.name || 'Program'}
           programId={programId || ''}
         />
+
+        {unassignData && (
+          <UnassignUserModal
+            isOpen={showUnassignModal}
+            onClose={() => {
+              setShowUnassignModal(false);
+              setUnassignData(null);
+            }}
+            userName={unassignData.userName}
+            workflowName={unassignData.workflowName}
+            userId={unassignData.userId}
+            workflowId={unassignData.workflowId}
+          />
+        )}
       </div>
     </div>
   );

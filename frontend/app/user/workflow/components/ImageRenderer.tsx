@@ -1,73 +1,70 @@
 'use client';
 
-import React, { useState, useRef, useCallback } from 'react';
-import { Camera, Upload, X, Eye, Square } from 'lucide-react';
-import { useMutation } from '@tanstack/react-query';
-import { collectorControllerSubmitDataMutation } from '@/client/@tanstack/react-query.gen';
-import AiReview from './AiReview';
-
-interface AiReviewData {
-  form_id: string;
-  extracted: Record<string, unknown>;
-  missing_required: string[];
-}
+import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { Upload, X, Eye, Save } from 'lucide-react';
+import { useSaveDraft } from '../hooks/useSaveDraft';
+import FormRenderer from './FormSaver';
 
 interface ImageRendererProps {
   workflow: {
     id: string;
     name: string;
     type: 'image';
-    ocrEnabled?: boolean;
-    maxFileSize?: number;
-    allowedFormats?: string[];
+    workflowConfigurations: Array<{
+      type: string;
+      configuration: Record<string, unknown>;
+    }>;
   };
+  onDataChange?: (data: string) => void;
+  hideButtons?: boolean;
 }
 
-export default function ImageRenderer({ workflow }: ImageRendererProps) {
+export default function ImageRenderer({
+  workflow,
+  onDataChange,
+  hideButtons = false,
+}: ImageRendererProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [dragActive, setDragActive] = useState(false);
-  const [showCamera, setShowCamera] = useState(false);
-  const [stream, setStream] = useState<MediaStream | null>(null);
-  const [aiReviewData, setAiReviewData] = useState<AiReviewData | null>(null);
-  const [aiProcessingLogId, setAiProcessingLogId] = useState<string>('');
+
+  const [showForm, setShowForm] = useState(false);
+  const [imageData, setImageData] = useState<string>('');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  const submitMutation = useMutation({
-    ...collectorControllerSubmitDataMutation(),
+  const { saveDraft, loadDraft, clearDraft, isSaving } = useSaveDraft({
+    workflowId: workflow.id,
+    type: 'image',
   });
 
-  const handleFileSelect = useCallback(
-    (file: File) => {
-      // Validate file size
-      if (workflow.maxFileSize && file.size > workflow.maxFileSize) {
-        alert(
-          `File size exceeds ${workflow.maxFileSize / (1024 * 1024)}MB limit`
-        );
-        return;
-      }
+  useEffect(() => {
+    const draft = loadDraft();
+    if (draft?.fileName && draft?.imageData) {
+      fetch(draft.imageData)
+        .then((res) => res.blob())
+        .then((blob) => {
+          const file = new File([blob], draft.fileName, { type: 'image/jpeg' });
+          setSelectedFile(file);
+          setPreviewUrl(draft.imageData);
+          setImageData(draft.imageData);
+        })
+        .catch(() => {});
+    }
+  }, [loadDraft]);
 
-      // Validate file format
-      const fileExtension = file.name.split('.').pop()?.toLowerCase();
-      if (
-        workflow.allowedFormats &&
-        !workflow.allowedFormats.includes(fileExtension || '')
-      ) {
-        alert(
-          `File format not supported. Allowed formats: ${workflow.allowedFormats.join(', ')}`
-        );
-        return;
-      }
+  const handleFileSelect = useCallback((file: File) => {
+    setSelectedFile(file);
+    const url = URL.createObjectURL(file);
+    setPreviewUrl(url);
 
-      setSelectedFile(file);
-      setPreviewUrl(URL.createObjectURL(file));
-    },
-    [workflow.maxFileSize, workflow.allowedFormats]
-  );
+    // Convert to base64 for AI processing
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImageData(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  }, []);
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
@@ -89,168 +86,68 @@ export default function ImageRenderer({ workflow }: ImageRendererProps) {
     }
   };
 
-  const openCamera = useCallback(async () => {
-    try {
-      const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment' },
-      });
-
-      setStream(mediaStream);
-      setShowCamera(true);
-
-      // Set video source after state update
-      setTimeout(() => {
-        if (videoRef.current) {
-          videoRef.current.srcObject = mediaStream;
-        }
-      }, 100);
-    } catch {
-      alert(
-        'Camera access denied or not available. Please use "Browse Files" instead.'
-      );
-    }
-  }, []);
-
-  const closeCamera = useCallback(() => {
-    if (stream) {
-      stream.getTracks().forEach((track) => track.stop());
-      setStream(null);
-    }
-    setShowCamera(false);
-  }, [stream]);
-
-  const capturePhoto = useCallback(() => {
-    if (!videoRef.current || !canvasRef.current) {
-      return;
-    }
-
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-
-    if (video.videoWidth === 0 || video.videoHeight === 0) {
-      alert('Camera not ready. Please wait a moment and try again.');
-      return;
-    }
-
-    const context = canvas.getContext('2d');
-    if (!context) {
-      return;
-    }
-
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-
-    context.drawImage(video, 0, 0);
-
-    canvas.toBlob(
-      (blob) => {
-        if (blob) {
-          const file = new File([blob], 'camera-photo.jpg', {
-            type: 'image/jpeg',
-          });
-          handleFileSelect(file);
-          closeCamera();
-        }
-      },
-      'image/jpeg',
-      0.9
-    );
-  }, [handleFileSelect, closeCamera]);
-
-  const handleAiReviewComplete = (
-    reviewData: unknown,
-    processingLogId: string
-  ) => {
-    setAiReviewData(reviewData as AiReviewData);
-    setAiProcessingLogId(processingLogId);
+  const handleSave = async () => {
+    if (!selectedFile || !imageData) return;
+    saveDraft({
+      fileName: selectedFile.name,
+      imageData: imageData,
+    });
   };
 
   const handleReset = () => {
     setSelectedFile(null);
     setPreviewUrl(null);
-    setAiReviewData(null);
-    setAiProcessingLogId('');
+    setShowForm(false);
+    setImageData('');
+    clearDraft();
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const handleSubmit = async () => {
-    if (!selectedFile) return;
-
-    setIsSubmitting(true);
-    try {
-      const reader = new FileReader();
-      reader.onloadend = async () => {
-        const base64Image = reader.result as string;
-
-        await submitMutation.mutateAsync({
-          body: {
-            workflowId: workflow.id,
-            data: {
-              image: base64Image,
-            },
-            metadata: {
-              type: 'image',
-              fileName: selectedFile.name,
-            },
-            aiProcessingLogId: aiProcessingLogId,
-          },
-        });
-
-        alert('Image submitted successfully!');
-        window.location.href = '/user/overview';
-      };
-      reader.readAsDataURL(selectedFile);
-    } catch {
-      alert('Failed to submit image. Please try again.');
-    } finally {
-      setIsSubmitting(false);
-    }
+  const handleProcessingComplete = () => {
+    setShowForm(true);
   };
 
+  useEffect(() => {
+    if (onDataChange && imageData) {
+      onDataChange(imageData);
+    }
+  }, [imageData, onDataChange]);
+
+  if (showForm && !hideButtons) {
+    return (
+      <FormRenderer
+        workflowId={workflow.id}
+        workflowType="image"
+        inputData={imageData}
+        onProcessingComplete={handleProcessingComplete}
+      />
+    );
+  }
+
   return (
-    <div className="rounded-lg bg-white p-6 shadow-md">
-      <div className="mb-4 flex justify-end">
+    <div className="rounded-lg bg-white p-6">
+      <div className="mb-4 flex justify-end gap-2">
+        {selectedFile && (
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={isSaving}
+            className="flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-xs text-white hover:bg-blue-700 disabled:opacity-50 sm:px-4 sm:text-sm"
+          >
+            <Save size={14} className="sm:h-4 sm:w-4" />
+            {isSaving ? 'Saving...' : 'Save'}
+          </button>
+        )}
         <button
           type="button"
           onClick={handleReset}
-          className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+          className="rounded-lg border border-gray-300 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 sm:px-4 sm:text-sm"
         >
           Reset
         </button>
       </div>
       <div className="space-y-6">
-        {showCamera ? (
-          <div className="space-y-4">
-            <div className="relative overflow-hidden rounded-lg bg-black">
-              <video
-                ref={videoRef}
-                autoPlay
-                playsInline
-                className="h-64 w-full object-cover"
-              />
-            </div>
-
-            <canvas ref={canvasRef} className="hidden" />
-
-            <div className="flex justify-center gap-4">
-              <button
-                onClick={capturePhoto}
-                className="flex items-center gap-2 rounded-lg bg-green-600 px-6 py-3 text-white hover:bg-green-700"
-              >
-                <Square className="h-5 w-5" />
-                Capture Photo
-              </button>
-
-              <button
-                onClick={closeCamera}
-                className="flex items-center gap-2 rounded-lg bg-gray-600 px-6 py-3 text-white hover:bg-gray-700"
-              >
-                <X className="h-5 w-5" />
-                Cancel
-              </button>
-            </div>
-          </div>
-        ) : !selectedFile ? (
+        {!selectedFile ? (
           <div
             className={`relative rounded-lg border-2 border-dashed p-8 text-center transition-colors ${
               dragActive
@@ -274,34 +171,15 @@ export default function ImageRenderer({ workflow }: ImageRendererProps) {
                 <p className="text-gray-600">
                   Drag and drop your image here, or click to browse
                 </p>
-                {workflow.allowedFormats && (
-                  <p className="mt-1 text-sm text-gray-500">
-                    Supported formats:{' '}
-                    {workflow.allowedFormats.join(', ').toUpperCase()}
-                  </p>
-                )}
-                {workflow.maxFileSize && (
-                  <p className="text-sm text-gray-500">
-                    Max size: {workflow.maxFileSize / (1024 * 1024)}MB
-                  </p>
-                )}
               </div>
 
               <div className="flex justify-center gap-4">
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
+                  className="flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-xs text-white hover:bg-blue-700 sm:px-4 sm:text-sm"
                 >
-                  <Upload className="h-4 w-4" />
+                  <Upload size={14} className="sm:h-4 sm:w-4" />
                   Browse Files
-                </button>
-
-                <button
-                  onClick={openCamera}
-                  className="flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-white hover:bg-green-700"
-                >
-                  <Camera className="h-4 w-4" />
-                  Take Photo
                 </button>
               </div>
             </div>
@@ -309,17 +187,12 @@ export default function ImageRenderer({ workflow }: ImageRendererProps) {
             <input
               ref={fileInputRef}
               type="file"
-              accept={
-                workflow.allowedFormats?.map((f) => `.${f}`).join(',') ||
-                'image/*'
-              }
+              accept="image/*"
               onChange={(e) =>
                 e.target.files?.[0] && handleFileSelect(e.target.files[0])
               }
               className="hidden"
             />
-
-            <canvas ref={canvasRef} className="hidden" />
           </div>
         ) : (
           <div className="space-y-4">
@@ -354,9 +227,9 @@ export default function ImageRenderer({ workflow }: ImageRendererProps) {
                     onClick={() =>
                       previewUrl && window.open(previewUrl, '_blank')
                     }
-                    className="mt-2 flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800"
+                    className="mt-2 flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 sm:text-sm"
                   >
-                    <Eye className="h-4 w-4" />
+                    <Eye size={14} className="sm:h-4 sm:w-4" />
                     View Full Size
                   </button>
                 </div>
@@ -365,27 +238,14 @@ export default function ImageRenderer({ workflow }: ImageRendererProps) {
           </div>
         )}
 
-        {workflow.ocrEnabled && (
-          <div className="rounded-lg bg-blue-50 p-4">
-            <p className="text-sm text-blue-800">
-              🔍 OCR is enabled for this workflow. Text will be automatically
-              extracted from your image.
-            </p>
-          </div>
+        {!hideButtons && (
+          <FormRenderer
+            workflowId={workflow.id}
+            workflowType="image"
+            inputData={imageData}
+            onProcessingComplete={handleProcessingComplete}
+          />
         )}
-
-        <AiReview
-          workflowId={workflow.id}
-          formData={{
-            image: selectedFile ? selectedFile.name : '',
-            fileName: selectedFile?.name || '',
-          }}
-          fields={[]}
-          aiReviewData={aiReviewData}
-          onReviewComplete={handleAiReviewComplete}
-          onSubmit={handleSubmit}
-          isSubmitting={isSubmitting}
-        />
       </div>
     </div>
   );

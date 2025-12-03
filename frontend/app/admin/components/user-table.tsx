@@ -155,7 +155,7 @@ export default function UserTable({
                           Name: name,
                           Email: email,
                           Status: status,
-                          'Created By': createdBy,
+                          'Created At': createdBy,
                         })
                       );
                       exportToJSON(exportData, 'users');
@@ -172,14 +172,14 @@ export default function UserTable({
                           Name: name,
                           Email: email,
                           Status: status,
-                          'Created By': createdBy,
+                          'Created At': createdBy,
                         })
                       );
                       exportToCSV(exportData, 'users', [
                         'Name',
                         'Email',
                         'Status',
-                        'Created By',
+                        'Created At',
                       ]);
                       setShowExportDropdown(false);
                     }}
@@ -194,14 +194,14 @@ export default function UserTable({
                           Name: name,
                           Email: email,
                           Status: status,
-                          'Created By': createdBy,
+                          'Created At': createdBy,
                         })
                       );
                       exportToPDF(exportData, 'users', 'Users Report', [
                         'Name',
                         'Email',
                         'Status',
-                        'Created By',
+                        'Created At',
                       ]);
                       setShowExportDropdown(false);
                     }}
@@ -217,13 +217,13 @@ export default function UserTable({
       </div>
 
       {/* Table */}
-      <div className="rounded-md border bg-white">
-        <table className="w-full">
+      <div className="custom-scrollbar overflow-x-auto rounded-md border bg-white">
+        <table className="w-full min-w-[600px]">
           <thead className="bg-[#F2F3FF]">
             <tr>
-              <th className="px-6 py-4 text-left font-semibold text-gray-700">
+              <th className="px-3 py-4 text-left font-semibold text-gray-700 sm:px-6">
                 <div className="flex items-center gap-2">
-                  Name
+                  <span className="text-sm sm:text-base">Name</span>
                   <button
                     onClick={handleSort}
                     className="flex items-center rounded p-1 hover:bg-gray-100"
@@ -239,12 +239,12 @@ export default function UserTable({
                   </button>
                 </div>
               </th>
-              <th className="px-6 py-4 text-left font-semibold text-gray-700">
-                Email
+              <th className="px-3 py-4 text-left font-semibold text-gray-700 sm:px-6">
+                <span className="text-sm sm:text-base">Email</span>
               </th>
-              <th className="px-6 py-4 text-left font-semibold text-gray-700">
+              <th className="px-3 py-4 text-left font-semibold text-gray-700 sm:px-6">
                 <div className="flex items-center gap-2">
-                  Status
+                  <span className="text-sm sm:text-base">Status</span>
                   <div className="relative">
                     <ChevronDown
                       className="h-4 w-4 cursor-pointer"
@@ -293,9 +293,9 @@ export default function UserTable({
                   </div>
                 </div>
               </th>
-              <th className="px-6 py-4 text-left font-semibold text-gray-700">
+              <th className="px-3 py-4 text-left font-semibold text-gray-700 sm:px-6">
                 <div className="flex items-center gap-2 whitespace-nowrap">
-                  Created By
+                  <span className="text-sm sm:text-base">Created At</span>
                   <div className="relative">
                     <svg
                       className="h-4 w-4 cursor-pointer"
@@ -345,32 +345,38 @@ export default function UserTable({
           <tbody>
             {isLoading ? (
               <tr>
-                <td colSpan={4} className="px-6 py-4 text-center text-gray-500">
+                <td
+                  colSpan={4}
+                  className="px-3 py-4 text-center text-gray-500 sm:px-6"
+                >
                   <div className="flex items-center justify-center py-4">
                     <div className="h-6 w-6 animate-spin rounded-full border-b-2 border-[#008647]"></div>
-                    <span className="ml-2">Loading users...</span>
+                    <span className="ml-2 text-sm">Loading users...</span>
                   </div>
                 </td>
               </tr>
             ) : currentData.length === 0 ? (
               <tr>
-                <td colSpan={4} className="px-6 py-4 text-center text-gray-500">
+                <td
+                  colSpan={4}
+                  className="px-3 py-4 text-center text-sm text-gray-500 sm:px-6"
+                >
                   No users found
                 </td>
               </tr>
             ) : (
               currentData.map((item: UserData, index: number) => (
                 <tr key={index} className="border-b">
-                  <td className="px-6 py-4 text-gray-700">
+                  <td className="px-3 py-4 text-sm text-gray-700 sm:px-6">
                     {item.name || 'N/A'}
                   </td>
-                  <td className="px-6 py-4 text-gray-700">
+                  <td className="px-3 py-4 text-sm text-gray-700 sm:px-6">
                     {item.email || 'N/A'}
                   </td>
-                  <td className="px-6 py-4 text-gray-700">
+                  <td className="px-3 py-4 text-gray-700 sm:px-6">
                     <StatusBadge status={item.status || 'Active'} />
                   </td>
-                  <td className="px-6 py-4 text-gray-700">
+                  <td className="px-3 py-4 text-sm text-gray-700 sm:px-6">
                     {item.createdBy || 'N/A'}
                   </td>
                 </tr>

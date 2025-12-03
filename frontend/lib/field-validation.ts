@@ -5,7 +5,8 @@ export interface ValidationResult {
 
 export function validateFieldValue(
   value: string | boolean,
-  fieldType: string
+  fieldType: string,
+  options?: string[]
 ): ValidationResult {
   if (typeof value === 'boolean') {
     return fieldType === 'boolean'
@@ -61,6 +62,41 @@ export function validateFieldValue(
       return isNaN(datetime.getTime())
         ? { isValid: false, error: 'Must be a valid date and time' }
         : { isValid: true };
+
+    case 'text':
+    case 'textarea':
+      // Text fields should not be purely numeric
+      const isOnlyNumbers = /^\d+$/.test(stringValue.trim());
+      return isOnlyNumbers
+        ? { isValid: false, error: 'Text field cannot contain only numbers' }
+        : { isValid: true };
+
+    case 'select':
+      if (options && options.length > 0) {
+        return !options.includes(stringValue)
+          ? { isValid: false, error: 'Please select a valid option' }
+          : { isValid: true };
+      }
+      return { isValid: true };
+
+    case 'multiselect':
+      try {
+        const selectedValues = JSON.parse(stringValue);
+        if (!Array.isArray(selectedValues)) {
+          return { isValid: false, error: 'Invalid selection format' };
+        }
+        if (options && options.length > 0) {
+          const invalidValues = selectedValues.filter(
+            (val) => !options.includes(val)
+          );
+          return invalidValues.length > 0
+            ? { isValid: false, error: 'Please select valid options only' }
+            : { isValid: true };
+        }
+        return { isValid: true };
+      } catch {
+        return { isValid: false, error: 'Invalid selection format' };
+      }
 
     default:
       return { isValid: true };

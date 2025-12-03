@@ -8,10 +8,12 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { programControllerCreateMutation } from '@/client/@tanstack/react-query.gen';
+import {
+  programControllerCreateMutation,
+  programControllerGetProgramsOptions,
+} from '@/client/@tanstack/react-query.gen';
 import { getApiErrorMessage } from '@/lib/get-api-error-message';
 import { toast } from 'sonner';
-import { DHIS2Modal } from './components/dhis2-modal';
 
 const programSchema = z.object({
   name: z.string().min(1, 'Program name is required'),
@@ -24,9 +26,7 @@ export default function CreateProgramPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showDHIS2Modal, setShowDHIS2Modal] = useState(false);
-  const [programData, setProgramData] = useState<ProgramData | null>(null);
-  const [buttonText] = useState('Next');
+  const [buttonText] = useState('Create Program');
 
   const {
     register,
@@ -38,33 +38,22 @@ export default function CreateProgramPage() {
 
   const createProgram = useMutation({
     ...programControllerCreateMutation(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: programControllerGetProgramsOptions().queryKey,
+      });
+      toast.success('Program created successfully!');
+      router.push('/admin/overview');
+    },
   });
 
   const onSubmit = async (data: ProgramData) => {
-    setProgramData(data);
-    setShowDHIS2Modal(true);
-  };
-
-  const handleDHIS2Confirm = async () => {
-    if (!programData) return;
-
     setIsSubmitting(true);
-    setShowDHIS2Modal(false);
 
     try {
       await createProgram.mutateAsync({
-        body: programData,
+        body: data,
       });
-
-      await queryClient.refetchQueries({
-        queryKey: [
-          'programControllerFindAll',
-          { query: { page: 1, limit: 6 } },
-        ],
-      });
-
-      toast.success('Program created successfully!');
-      router.push('/admin/overview');
     } catch (error) {
       const err = getApiErrorMessage(error);
       toast.error(err);
@@ -131,18 +120,18 @@ export default function CreateProgramPage() {
           </div>
 
           {/* Action Buttons */}
-          <div className="flex justify-end gap-3 pt-4">
+          <div className="flex flex-col gap-2 pt-4 sm:flex-row sm:justify-end sm:gap-3">
             <Button
               type="button"
               onClick={() => router.push('/admin/overview')}
-              className="rounded-lg border-2 border-green-800 bg-white px-6 py-2 font-medium text-green-800 transition-colors hover:bg-green-800 hover:text-white"
+              className="w-full rounded-lg border-2 border-green-800 bg-white px-4 py-2 font-medium text-green-800 transition-colors hover:bg-green-800 hover:text-white sm:w-auto sm:px-6"
             >
               Cancel
             </Button>
             <Button
               type="submit"
               disabled={isSubmitting}
-              className="rounded-lg bg-green-800 px-6 py-2 font-medium text-white transition-colors hover:bg-green-900"
+              className="w-full rounded-lg bg-green-800 px-4 py-2 font-medium text-white transition-colors hover:bg-green-900 sm:w-auto sm:px-6"
             >
               {isSubmitting ? (
                 <LoaderCircle className="animate-spin" />
@@ -153,13 +142,6 @@ export default function CreateProgramPage() {
           </div>
         </form>
       </div>
-
-      {/* DHIS2 Modal */}
-      <DHIS2Modal
-        isOpen={showDHIS2Modal}
-        onClose={() => setShowDHIS2Modal(false)}
-        onConfirm={handleDHIS2Confirm}
-      />
     </div>
   );
 }
