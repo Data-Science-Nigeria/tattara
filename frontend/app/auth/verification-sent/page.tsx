@@ -20,7 +20,7 @@ const Page = () => {
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#F5F5FF] px-6 py-12">
       <div className="w-full max-w-md">
-        <Card className="mb-14 rounded-2xl border-[#DBDCEA] shadow-lg">
+        <Card className="mb-14 rounded-2xl border-[#DBDCEA]">
           <CardContent className="p-8">
             <div className="mb-4 text-center">
               <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
