@@ -57,9 +57,7 @@ const signUpSchema = z
       .regex(/[a-z]/, 'Must include at least one lowercase letter')
       .regex(/[0-9]/, 'Must include at least one number'),
     confirmPassword: z.string().min(1, 'Please confirm your password'),
-    agreeToTerms: z
-      .boolean()
-      .refine((val) => val === true, 'Must agree to terms'),
+
     role: z.literal('admin').optional(),
   })
   .refine((data) => data.password === data.confirmPassword, {
@@ -117,8 +115,8 @@ export function SignUpForm() {
   return (
     <div>
       <div className="mb-4 text-center">
-        <h1 className="mb-2 text-2xl font-bold text-[#373844]">
-          Create Admin Account
+        <h1 className="mb-2 text-xl font-bold text-[#373844]">
+          Create Your Account
         </h1>
         <p className="text-sm text-[#5C5D6C]">
           Get started in just a few steps.
@@ -135,7 +133,7 @@ export function SignUpForm() {
               type="text"
               {...register('firstName')}
               placeholder="Enter your First Name"
-              className="mt-1 w-full rounded border bg-[#F2F3FF] p-2 placeholder:text-sm placeholder:text-[#525F76] focus:border-[#03390F] focus:ring-[#03390F] focus:outline-none"
+              className="mt-1 w-full rounded border bg-[#F2F3FF] p-2 placeholder:text-xs placeholder:text-[#525F76] focus:border-[#03390F] focus:ring-[#03390F] focus:outline-none"
             />
             {errors.firstName && (
               <p className="text-sm text-red-600">{errors.firstName.message}</p>
@@ -150,7 +148,7 @@ export function SignUpForm() {
               type="text"
               {...register('lastName')}
               placeholder="Enter your Last Name"
-              className="mt-1 w-full rounded border bg-[#F2F3FF] p-2 placeholder:text-sm placeholder:text-[#525F76] focus:border-[#03390F] focus:ring-[#03390F] focus:outline-none"
+              className="mt-1 w-full rounded border bg-[#F2F3FF] p-2 placeholder:text-xs placeholder:text-[#525F76] focus:border-[#03390F] focus:ring-[#03390F] focus:outline-none"
             />
             {errors.lastName && (
               <p className="text-sm text-red-600">{errors.lastName.message}</p>
@@ -167,7 +165,7 @@ export function SignUpForm() {
               type="email"
               {...register('email')}
               placeholder="Enter your Email Address"
-              className="mt-1 w-full rounded border bg-[#F2F3FF] p-2 pr-10 placeholder:text-sm placeholder:text-[#525F76] focus:border-[#03390F] focus:ring-[#03390F] focus:outline-none"
+              className="mt-1 w-full rounded border bg-[#F2F3FF] p-2 pr-10 placeholder:text-xs placeholder:text-[#525F76] focus:border-[#03390F] focus:ring-[#03390F] focus:outline-none"
             />
             <img
               src={'/sms.svg'}
@@ -200,28 +198,6 @@ export function SignUpForm() {
           </div>
         </div>
 
-        <div className="flex items-center space-x-2">
-          <input
-            type="checkbox"
-            {...register('agreeToTerms')}
-            className="h-4 w-4 rounded border-gray-300 text-[#008647] focus:ring-[#008647]"
-          />
-          <label className="text-sm text-gray-600">
-            By clicking Create account, I agree that I have read and accepted
-            the{' '}
-            <Link href="#" className="text-[#008647] underline">
-              Terms of Use
-            </Link>{' '}
-            and{' '}
-            <Link href="#" className="text-[#008647] underline">
-              Privacy Policy
-            </Link>
-          </label>
-        </div>
-        {errors.agreeToTerms && (
-          <p className="text-sm text-red-600">{errors.agreeToTerms.message}</p>
-        )}
-
         <input type="hidden" {...register('role')} value="admin" />
 
         <Button
@@ -232,7 +208,7 @@ export function SignUpForm() {
           {isSubmitting ? (
             <LoaderCircle className="animate-spin" />
           ) : (
-            'Create Account'
+            'Continue'
           )}
         </Button>
 

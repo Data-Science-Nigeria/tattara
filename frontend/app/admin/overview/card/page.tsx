@@ -15,7 +15,6 @@ import {
 } from '@/client/@tanstack/react-query.gen';
 import { useWorkflowsWithUsers } from '../hooks/useWorkflowsWithUsers';
 import { Stat, StatsCard } from '../components/stat-card';
-import WorkflowsSection from './components/workflows-section';
 import EditProgramModal from '../components/edit-program-modal';
 import DeleteProgramModal from '../components/delete-program-modal';
 import AssignUsersModal from '../components/assign-users-modal';
@@ -225,23 +224,6 @@ export default function Card() {
             <StatsCard key={index} stat={stat} />
           ))}
         </div>
-
-        <WorkflowsSection
-          workflows={workflows.map((w) => ({
-            ...w,
-            status:
-              (w.status as 'active' | 'inactive' | 'archived') || 'active',
-            enabledModes: w.enabledModes || ['text'],
-            users:
-              w.users?.map((u) => ({
-                firstName: u.firstName || '',
-                lastName: u.lastName || '',
-              })) || [],
-          }))}
-          programId={programId || ''}
-          programName={program.name || 'Program'}
-          isLoading={workflowsLoading}
-        />
 
         <div className="mt-4">
           <ProgramTable

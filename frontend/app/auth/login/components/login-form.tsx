@@ -157,7 +157,9 @@ export function LoginForm() {
   return (
     <div>
       <div className="mb-2 text-center">
-        <h1 className="mb-2 text-2xl font-bold text-[#373844]">Login</h1>
+        <h1 className="mb-2 text-xl font-bold text-[#373844]">
+          Login Into Your Account
+        </h1>
         <p className="text-sm text-[#5C5D6C]">
           Enter your details to access your account
         </p>
@@ -176,7 +178,7 @@ export function LoginForm() {
               type="email"
               {...register('email')}
               placeholder="Enter your Email Address"
-              className="mt-1 w-full rounded border bg-[#F2F3FF] p-2 pr-10 placeholder:text-sm placeholder:text-[#525F76] focus:border-[#03390F] focus:ring-[#03390F] focus:outline-none"
+              className="mt-1 w-full rounded-md border bg-[#F2F3FF] p-2 pr-10 placeholder:text-xs placeholder:text-[#525F76] focus:border-[#03390F] focus:ring-[#03390F] focus:outline-none"
               suppressHydrationWarning
             />
             <img
