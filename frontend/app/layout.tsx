@@ -12,8 +12,8 @@ const poppins = Poppins({
 });
 
 export const metadata: Metadata = {
-  title: 'Tattara',
-  description: 'For App Collection',
+  title: 'Tattara Data Collection App',
+  description: 'A data collection application for Tattara project',
 };
 
 export default function RootLayout({
