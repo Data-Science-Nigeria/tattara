@@ -22,7 +22,11 @@ interface ConnectionFormModalProps {
   setShowToken: (show: boolean) => void;
   onSubmit: () => void;
   onCancel: () => void;
+  onTestConnection: () => void;
   isLoading: boolean;
+  isTestingConnection: boolean;
+  connectionTested: boolean;
+  testError?: string;
   error?: FormError;
 }
 
@@ -41,39 +45,43 @@ export default function ConnectionFormModal({
   setShowToken,
   onSubmit,
   onCancel,
+  onTestConnection,
   isLoading,
+  isTestingConnection,
+  connectionTested,
+  testError,
   error,
 }: ConnectionFormModalProps) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="w-full max-w-2xl rounded-lg bg-white p-6">
-        <h2 className="mb-4 text-xl font-semibold">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-2 sm:p-4">
+      <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-lg bg-white p-4 sm:p-6">
+        <h2 className="mb-3 text-lg font-semibold sm:mb-4 sm:text-xl">
           {editingConnection ? 'Edit Connection' : 'Create Connection'}
         </h2>
-        <div className="space-y-4">
+        <div className="space-y-3 sm:space-y-4">
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">
+            <label className="mb-1 block text-xs font-medium text-gray-700 sm:text-sm">
               Connection Name
             </label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full rounded border border-gray-300 px-3 py-2 focus:border-green-500 focus:outline-none"
+              className="w-full rounded border border-gray-300 px-2 py-2 text-sm focus:border-green-500 focus:outline-none sm:px-3"
               placeholder="Enter connection name"
             />
           </div>
           {!editingConnection && (
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">
+              <label className="mb-1 block text-xs font-medium text-gray-700 sm:text-sm">
                 Connection Type
               </label>
               <select
                 value={type}
                 onChange={(e) => setType(e.target.value)}
-                className="w-full rounded border border-gray-300 px-3 py-2 focus:border-green-500 focus:outline-none"
+                className="w-full rounded border border-gray-300 px-2 py-2 text-sm focus:border-green-500 focus:outline-none sm:px-3"
               >
                 <option value="dhis2">DHIS2</option>
               </select>
@@ -81,20 +89,20 @@ export default function ConnectionFormModal({
           )}
           {!editingConnection && (
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">
+              <label className="mb-1 block text-xs font-medium text-gray-700 sm:text-sm">
                 Base URL
               </label>
               <input
                 type="url"
                 value={baseUrl}
                 onChange={(e) => setBaseUrl(e.target.value)}
-                className="w-full rounded border border-gray-300 px-3 py-2 focus:border-green-500 focus:outline-none"
+                className="w-full rounded border border-gray-300 px-2 py-2 text-sm focus:border-green-500 focus:outline-none sm:px-3"
                 placeholder="https://tattara.org.ng"
               />
             </div>
           )}
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">
+            <label className="mb-1 block text-xs font-medium text-gray-700 sm:text-sm">
               Personal Access Token (PAT)
             </label>
             <div className="relative">
@@ -102,57 +110,99 @@ export default function ConnectionFormModal({
                 type={showToken ? 'text' : 'password'}
                 value={pat}
                 onChange={(e) => setPat(e.target.value)}
-                className="w-full rounded border border-gray-300 px-3 py-2 pr-10 focus:border-green-500 focus:outline-none"
+                className="w-full rounded border border-gray-300 px-2 py-2 pr-8 text-sm focus:border-green-500 focus:outline-none sm:px-3 sm:pr-10"
                 placeholder="Enter personal access token"
               />
               <button
                 type="button"
                 onClick={() => setShowToken(!showToken)}
-                className="absolute top-1/2 right-3 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                className="absolute top-1/2 right-2 -translate-y-1/2 text-gray-400 hover:text-gray-600 sm:right-3"
               >
                 {showToken ? (
-                  <EyeOff className="h-4 w-4" />
+                  <EyeOff className="h-3 w-3 sm:h-4 sm:w-4" />
                 ) : (
-                  <Eye className="h-4 w-4" />
+                  <Eye className="h-3 w-3 sm:h-4 sm:w-4" />
                 )}
               </button>
             </div>
           </div>
         </div>
+
+        {/* Test Connection Section */}
+        {!editingConnection && (
+          <div className="mt-4 rounded border border-gray-200 bg-gray-50 p-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-700">
+                  Test Connection
+                </p>
+                <p className="text-xs text-gray-500">
+                  Verify your credentials before creating
+                </p>
+              </div>
+              <button
+                onClick={onTestConnection}
+                disabled={!name || !pat || !baseUrl || isTestingConnection}
+                className="flex items-center gap-2 rounded bg-blue-600 px-3 py-2 text-sm text-white hover:bg-blue-700 disabled:opacity-50"
+              >
+                {isTestingConnection && (
+                  <div className="h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                )}
+                {isTestingConnection ? 'Testing...' : 'Test Connection'}
+              </button>
+            </div>
+            {connectionTested && (
+              <div className="mt-2 flex items-center gap-2">
+                <div className="h-2 w-2 rounded-full bg-green-500"></div>
+                <p className="text-xs text-green-600">Connection successful!</p>
+              </div>
+            )}
+            {testError && (
+              <div className="mt-2 flex items-start gap-2">
+                <div className="mt-1 h-2 w-2 flex-shrink-0 rounded-full bg-red-500"></div>
+                <p className="text-xs break-all text-red-600">{testError}</p>
+              </div>
+            )}
+          </div>
+        )}
+
         {error && (
-          <div className="mt-4 rounded border border-red-200 bg-red-50 p-3">
-            <p className="mb-1 text-sm font-medium text-red-600">
+          <div className="mt-3 rounded border border-red-200 bg-red-50 p-2 sm:mt-4 sm:p-3">
+            <p className="mb-1 text-xs font-medium text-red-600 sm:text-sm">
               Error creating connection:
             </p>
             {Array.isArray(error.message) ? (
-              <ul className="list-inside list-disc space-y-1 text-sm text-red-600">
+              <ul className="list-inside list-disc space-y-1 text-xs text-red-600 sm:text-sm">
                 {error.message.map((msg: string, index: number) => (
                   <li key={index}>{msg}</li>
                 ))}
               </ul>
             ) : (
-              <p className="text-sm text-red-600">
+              <p className="text-xs text-red-600 sm:text-sm">
                 {error.message || 'An error occurred'}
               </p>
             )}
           </div>
         )}
-        <div className="mt-6 flex justify-end gap-3">
+        <div className="mt-4 flex flex-col gap-2 sm:mt-6 sm:flex-row sm:justify-end sm:gap-3">
           <button
             onClick={onCancel}
-            className="px-4 py-2 text-gray-600 hover:text-gray-800"
+            className="w-full rounded border border-gray-300 px-3 py-2 text-sm text-gray-600 hover:text-gray-800 sm:w-auto sm:border-0 sm:px-4"
           >
             Cancel
           </button>
           <button
             onClick={onSubmit}
             disabled={
-              !name || !pat || (!editingConnection && !baseUrl) || isLoading
+              !name ||
+              !pat ||
+              (!editingConnection && (!baseUrl || !connectionTested)) ||
+              isLoading
             }
-            className="flex items-center gap-2 rounded bg-green-600 px-4 py-2 text-white hover:bg-green-700 disabled:opacity-50"
+            className="flex w-full items-center justify-center gap-2 rounded bg-green-600 px-3 py-2 text-sm text-white hover:bg-green-700 disabled:opacity-50 sm:w-auto sm:px-4"
           >
             {isLoading && (
-              <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+              <div className="h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent sm:h-4 sm:w-4"></div>
             )}
             {editingConnection ? 'Update' : 'Create'}
           </button>

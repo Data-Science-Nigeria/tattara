@@ -24,7 +24,7 @@ export default function UserProfilesPage() {
 
   const { data: usersData, isLoading } = useQuery({
     ...userControllerFindAllForLoggedInUserOptions({
-      query: { page: currentPage, limit },
+      query: { page: 1, limit: 1000000 },
     }),
   });
 
@@ -48,12 +48,6 @@ export default function UserProfilesPage() {
         Array.isArray(responseData.users)
       ? responseData.users
       : [];
-  const totalUsers =
-    (responseData &&
-      'pagination' in responseData &&
-      responseData.pagination?.total) ||
-    users.length;
-  const totalPages = Math.ceil(totalUsers / limit);
 
   const filteredUsers = users.filter(
     (user: User) =>
@@ -62,6 +56,18 @@ export default function UserProfilesPage() {
         .includes(search.toLowerCase()) ||
       user.email.toLowerCase().includes(search.toLowerCase())
   );
+
+  // Calculate pagination based on filtered data (like user-table)
+  const isSearching = search.trim() !== '';
+  const filteredTotalPages = Math.ceil(filteredUsers.length / limit);
+  const startIndex = (currentPage - 1) * limit;
+  const endIndex = startIndex + limit;
+  const paginatedUsers = filteredUsers.slice(startIndex, endIndex);
+
+  // Reset to page 1 when search changes
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
 
   return (
     <div className="space-y-6 p-8">
@@ -109,19 +115,22 @@ export default function UserProfilesPage() {
           </div>
           <div>
             <p className="text-sm text-gray-500">Total Users</p>
-            <h2 className="text-2xl font-semibold">{totalUsers}</h2>
-            <p className="text-xs text-gray-400">All registered users</p>
+            <h2 className="text-2xl font-semibold">{filteredUsers.length}</h2>
+            <p className="text-xs text-gray-400">
+              {isSearching ? 'Search results' : 'All registered users'}
+            </p>
           </div>
         </div>
       </div>
 
       {/* Users Table */}
       <UserProfileTable
-        users={filteredUsers}
+        users={paginatedUsers}
         isLoading={isLoading}
         currentPage={currentPage}
         limit={limit}
-        totalPages={totalPages}
+        totalPages={filteredTotalPages}
+        totalFilteredUsers={filteredUsers.length}
         onPageChange={setCurrentPage}
       />
     </div>

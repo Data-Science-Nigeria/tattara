@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import WorkflowCard from './components/workFlowCard';
-import { Mic, FileText, ClipboardList, Image } from 'lucide-react';
+import { Mic, FileText, Image } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import {
   authControllerGetProfileOptions,
@@ -22,7 +22,7 @@ interface ApiWorkflow {
   name: string;
   description: string;
   status: 'active' | 'inactive' | 'archived';
-  enabledModes: Array<'audio' | 'text' | 'form' | 'image'>;
+  enabledModes: Array<'audio' | 'text' | 'image'>;
   users?: Array<{ id: string }>;
 }
 
@@ -35,7 +35,7 @@ interface ProfileResponse {
 interface WorkflowsResponse {
   success: boolean;
   data: {
-    data: ApiWorkflow[];
+    workflows: ApiWorkflow[];
     page: number;
     limit: number;
     total: number;
@@ -60,25 +60,24 @@ export default function Workflows() {
     error,
   } = useQuery({
     ...workflowControllerGetWorkflowsOptions({
-      query: { page: 1, limit: 100, userId: userId },
+      query: { page: 1, limit: 1000000, userId: userId },
     }),
     enabled: !!userId,
     retry: 1,
   });
 
   const getIconForWorkflow = (
-    enabledModes: Array<'audio' | 'text' | 'form' | 'image'>
+    enabledModes: Array<'audio' | 'text' | 'image'>
   ) => {
     if (enabledModes.includes('audio')) return Mic;
     if (enabledModes.includes('image')) return Image;
-    if (enabledModes.includes('form')) return ClipboardList;
     if (enabledModes.includes('text')) return FileText;
     return FileText;
   };
 
   // Extract workflows from API response
   const allUserWorkflows =
-    (workflowsData as WorkflowsResponse)?.data?.data || [];
+    (workflowsData as WorkflowsResponse)?.data?.workflows || [];
   const activeWorkflows = allUserWorkflows.filter((w) => w.status === 'active');
   const finalWorkflows = activeWorkflows;
 
@@ -89,6 +88,15 @@ export default function Workflows() {
   const endIndex = startIndex + itemsPerPage;
   const currentWorkflows = finalWorkflows.slice(startIndex, endIndex);
 
+  const getActionLabel = (
+    enabledModes: Array<'audio' | 'text' | 'image'>
+  ): string => {
+    if (enabledModes.includes('text')) return 'Fill';
+    if (enabledModes.includes('image')) return 'Upload Image';
+    if (enabledModes.includes('audio')) return 'Upload or Record Audio';
+    return 'Start Collection';
+  };
+
   const workflows: Workflow[] = currentWorkflows.map(
     (workflow: ApiWorkflow) => ({
       icon: React.createElement(getIconForWorkflow(workflow.enabledModes), {
@@ -96,7 +104,7 @@ export default function Workflows() {
       }),
       title: workflow.name,
       description: workflow.description || 'No description available',
-      actionLabel: 'Start Collection',
+      actionLabel: getActionLabel(workflow.enabledModes),
       onClick: () => (window.location.href = `/user/workflow/${workflow.id}`),
     })
   );

@@ -52,8 +52,10 @@ import type {
   ProgramControllerAddWorkflowToProgramResponses,
   ProgramControllerGetAllProgramsForUserData,
   ProgramControllerGetAllProgramsForUserResponses,
-  ProgramControllerAddUsersToProgramData,
-  ProgramControllerAddUsersToProgramResponses,
+  ProgramControllerAssignUsersToProgramData,
+  ProgramControllerAssignUsersToProgramResponses,
+  ProgramControllerUnassignUsersFromProgramData,
+  ProgramControllerUnassignUsersFromProgramResponses,
   WorkflowControllerGetWorkflowsData,
   WorkflowControllerGetWorkflowsResponses,
   WorkflowControllerCreateWorkflowData,
@@ -62,10 +64,14 @@ import type {
   WorkflowControllerSearchWorkflowsResponses,
   WorkflowControllerFindWorkflowByIdData,
   WorkflowControllerFindWorkflowByIdResponses,
+  WorkflowControllerUpdateWorkflowBasicInfoData,
+  WorkflowControllerUpdateWorkflowBasicInfoResponses,
   WorkflowControllerArchiveWorkflowData,
   WorkflowControllerArchiveWorkflowResponses,
   WorkflowControllerAssignUsersToWorkflowData,
   WorkflowControllerAssignUsersToWorkflowResponses,
+  WorkflowControllerUnassignUsersFromWorkflowData,
+  WorkflowControllerUnassignUsersFromWorkflowResponses,
   FieldControllerGetWorkflowFieldsData,
   FieldControllerGetWorkflowFieldsResponses,
   FieldControllerUpsertWorkflowFieldsData,
@@ -565,17 +571,36 @@ export const programControllerGetAllProgramsForUser = <
 /**
  * Assign multiple users to a specific program
  */
-export const programControllerAddUsersToProgram = <
+export const programControllerAssignUsersToProgram = <
   ThrowOnError extends boolean = false,
 >(
-  options: Options<ProgramControllerAddUsersToProgramData, ThrowOnError>
+  options: Options<ProgramControllerAssignUsersToProgramData, ThrowOnError>
 ) => {
   return (options.client ?? _heyApiClient).post<
-    ProgramControllerAddUsersToProgramResponses,
+    ProgramControllerAssignUsersToProgramResponses,
     unknown,
     ThrowOnError
   >({
     url: '/api/v1/programs/{id}/users',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+};
+
+export const programControllerUnassignUsersFromProgram = <
+  ThrowOnError extends boolean = false,
+>(
+  options: Options<ProgramControllerUnassignUsersFromProgramData, ThrowOnError>
+) => {
+  return (options.client ?? _heyApiClient).post<
+    ProgramControllerUnassignUsersFromProgramResponses,
+    unknown,
+    ThrowOnError
+  >({
+    url: '/api/v1/programs/{id}/users/unassign',
     ...options,
     headers: {
       'Content-Type': 'application/json',
@@ -648,6 +673,25 @@ export const workflowControllerFindWorkflowById = <
   });
 };
 
+export const workflowControllerUpdateWorkflowBasicInfo = <
+  ThrowOnError extends boolean = false,
+>(
+  options: Options<WorkflowControllerUpdateWorkflowBasicInfoData, ThrowOnError>
+) => {
+  return (options.client ?? _heyApiClient).put<
+    WorkflowControllerUpdateWorkflowBasicInfoResponses,
+    unknown,
+    ThrowOnError
+  >({
+    url: '/api/v1/workflows/{workflowId}',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+};
+
 export const workflowControllerArchiveWorkflow = <
   ThrowOnError extends boolean = false,
 >(
@@ -658,7 +702,7 @@ export const workflowControllerArchiveWorkflow = <
     unknown,
     ThrowOnError
   >({
-    url: '/api/v1/workflows/{workflowId}',
+    url: '/api/v1/workflows/{workflowId}/archive',
     ...options,
   });
 };
@@ -674,6 +718,28 @@ export const workflowControllerAssignUsersToWorkflow = <
     ThrowOnError
   >({
     url: '/api/v1/workflows/{workflowId}/users',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+};
+
+export const workflowControllerUnassignUsersFromWorkflow = <
+  ThrowOnError extends boolean = false,
+>(
+  options: Options<
+    WorkflowControllerUnassignUsersFromWorkflowData,
+    ThrowOnError
+  >
+) => {
+  return (options.client ?? _heyApiClient).post<
+    WorkflowControllerUnassignUsersFromWorkflowResponses,
+    unknown,
+    ThrowOnError
+  >({
+    url: '/api/v1/workflows/{workflowId}/users/unassign',
     ...options,
     headers: {
       'Content-Type': 'application/json',

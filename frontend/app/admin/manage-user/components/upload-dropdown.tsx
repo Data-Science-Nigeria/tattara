@@ -1,9 +1,9 @@
 'use client';
 
 import React from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { userControllerBulkCreateMutation } from '@/client/@tanstack/react-query.gen';
+import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { useAuthStore } from '@/app/store/use-auth-store';
 
 interface UploadDropdownProps {
   isOpen: boolean;
@@ -17,13 +17,11 @@ export default function UploadDropdown({
   coords,
 }: UploadDropdownProps) {
   const queryClient = useQueryClient();
-
-  const bulkCreateUsers = useMutation({
-    ...userControllerBulkCreateMutation(),
-  });
+  const { auth } = useAuthStore();
 
   const downloadTemplate = () => {
-    const csvContent = 'firstName,lastName,email,password\n';
+    const csvContent =
+      'firstName,lastName,email,password\nJohn,Doe,john@example.com,Password123@';
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -40,11 +38,36 @@ export default function UploadDropdown({
     const file = event.target.files?.[0];
     if (!file) return;
 
+    if (!file.name.endsWith('.csv')) {
+      toast.error('Please select a CSV file');
+      return;
+    }
+
     const formData = new FormData();
     formData.append('file', file);
 
     try {
-      await bulkCreateUsers.mutateAsync({});
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/users/bulk/create`,
+        {
+          method: 'POST',
+          body: formData,
+          credentials: 'include',
+          headers: {
+            Authorization: `Bearer ${auth?.token}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const error = await response.json();
+        if (error.errors && error.errors.length > 0) {
+          error.errors.forEach((err: string) => toast.error(err));
+        } else {
+          toast.error(error.message || 'Failed to upload users');
+        }
+        return;
+      }
 
       toast.success('Users uploaded successfully!');
       queryClient.invalidateQueries({
@@ -62,9 +85,19 @@ export default function UploadDropdown({
     <div
       className="fixed z-50 rounded-lg border bg-white shadow-lg"
       style={{
-        top: `${coords.top}px`,
-        left: `${coords.left}px`,
-        width: `${coords.width}px`,
+        top: `${coords.top + 8}px`,
+        left:
+          window.innerWidth < 640
+            ? `${Math.max(16, (window.innerWidth - 240) / 2)}px`
+            : window.innerWidth < 1024
+              ? `${Math.max(16, (window.innerWidth - 320) / 2)}px`
+              : `${coords.left}px`,
+        width:
+          window.innerWidth < 640
+            ? '240px'
+            : window.innerWidth < 1024
+              ? '320px'
+              : `${coords.width}px`,
       }}
     >
       <div>
@@ -87,7 +120,7 @@ export default function UploadDropdown({
           </svg>
           <div className="min-w-0">
             <p className="text-sm font-medium">Download Template</p>
-            <p className="hidden text-xs opacity-75 sm:block">
+            <p className="hidden text-xs opacity-75 lg:block">
               Get the CSV template with the required columns
             </p>
           </div>
@@ -115,7 +148,7 @@ export default function UploadDropdown({
           </svg>
           <div className="min-w-0">
             <p className="text-sm font-medium">Upload CSV File</p>
-            <p className="hidden text-xs opacity-75 sm:block">
+            <p className="hidden text-xs opacity-75 lg:block">
               Upload your completed CSV file for review
             </p>
           </div>

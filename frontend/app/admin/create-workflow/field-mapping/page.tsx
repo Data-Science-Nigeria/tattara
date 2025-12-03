@@ -4,12 +4,16 @@ import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { ArrowLeft } from 'lucide-react';
+import { toast } from 'sonner';
 import {
   workflowControllerFindWorkflowByIdOptions,
   fieldMappingControllerUpsertFieldMappingsMutation,
   externalConnectionsControllerFindAllOptions,
 } from '@/client/@tanstack/react-query.gen';
 import FieldMappingStep from '../builder/components/field-mapping-step';
+import AudioAiReview from '../builder/components/AudioAiReview';
+import ImageAiReview from '../builder/components/ImageAiReview';
+import TextAiReview from '../builder/components/TextAiReview';
 
 interface WorkflowField {
   id: string;
@@ -17,6 +21,8 @@ interface WorkflowField {
   label?: string;
   fieldType: string;
   dhis2DataElement?: string;
+  isRequired?: boolean;
+  options?: string[];
 }
 
 interface Connection {
@@ -38,6 +44,7 @@ interface WorkflowConfiguration {
 interface Workflow {
   workflowFields?: WorkflowField[];
   workflowConfigurations?: WorkflowConfiguration[];
+  enabledModes?: string[];
 }
 
 export default function FieldMapping() {
@@ -47,6 +54,34 @@ export default function FieldMapping() {
   const [fields, setFields] = useState<WorkflowField[]>([]);
   const [selectedConnection, setSelectedConnection] = useState('');
   const [selectedProgram, setSelectedProgram] = useState('');
+  const [selectedType, setSelectedType] = useState<'program' | 'dataSet' | ''>(
+    ''
+  );
+  const [workflowType, setWorkflowType] = useState<'audio' | 'image' | 'text'>(
+    'text'
+  );
+
+  // Load saved mappings from localStorage
+  useEffect(() => {
+    if (workflowId) {
+      const savedMappings = localStorage.getItem(
+        `field-mappings-${workflowId}`
+      );
+      if (savedMappings) {
+        try {
+          const mappings = JSON.parse(savedMappings);
+          setFields((prev) =>
+            prev.map((field) => ({
+              ...field,
+              dhis2DataElement: mappings[field.id] || field.dhis2DataElement,
+            }))
+          );
+        } catch (error) {
+          console.error('Failed to load saved mappings:', error);
+        }
+      }
+    }
+  }, [workflowId, fields.length]);
   const [availableConnections, setAvailableConnections] = useState<
     Connection[]
   >([]);
@@ -64,16 +99,22 @@ export default function FieldMapping() {
 
   const upsertMappingMutation = useMutation({
     ...fieldMappingControllerUpsertFieldMappingsMutation(),
-    onSuccess: () => {
-      alert('Field mappings saved successfully!');
-      window.location.href = '/admin/create-workflow';
-    },
   });
 
   useEffect(() => {
     if (workflowData) {
       const workflow = (workflowData as { data?: Workflow })?.data;
       setFields(workflow?.workflowFields || []);
+
+      // Determine workflow type from enabledModes
+      const enabledModes = workflow?.enabledModes || ['text'];
+      if (enabledModes.includes('audio')) {
+        setWorkflowType('audio');
+      } else if (enabledModes.includes('image')) {
+        setWorkflowType('image');
+      } else {
+        setWorkflowType('text');
+      }
 
       const dhis2Config = workflow?.workflowConfigurations?.find(
         (config) => config.type === 'dhis2'
@@ -105,15 +146,37 @@ export default function FieldMapping() {
   }, [workflowData, connectionsData]);
 
   const updateField = (id: string, updates: Partial<WorkflowField>) => {
-    setFields(
-      fields.map((field) =>
-        field.id === id ? { ...field, ...updates } : field
-      )
+    const updatedFields = fields.map((field) =>
+      field.id === id ? { ...field, ...updates } : field
     );
+    setFields(updatedFields);
+
+    // Save mappings to localStorage
+    if (workflowId && updates.dhis2DataElement !== undefined) {
+      const mappings = updatedFields.reduce(
+        (acc, field) => {
+          if (field.dhis2DataElement) {
+            acc[field.id] = field.dhis2DataElement;
+          }
+          return acc;
+        },
+        {} as Record<string, string>
+      );
+      localStorage.setItem(
+        `field-mappings-${workflowId}`,
+        JSON.stringify(mappings)
+      );
+    }
   };
 
+  // Check if all fields are mapped
+  const allFieldsMapped =
+    fields.length > 0 && fields.every((field) => field.dhis2DataElement);
+
+  const [showAiReview, setShowAiReview] = useState(false);
+
   const handleTest = () => {
-    window.location.href = `/admin/create-workflow/test?workflowId=${workflowId}`;
+    setShowAiReview(true);
   };
 
   const handleSave = async () => {
@@ -130,16 +193,25 @@ export default function FieldMapping() {
       }));
 
     if (mappings.length > 0) {
-      await upsertMappingMutation.mutateAsync({
-        path: { workflowId },
-        body: { fieldMappings: mappings },
-      });
+      try {
+        await upsertMappingMutation.mutateAsync({
+          path: { workflowId },
+          body: { fieldMappings: mappings },
+        });
+        toast.success('Field mappings saved successfully!');
+        // Clear localStorage after successful save
+        localStorage.removeItem(`field-mappings-${workflowId}`);
+      } catch (error) {
+        console.error('Save failed:', error);
+        toast.error('Failed to save mappings.');
+      }
     }
   };
 
   const handleSaveAndContinue = async () => {
     await handleSave();
     if (!upsertMappingMutation.isError) {
+      toast.success('Mappings saved successfully!');
       window.location.href = '/admin/create-workflow';
     }
   };
@@ -179,7 +251,7 @@ export default function FieldMapping() {
             <select
               value={selectedConnection}
               onChange={(e) => setSelectedConnection(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-green-500 focus:outline-none"
+              className="mb-3 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-green-500 focus:outline-none sm:text-base"
             >
               <option value="">Select a connection...</option>
               {availableConnections.map((conn) => (
@@ -188,40 +260,89 @@ export default function FieldMapping() {
                 </option>
               ))}
             </select>
+
+            <h3 className="mb-2 text-sm font-medium text-yellow-900">
+              Select Type
+            </h3>
+            <select
+              value={selectedType}
+              onChange={(e) =>
+                setSelectedType(e.target.value as 'program' | 'dataSet' | '')
+              }
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-green-500 focus:outline-none sm:text-base"
+            >
+              <option value="">Select type...</option>
+              <option value="program">Program</option>
+              <option value="dataSet">Dataset</option>
+            </select>
           </div>
         )}
 
         <FieldMappingStep
           selectedConnection={selectedConnection}
           selectedProgram={selectedProgram}
+          selectedType={selectedType}
           fields={fields}
           updateField={updateField}
         />
+
+        {showAiReview && (
+          <div className="mt-8 rounded-lg border border-gray-200 bg-white p-6">
+            <h3 className="mb-4 text-lg font-medium">
+              Test{' '}
+              {workflowType.charAt(0).toUpperCase() + workflowType.slice(1)}{' '}
+              Workflow
+            </h3>
+            {workflowType === 'audio' && (
+              <AudioAiReview
+                workflowId={workflowId || ''}
+                onReviewComplete={() => {}}
+              />
+            )}
+            {workflowType === 'image' && (
+              <ImageAiReview
+                workflowId={workflowId || ''}
+                onReviewComplete={() => {}}
+              />
+            )}
+            {workflowType === 'text' && (
+              <TextAiReview
+                workflowId={workflowId || ''}
+                onReviewComplete={() => {}}
+              />
+            )}
+          </div>
+        )}
       </div>
 
-      <div className="flex justify-end gap-3 border-t border-gray-200 pt-6">
-        <button
-          onClick={handleTest}
-          className="rounded-lg border border-green-600 px-6 py-2 text-green-600 hover:bg-green-50"
-        >
-          Test Mapping
-        </button>
-        <div className="flex gap-3">
+      <div className="flex flex-col gap-3 border-t border-gray-200 pt-4 sm:flex-row sm:justify-end sm:pt-6">
+        {!showAiReview ? (
           <button
-            onClick={handleSave}
-            disabled={upsertMappingMutation.isPending}
-            className="rounded-lg border border-green-600 px-6 py-2 text-green-600 hover:bg-green-50 disabled:opacity-50"
+            onClick={handleTest}
+            disabled={!allFieldsMapped || upsertMappingMutation.isPending}
+            className="w-full rounded-lg border border-green-600 px-4 py-2 text-sm text-green-600 hover:bg-green-50 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto sm:px-6 sm:text-base"
           >
-            {upsertMappingMutation.isPending ? 'Saving...' : 'Save'}
+            {upsertMappingMutation.isPending ? 'Saving...' : 'Test Mapping'}
           </button>
-          <button
-            onClick={handleSaveAndContinue}
-            disabled={upsertMappingMutation.isPending}
-            className="rounded-lg bg-green-600 px-6 py-2 text-white hover:bg-green-700 disabled:opacity-50"
-          >
-            {upsertMappingMutation.isPending ? 'Saving...' : 'Save & Continue'}
-          </button>
-        </div>
+        ) : (
+          <>
+            <button
+              onClick={() => setShowAiReview(false)}
+              className="w-full rounded-lg bg-red-600 px-4 py-2 text-sm text-white hover:bg-red-700 sm:w-auto sm:px-6 sm:text-base"
+            >
+              Reset
+            </button>
+            <button
+              onClick={handleSaveAndContinue}
+              disabled={!allFieldsMapped || upsertMappingMutation.isPending}
+              className="w-full rounded-lg bg-green-600 px-4 py-2 text-sm text-white hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto sm:px-6 sm:text-base"
+            >
+              {upsertMappingMutation.isPending
+                ? 'Saving...'
+                : 'Save & Go to Workflows'}
+            </button>
+          </>
+        )}
       </div>
     </div>
   );

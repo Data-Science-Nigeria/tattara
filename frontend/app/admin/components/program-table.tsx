@@ -1,7 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { ChevronDown, Download, ArrowUp, ArrowDown } from 'lucide-react';
+import {
+  ChevronDown,
+  Download,
+  ArrowUp,
+  ArrowDown,
+  UserMinus,
+} from 'lucide-react';
 import SearchInput from './search-input';
 import { exportToJSON, exportToCSV, exportToPDF } from '../utils/export-utils';
 
@@ -10,12 +16,20 @@ interface ProgramData {
   program: string;
   completedOn: string;
   status: string;
+  userId?: string;
+  workflowId?: string;
 }
 
 interface ProgramTableProps {
   data?: ProgramData[];
   isLoading?: boolean;
   programName?: string;
+  onUnassign?: (
+    userId: string,
+    workflowId: string,
+    userName: string,
+    workflowName: string
+  ) => void;
 }
 
 const StatusBadge = ({ status }: { status: string }) => {
@@ -43,6 +57,7 @@ export default function ProgramTable({
   data = [],
   isLoading = false,
   programName = 'Program',
+  onUnassign,
 }: ProgramTableProps) {
   const [search, setSearch] = useState('');
   const [showLimit, setShowLimit] = useState(10);
@@ -215,13 +230,13 @@ export default function ProgramTable({
       </div>
 
       {/* Table */}
-      <div className="rounded-md border bg-white">
-        <table className="w-full">
+      <div className="custom-scrollbar overflow-x-auto rounded-md border bg-white">
+        <table className="relative w-full min-w-[700px]">
           <thead className="bg-[#F2F3FF]">
             <tr>
-              <th className="px-6 py-4 text-left font-semibold text-gray-700">
+              <th className="px-3 py-4 text-left font-semibold text-gray-700 sm:px-6">
                 <div className="flex items-center gap-2">
-                  Name
+                  <span className="text-sm sm:text-base">Name</span>
                   <button
                     onClick={handleSort}
                     className="flex items-center rounded p-1 hover:bg-gray-100"
@@ -237,12 +252,12 @@ export default function ProgramTable({
                   </button>
                 </div>
               </th>
-              <th className="px-6 py-4 text-left font-semibold text-gray-700">
-                Assigned Workflow
+              <th className="px-3 py-4 text-left font-semibold text-gray-700 sm:px-6">
+                <span className="text-sm sm:text-base">Assigned Workflow</span>
               </th>
-              <th className="px-6 py-4 text-left font-semibold text-gray-700">
+              <th className="px-3 py-4 text-left font-semibold text-gray-700 sm:px-6">
                 <div className="flex items-center gap-2">
-                  Completed on
+                  <span className="text-sm sm:text-base">Completed on</span>
                   <div className="relative">
                     <svg
                       className="h-4 w-4 cursor-pointer"
@@ -281,9 +296,9 @@ export default function ProgramTable({
                   </div>
                 </div>
               </th>
-              <th className="px-6 py-4 text-left font-semibold text-gray-700">
+              <th className="px-3 py-4 text-left font-semibold text-gray-700 sm:px-6">
                 <div className="flex items-center gap-2">
-                  Status
+                  <span className="text-sm sm:text-base">Status</span>
                   <div className="relative">
                     <ChevronDown
                       className="h-4 w-4 cursor-pointer"
@@ -323,39 +338,65 @@ export default function ProgramTable({
                   </div>
                 </div>
               </th>
+              <th className="sticky right-0 border-l bg-[#F2F3FF] px-3 py-4 text-left font-semibold text-gray-700 sm:px-6">
+                <span className="text-sm sm:text-base">Actions</span>
+              </th>
             </tr>
           </thead>
 
           <tbody>
             {isLoading ? (
               <tr>
-                <td colSpan={4} className="px-6 py-4 text-center text-gray-500">
+                <td
+                  colSpan={5}
+                  className="px-3 py-4 text-center text-gray-500 sm:px-6"
+                >
                   <div className="flex items-center justify-center py-4">
                     <div className="h-6 w-6 animate-spin rounded-full border-b-2 border-[#008647]"></div>
-                    <span className="ml-2">Loading users...</span>
+                    <span className="ml-2 text-sm">Loading users...</span>
                   </div>
                 </td>
               </tr>
             ) : currentData.length === 0 ? (
               <tr>
-                <td colSpan={4} className="px-6 py-4 text-center text-gray-500">
+                <td
+                  colSpan={5}
+                  className="px-3 py-4 text-center text-sm text-gray-500 sm:px-6"
+                >
                   No users found
                 </td>
               </tr>
             ) : (
               currentData.map((item, index) => (
                 <tr key={index} className="border-b" data-row={index}>
-                  <td className="px-6 py-4 text-gray-700">
+                  <td className="px-3 py-4 text-sm text-gray-700 sm:px-6">
                     {item.name || 'N/A'}
                   </td>
-                  <td className="px-6 py-4 text-gray-700">
+                  <td className="px-3 py-4 text-sm text-gray-700 sm:px-6">
                     {item.program || 'N/A'}
                   </td>
-                  <td className="px-6 py-4 text-gray-700">
+                  <td className="px-3 py-4 text-sm text-gray-700 sm:px-6">
                     {item.completedOn || 'N/A'}
                   </td>
-                  <td className="px-6 py-4 text-gray-700">
+                  <td className="px-3 py-4 text-gray-700 sm:px-6">
                     <StatusBadge status={item.status || 'Pending'} />
+                  </td>
+                  <td className="sticky right-0 border-l bg-white px-3 py-4 sm:px-6">
+                    <button
+                      onClick={() =>
+                        onUnassign?.(
+                          item.userId || '',
+                          item.workflowId || '',
+                          item.name,
+                          item.program
+                        )
+                      }
+                      className="flex items-center gap-1 rounded-md border border-red-300 bg-red-50 px-2 py-1 text-xs text-red-600 transition-colors hover:bg-red-100"
+                      disabled={!item.userId || !item.workflowId}
+                    >
+                      <UserMinus size={14} />
+                      Unassign
+                    </button>
                   </td>
                 </tr>
               ))

@@ -1,19 +1,18 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Plus, TestTube } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   externalConnectionsControllerFindAllOptions,
   externalConnectionsControllerCreateMutation,
   externalConnectionsControllerRemoveMutation,
-  externalConnectionsControllerUpdateMutation,
+  integrationControllerTestConnectionMutation,
 } from '@/client/@tanstack/react-query.gen';
 import type { ExternalConnection } from '@/client/types.gen';
 import { client } from '@/client/client.gen';
 import ConnectionsList from './components/connections-list';
 import ConnectionFormModal from './components/connection-form-modal';
-import TestConnectionModal from '../dhis2-integration/components/test-connection-modal';
 
 type ApiResponse<T> = {
   success: boolean;
@@ -34,7 +33,10 @@ export default function ExternalConnections() {
   const [deleteConnectionId, setDeleteConnectionId] = useState<string | null>(
     null
   );
-  const [showTestModal, setShowTestModal] = useState(false);
+
+  const [isTestingConnection, setIsTestingConnection] = useState(false);
+  const [connectionTested, setConnectionTested] = useState(false);
+  const [testError, setTestError] = useState<string>();
 
   const { data: connections, isLoading } = useQuery({
     ...externalConnectionsControllerFindAllOptions(),
@@ -96,11 +98,38 @@ export default function ExternalConnections() {
     },
   });
 
+  const testConnectionMutation = useMutation({
+    ...integrationControllerTestConnectionMutation(),
+  });
+
   const resetForm = () => {
     setName('');
     setBaseUrl('');
     setPat('');
     setShowToken(false);
+    setConnectionTested(false);
+    setTestError(undefined);
+  };
+
+  const handleTestConnection = async () => {
+    setIsTestingConnection(true);
+    setTestError(undefined);
+    setConnectionTested(false);
+
+    try {
+      await testConnectionMutation.mutateAsync({
+        body: {
+          type: type as 'dhis2',
+          config: { baseUrl, pat },
+        },
+      });
+      setConnectionTested(true);
+    } catch (error: unknown) {
+      setTestError((error as Error)?.message || 'Connection test failed');
+      setConnectionTested(false);
+    } finally {
+      setIsTestingConnection(false);
+    }
   };
 
   const handleEdit = (connection: ExternalConnection) => {
@@ -138,33 +167,29 @@ export default function ExternalConnections() {
   };
 
   return (
-    <div className="space-y-6 p-8">
+    <div className="space-y-4 p-4 sm:space-y-6 sm:p-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-800">
+          <h1 className="text-xl font-semibold text-gray-800 sm:text-2xl">
             External Connections
           </h1>
-          <p className="text-gray-600">Manage external system connections</p>
+          <p className="text-sm text-gray-600 sm:text-base">
+            Manage external system connections
+          </p>
         </div>
-        <div className="flex gap-3">
-          <button
-            onClick={() => setShowTestModal(true)}
-            className="flex items-center gap-2 rounded-lg border border-green-600 bg-white px-4 py-2 text-green-600 hover:bg-green-50"
-          >
-            <TestTube className="h-4 w-4" />
-            Test Connection
-          </button>
+        <div className="flex flex-col gap-2 sm:flex-row sm:gap-3">
           <button
             onClick={() => {
               resetForm();
               setEditingConnection(null);
               setShowCreateForm(true);
             }}
-            className="flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-white hover:bg-green-700"
+            className="flex items-center justify-center gap-2 rounded-lg bg-green-600 px-3 py-2 text-sm text-white hover:bg-green-700 sm:px-4"
           >
             <Plus className="h-4 w-4" />
-            Add Connection
+            <span className="hidden sm:inline">Add Connection</span>
+            <span className="sm:hidden">Add</span>
           </button>
         </div>
       </div>
@@ -195,7 +220,11 @@ export default function ExternalConnections() {
           setEditingConnection(null);
           resetForm();
         }}
+        onTestConnection={handleTestConnection}
         isLoading={createMutation.isPending || updateMutation.isPending}
+        isTestingConnection={isTestingConnection}
+        connectionTested={connectionTested}
+        testError={testError}
         error={
           createMutation.error
             ? { message: createMutation.error.message }
@@ -205,24 +234,21 @@ export default function ExternalConnections() {
         }
       />
 
-      <TestConnectionModal
-        isOpen={showTestModal}
-        onClose={() => setShowTestModal(false)}
-      />
-
       {/* Delete Confirmation Modal */}
       {deleteConnectionId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="mx-4 w-full max-w-sm rounded-lg bg-white p-6">
-            <h3 className="mb-2 text-lg font-semibold">Delete Connection</h3>
-            <p className="mb-4 text-gray-600">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-sm rounded-lg bg-white p-4 sm:p-6">
+            <h3 className="mb-2 text-base font-semibold sm:text-lg">
+              Delete Connection
+            </h3>
+            <p className="mb-4 text-sm text-gray-600 sm:text-base">
               Are you sure you want to delete this connection? This action
               cannot be undone.
             </p>
-            <div className="flex justify-end gap-3">
+            <div className="flex flex-col gap-2 sm:flex-row sm:justify-end sm:gap-3">
               <button
                 onClick={() => setDeleteConnectionId(null)}
-                className="px-4 py-2 text-gray-600 hover:text-gray-800"
+                className="w-full rounded border border-gray-300 px-3 py-2 text-sm text-gray-600 hover:text-gray-800 sm:w-auto sm:border-0 sm:px-4"
               >
                 Cancel
               </button>
@@ -231,7 +257,7 @@ export default function ExternalConnections() {
                   deleteMutation.mutate({ path: { id: deleteConnectionId } });
                   setDeleteConnectionId(null);
                 }}
-                className="rounded bg-red-600 px-4 py-2 text-white hover:bg-red-700"
+                className="w-full rounded bg-red-600 px-3 py-2 text-sm text-white hover:bg-red-700 sm:w-auto sm:px-4"
               >
                 Delete
               </button>

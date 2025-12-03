@@ -102,7 +102,7 @@ export default function AssignUsersModal({
 
   const { data: usersData, isLoading: usersLoading } = useQuery({
     ...userControllerFindAllForLoggedInUserOptions({
-      query: { page: 1, limit: 100 },
+      query: { page: 1, limit: 1000000 },
     }),
     enabled: isOpen,
   });
@@ -194,7 +194,7 @@ export default function AssignUsersModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(12,16,20,0.88)] p-4 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       <div className="w-full max-w-md rounded-3xl bg-white p-4 sm:max-w-lg sm:p-6 md:max-w-xl md:p-8">
         <div className="mb-4 flex items-start justify-between sm:mb-6">
           <div>
@@ -228,7 +228,7 @@ export default function AssignUsersModal({
                 : 'Select All'}
             </button>
           </div>
-          <div className="mb-4 max-h-32 overflow-y-auto rounded-lg border p-2">
+          <div className="custom-scrollbar mb-4 max-h-32 overflow-y-auto rounded-lg border p-2">
             {workflows.length > 0 ? (
               <div className="space-y-2">
                 {workflows.map((workflow: Workflow) => {
@@ -249,11 +249,6 @@ export default function AssignUsersModal({
                         <p className="text-sm font-medium text-gray-800">
                           {workflow.name}
                         </p>
-                        {workflow.description && (
-                          <p className="text-xs text-gray-500">
-                            {workflow.description}
-                          </p>
-                        )}
                         <p className="text-xs text-blue-600">
                           {currentUserCount} user(s) currently assigned
                         </p>
@@ -282,7 +277,7 @@ export default function AssignUsersModal({
                 : 'Select All'}
             </button>
           </div>
-          <div className="max-h-64 overflow-y-auto rounded-lg border p-2">
+          <div className="custom-scrollbar max-h-40 overflow-y-auto rounded-lg border p-2">
             {usersLoading ? (
               <div className="flex items-center justify-center py-8">
                 <div className="h-6 w-6 animate-spin rounded-full border-b-2 border-green-600"></div>
@@ -309,16 +304,12 @@ export default function AssignUsersModal({
                         className="h-4 w-4 text-green-600 focus:ring-green-500"
                       />
                       <div className="flex flex-1 items-center gap-2">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-200">
-                          <User size={16} className="text-gray-600" />
-                        </div>
                         <div className="flex-1">
                           <p className="text-sm font-medium text-gray-800">
                             {user.firstName && user.lastName
                               ? `${user.firstName} ${user.lastName}`
                               : user.email}
                           </p>
-                          <p className="text-xs text-gray-500">{user.email}</p>
                           {isAlreadyAssigned && (
                             <p className="text-xs font-medium text-blue-600">
                               Already assigned to selected workflow(s)
