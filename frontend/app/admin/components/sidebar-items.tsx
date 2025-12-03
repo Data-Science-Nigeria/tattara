@@ -26,10 +26,10 @@ export const sidebarItems = [
     alt: 'User icon',
   },
   {
-    name: 'External Connection',
+    name: 'DHIS2 Auth',
     href: '/admin/external-connection',
     icon: Lock,
-    alt: 'External Connection icon',
+    alt: 'DHIS2 Auth icon',
   },
 ];
 
