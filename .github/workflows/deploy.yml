@@ -112,6 +112,7 @@ jobs:
       (needs.build-ai.result == 'success' || needs.build-ai.result == 'skipped') &&
       (needs.build-frontend.result == 'success' || needs.build-frontend.result == 'skipped') &&
       (needs.build-app.result == 'success' || needs.build-ai.result == 'success' || needs.build-frontend.result == 'success')
+    steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
