@@ -57,6 +57,7 @@ export class IntegrationService {
   }
 
   async pushData(config: WorkflowConfiguration, payload: unknown) {
+    console.log('Pushing data with config:', config);
     const conn = await this.externalConnService.findOne(
       config.externalConnection.id,
     );

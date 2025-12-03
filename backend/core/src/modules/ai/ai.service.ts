@@ -99,6 +99,8 @@ export class AiService {
   ): Promise<ExtractionResponse> {
     const endpoint = `${this.baseUrl}/process/image`;
 
+    console.log('AI Service - processImage called with payload:', payload);
+
     const formData = new FormData();
     formData.append('form_id', payload.form_id);
     formData.append('form_schema', JSON.stringify(payload.form_schema));

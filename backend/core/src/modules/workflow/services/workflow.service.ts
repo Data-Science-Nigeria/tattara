@@ -204,6 +204,7 @@ export class WorkflowService {
         'workflowConfigurations',
         'workflowConfigurations.workflow',
         'workflowFields.fieldMappings',
+        'workflowConfigurations.externalConnection',
         'createdBy',
         'users',
         'program',

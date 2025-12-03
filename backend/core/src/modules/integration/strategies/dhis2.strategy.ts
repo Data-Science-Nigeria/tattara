@@ -236,6 +236,7 @@ export class Dhis2Strategy extends ConnectorStrategy {
 
       return response.data;
     } catch (error: unknown) {
+      console.log(error);
       if (isAxiosError<Dhis2ErrorResponse>(error)) {
         const status = error.response?.status ?? 500;
         const dhis2Error = error.response?.data;
