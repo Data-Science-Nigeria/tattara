@@ -1,9 +1,9 @@
 'use client';
 
 import React from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { userControllerBulkCreateMutation } from '@/client/@tanstack/react-query.gen';
+import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { useAuthStore } from '@/app/store/use-auth-store';
 
 interface UploadDropdownProps {
   isOpen: boolean;
@@ -17,13 +17,11 @@ export default function UploadDropdown({
   coords,
 }: UploadDropdownProps) {
   const queryClient = useQueryClient();
-
-  const bulkCreateUsers = useMutation({
-    ...userControllerBulkCreateMutation(),
-  });
+  const { auth } = useAuthStore();
 
   const downloadTemplate = () => {
-    const csvContent = 'firstName,lastName,email,password\n';
+    const csvContent =
+      'firstName,lastName,email,password\nJohn,Doe,john@example.com,Password123@';
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -40,11 +38,36 @@ export default function UploadDropdown({
     const file = event.target.files?.[0];
     if (!file) return;
 
+    if (!file.name.endsWith('.csv')) {
+      toast.error('Please select a CSV file');
+      return;
+    }
+
     const formData = new FormData();
     formData.append('file', file);
 
     try {
-      await bulkCreateUsers.mutateAsync({});
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/users/bulk/create`,
+        {
+          method: 'POST',
+          body: formData,
+          credentials: 'include',
+          headers: {
+            Authorization: `Bearer ${auth?.token}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const error = await response.json();
+        if (error.errors && error.errors.length > 0) {
+          error.errors.forEach((err: string) => toast.error(err));
+        } else {
+          toast.error(error.message || 'Failed to upload users');
+        }
+        return;
+      }
 
       toast.success('Users uploaded successfully!');
       queryClient.invalidateQueries({

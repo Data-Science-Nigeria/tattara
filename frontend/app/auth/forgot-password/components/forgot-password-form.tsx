@@ -61,7 +61,7 @@ export function ForgotPasswordForm() {
   };
 
   return (
-    <>
+    <div>
       <div className="mb-4 text-center">
         <h1 className="mb-2 text-2xl font-bold text-[#373844]">
           Forgot Password
@@ -113,6 +113,6 @@ export function ForgotPasswordForm() {
           </Link>
         </div>
       </form>
-    </>
+    </div>
   );
 }

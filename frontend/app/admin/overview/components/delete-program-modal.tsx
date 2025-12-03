@@ -2,8 +2,11 @@
 
 import { Trash2, X } from 'lucide-react';
 import React from 'react';
-import { useMutation } from '@tanstack/react-query';
-import { programControllerRemoveMutation } from '@/client/@tanstack/react-query.gen';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import {
+  programControllerRemoveMutation,
+  programControllerGetProgramsOptions,
+} from '@/client/@tanstack/react-query.gen';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 
@@ -21,6 +24,7 @@ const DeleteProgramModal: React.FC<DeleteProgramModalProps> = ({
   programId,
 }) => {
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   const deleteProgram = useMutation({
     ...programControllerRemoveMutation(),
@@ -35,6 +39,12 @@ const DeleteProgramModal: React.FC<DeleteProgramModalProps> = ({
       });
 
       toast.success('Program deleted successfully!');
+
+      // Invalidate programs cache to refresh the list
+      queryClient.invalidateQueries({
+        queryKey: programControllerGetProgramsOptions().queryKey,
+      });
+
       onClose();
       router.push('/admin/overview');
     } catch (error: unknown) {

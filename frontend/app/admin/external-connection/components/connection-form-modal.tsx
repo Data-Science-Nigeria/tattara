@@ -158,9 +158,9 @@ export default function ConnectionFormModal({
               </div>
             )}
             {testError && (
-              <div className="mt-2 flex items-center gap-2">
-                <div className="h-2 w-2 rounded-full bg-red-500"></div>
-                <p className="text-xs text-red-600">{testError}</p>
+              <div className="mt-2 flex items-start gap-2">
+                <div className="mt-1 h-2 w-2 flex-shrink-0 rounded-full bg-red-500"></div>
+                <p className="text-xs break-all text-red-600">{testError}</p>
               </div>
             )}
           </div>

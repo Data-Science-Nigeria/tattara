@@ -24,7 +24,7 @@ export default function SearchWorkflows({
 
   const { data: searchResults, isLoading } = useQuery({
     ...workflowControllerSearchWorkflowsOptions({
-      query: { q: searchQuery, page: 1, limit: 50 },
+      query: { q: searchQuery, page: 1, limit: 1000000 },
     }),
     enabled: searchQuery.length > 2,
   });
@@ -32,11 +32,10 @@ export default function SearchWorkflows({
   React.useEffect(() => {
     if (searchResults) {
       const workflows =
-        (searchResults as { data?: { workflows?: Workflow[] } })?.data
-          ?.workflows || [];
+        (searchResults as { data?: { data?: Workflow[] } })?.data?.data || [];
       onResults(workflows);
     }
-  }, [searchResults, onResults]);
+  }, [searchResults, onResults, searchQuery]);
 
   const handleSearch = (value: string) => {
     setSearchQuery(value);

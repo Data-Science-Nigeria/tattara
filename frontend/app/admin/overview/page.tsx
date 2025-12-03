@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, Search, X } from 'lucide-react';
 import Link from 'next/link';
 import { getIconForProgram } from '../components/getIconForProgram';
 import {
@@ -31,6 +31,7 @@ const Programs = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(6);
   const [showLoadingOverlay, setShowLoadingOverlay] = useState(false);
+  const [search, setSearch] = useState('');
 
   const {
     data: programsData,
@@ -38,7 +39,7 @@ const Programs = () => {
     refetch,
   } = useQuery({
     ...programControllerGetProgramsOptions({
-      query: { page: currentPage, limit: itemsPerPage },
+      query: { page: 1, limit: 1000000 },
     }),
   });
 
@@ -81,15 +82,11 @@ const Programs = () => {
     timestamp: string;
   }
 
-  // Extract programs and pagination from API response
+  // Extract programs from API response
   const apiData = (programsData as unknown as ApiResponse)?.data;
   const programsArray = apiData?.programs || [];
-  const pagination = {
-    total: apiData?.total || 0,
-    pages: apiData?.pages || 1,
-  };
 
-  const programs: Program[] = programsArray.map((program: ApiProgram) => ({
+  const allPrograms: Program[] = programsArray.map((program: ApiProgram) => ({
     id: program.id,
     name: program.name,
     description: program.description || 'No description available',
@@ -100,6 +97,25 @@ const Programs = () => {
     borderColor: 'border-gray-200',
     href: '/admin/overview/card',
   }));
+
+  // Filter programs based on search
+  const filteredPrograms = allPrograms.filter(
+    (program) =>
+      program.name.toLowerCase().includes(search.toLowerCase()) ||
+      program.description.toLowerCase().includes(search.toLowerCase())
+  );
+
+  // Calculate pagination
+  const isSearching = search.trim() !== '';
+  const totalPages = Math.ceil(filteredPrograms.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const programs = filteredPrograms.slice(startIndex, endIndex);
+
+  // Reset to page 1 when search changes
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
 
   const ProgramCard: React.FC<ProgramCardProps> = ({ program }) => {
     const IconComponent = program.icon;
@@ -144,34 +160,63 @@ const Programs = () => {
         </div>
       )}
       <div className="w-full">
-        <div className="mb-6 flex items-center justify-between px-0 sm:mb-8 sm:px-2">
-          <h1 className="text-xl font-semibold text-gray-800 sm:text-2xl lg:text-4xl">
-            Programs
-          </h1>
+        <div className="mb-6 flex flex-col gap-4 px-0 sm:mb-8 sm:px-2">
+          <div className="flex items-center justify-between">
+            <h1 className="text-xl font-semibold text-gray-800 sm:text-2xl lg:text-4xl">
+              Programs
+            </h1>
 
-          {/* Desktop button */}
-          <Link href="/admin/overview/create-program" className="ml-auto">
-            <button className="hidden items-center gap-2 rounded-lg bg-green-600 px-6 py-4 font-medium text-white transition-colors duration-200 hover:bg-green-700 lg:flex">
-              Create Program
-            </button>
-          </Link>
+            {/* Desktop button */}
+            <Link href="/admin/overview/create-program" className="ml-auto">
+              <button className="hidden items-center gap-2 rounded-lg bg-green-600 px-6 py-4 font-medium text-white transition-colors duration-200 hover:bg-green-700 lg:flex">
+                Create Program
+              </button>
+            </Link>
 
-          {/* Mobile/Tablet icon with tooltip */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Link
-                href="/admin/overview/create-program"
-                className="ml-auto lg:hidden"
+            {/* Mobile/Tablet icon with tooltip */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Link
+                  href="/admin/overview/create-program"
+                  className="ml-auto lg:hidden"
+                >
+                  <button className="flex items-center justify-center rounded-lg bg-green-600 p-3 text-white transition-colors duration-200 hover:bg-green-700">
+                    <Plus className="h-4 w-4" />
+                  </button>
+                </Link>
+              </TooltipTrigger>
+              <TooltipContent side="left" className="bg-gray-900 text-white">
+                <p>Create Program</p>
+              </TooltipContent>
+            </Tooltip>
+          </div>
+
+          {/* Search */}
+          <div className="relative max-w-md">
+            <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search programs..."
+              className="w-full rounded-lg border border-gray-300 py-2 pr-10 pl-10 text-sm focus:border-green-500 focus:ring-1 focus:ring-green-500 focus:outline-none"
+            />
+            {search && (
+              <button
+                onClick={() => setSearch('')}
+                className="absolute top-1/2 right-3 -translate-y-1/2 text-gray-400 hover:text-gray-600"
               >
-                <button className="flex items-center justify-center rounded-lg bg-green-600 p-3 text-white transition-colors duration-200 hover:bg-green-700">
-                  <Plus className="h-4 w-4" />
-                </button>
-              </Link>
-            </TooltipTrigger>
-            <TooltipContent side="left" className="bg-gray-900 text-white">
-              <p>Create Program</p>
-            </TooltipContent>
-          </Tooltip>
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+
+          {isSearching && (
+            <p className="text-sm text-gray-600">
+              Found {filteredPrograms.length} program
+              {filteredPrograms.length !== 1 ? 's' : ''}
+            </p>
+          )}
         </div>
 
         {isLoading ? (
@@ -191,7 +236,7 @@ const Programs = () => {
         )}
 
         {/* Pagination */}
-        {programs.length > 0 && pagination.pages > 1 && (
+        {programs.length > 0 && (
           <div className="mt-8 flex flex-col items-center justify-between gap-4 sm:flex-row">
             <div className="flex items-center gap-2 text-sm text-gray-600">
               <span>Items per page:</span>
@@ -208,29 +253,31 @@ const Programs = () => {
               </select>
             </div>
 
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                disabled={currentPage === 1}
-                className="rounded border border-gray-300 px-3 py-1 hover:bg-gray-50 disabled:opacity-50"
-              >
-                Previous
-              </button>
+            {totalPages > 1 && (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                  disabled={currentPage === 1}
+                  className="rounded border border-gray-300 px-3 py-1 hover:bg-gray-50 disabled:opacity-50"
+                >
+                  Previous
+                </button>
 
-              <span className="text-sm text-gray-600">
-                Page {currentPage} of {pagination.pages}
-              </span>
+                <span className="text-sm text-gray-600">
+                  Page {currentPage} of {totalPages}
+                </span>
 
-              <button
-                onClick={() =>
-                  setCurrentPage(Math.min(pagination.pages, currentPage + 1))
-                }
-                disabled={currentPage === pagination.pages}
-                className="rounded border border-gray-300 px-3 py-1 hover:bg-gray-50 disabled:opacity-50"
-              >
-                Next
-              </button>
-            </div>
+                <button
+                  onClick={() =>
+                    setCurrentPage(Math.min(totalPages, currentPage + 1))
+                  }
+                  disabled={currentPage === totalPages}
+                  className="rounded border border-gray-300 px-3 py-1 hover:bg-gray-50 disabled:opacity-50"
+                >
+                  Next
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>

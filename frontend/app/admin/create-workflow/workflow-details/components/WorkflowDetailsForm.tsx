@@ -209,7 +209,7 @@ export default function WorkflowDetailsForm({
         {/* Action Buttons */}
         <div className="flex flex-col gap-2 border-t border-gray-200 pt-4 sm:flex-row sm:justify-end sm:gap-3">
           {isEditing ? (
-            <>
+            <div>
               <button
                 onClick={handleSave}
                 disabled={!name.trim() || !description.trim() || isSaving}
@@ -229,7 +229,7 @@ export default function WorkflowDetailsForm({
               >
                 {isSaving ? 'Saving...' : 'Save & Continue'}
               </button>
-            </>
+            </div>
           ) : (
             <button
               onClick={handleNext}

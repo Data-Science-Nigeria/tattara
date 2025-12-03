@@ -155,7 +155,7 @@ export default function UserTable({
                           Name: name,
                           Email: email,
                           Status: status,
-                          'Created By': createdBy,
+                          'Created At': createdBy,
                         })
                       );
                       exportToJSON(exportData, 'users');
@@ -172,14 +172,14 @@ export default function UserTable({
                           Name: name,
                           Email: email,
                           Status: status,
-                          'Created By': createdBy,
+                          'Created At': createdBy,
                         })
                       );
                       exportToCSV(exportData, 'users', [
                         'Name',
                         'Email',
                         'Status',
-                        'Created By',
+                        'Created At',
                       ]);
                       setShowExportDropdown(false);
                     }}
@@ -194,14 +194,14 @@ export default function UserTable({
                           Name: name,
                           Email: email,
                           Status: status,
-                          'Created By': createdBy,
+                          'Created At': createdBy,
                         })
                       );
                       exportToPDF(exportData, 'users', 'Users Report', [
                         'Name',
                         'Email',
                         'Status',
-                        'Created By',
+                        'Created At',
                       ]);
                       setShowExportDropdown(false);
                     }}
@@ -295,7 +295,7 @@ export default function UserTable({
               </th>
               <th className="px-3 py-4 text-left font-semibold text-gray-700 sm:px-6">
                 <div className="flex items-center gap-2 whitespace-nowrap">
-                  <span className="text-sm sm:text-base">Created By</span>
+                  <span className="text-sm sm:text-base">Created At</span>
                   <div className="relative">
                     <svg
                       className="h-4 w-4 cursor-pointer"

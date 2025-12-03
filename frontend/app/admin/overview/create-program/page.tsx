@@ -8,7 +8,10 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { programControllerCreateMutation } from '@/client/@tanstack/react-query.gen';
+import {
+  programControllerCreateMutation,
+  programControllerGetProgramsOptions,
+} from '@/client/@tanstack/react-query.gen';
 import { getApiErrorMessage } from '@/lib/get-api-error-message';
 import { toast } from 'sonner';
 
@@ -35,6 +38,13 @@ export default function CreateProgramPage() {
 
   const createProgram = useMutation({
     ...programControllerCreateMutation(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: programControllerGetProgramsOptions().queryKey,
+      });
+      toast.success('Program created successfully!');
+      router.push('/admin/overview');
+    },
   });
 
   const onSubmit = async (data: ProgramData) => {
@@ -44,16 +54,6 @@ export default function CreateProgramPage() {
       await createProgram.mutateAsync({
         body: data,
       });
-
-      await queryClient.refetchQueries({
-        queryKey: [
-          'programControllerFindAll',
-          { query: { page: 1, limit: 6 } },
-        ],
-      });
-
-      toast.success('Program created successfully!');
-      router.push('/admin/overview');
     } catch (error) {
       const err = getApiErrorMessage(error);
       toast.error(err);

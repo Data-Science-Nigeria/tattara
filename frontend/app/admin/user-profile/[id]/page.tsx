@@ -31,7 +31,7 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
 
   const { data: usersData, isLoading } = useQuery({
     ...userControllerFindAllForLoggedInUserOptions({
-      query: { page: 1, limit: 1000 }, // Get all users to find the specific one
+      query: { page: 1, limit: 1000000 }, // Get all users to find the specific one
     }),
   });
 

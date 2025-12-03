@@ -27,7 +27,7 @@ const Sidebar = ({ isOpen = false, onToggle = () => {} }: SidebarProps) => {
   };
 
   return (
-    <>
+    <div>
       {/* Mobile overlay */}
       {isOpen && (
         <div
@@ -131,7 +131,7 @@ const Sidebar = ({ isOpen = false, onToggle = () => {} }: SidebarProps) => {
           </div>
         </div>
       </aside>
-    </>
+    </div>
   );
 };
 

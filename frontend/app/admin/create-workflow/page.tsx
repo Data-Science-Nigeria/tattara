@@ -59,15 +59,15 @@ export default function CreateWorkflow() {
 
   const workflows = isSearching ? searchResults : allWorkflows;
 
-  const handleSearchResults = (results: Workflow[]) => {
+  const handleSearchResults = React.useCallback((results: Workflow[]) => {
     setSearchResults(results);
     setIsSearching(true);
-  };
+  }, []);
 
-  const handleClearSearch = () => {
+  const handleClearSearch = React.useCallback(() => {
     setSearchResults([]);
     setIsSearching(false);
-  };
+  }, []);
 
   return (
     <div className="relative min-h-screen p-3 sm:p-6">

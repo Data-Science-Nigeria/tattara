@@ -23,7 +23,7 @@ export default function SelectProgram() {
 
   const { data: programsData, isLoading } = useQuery({
     ...programControllerGetProgramsOptions({
-      query: { page: 1, limit: 100 },
+      query: { page: 1, limit: 1000000 },
     }),
   });
 

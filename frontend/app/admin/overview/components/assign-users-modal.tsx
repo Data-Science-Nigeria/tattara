@@ -102,7 +102,7 @@ export default function AssignUsersModal({
 
   const { data: usersData, isLoading: usersLoading } = useQuery({
     ...userControllerFindAllForLoggedInUserOptions({
-      query: { page: 1, limit: 100 },
+      query: { page: 1, limit: 1000000 },
     }),
     enabled: isOpen,
   });
@@ -277,7 +277,7 @@ export default function AssignUsersModal({
                 : 'Select All'}
             </button>
           </div>
-          <div className="custom-scrollbar max-h-64 overflow-y-auto rounded-lg border p-2">
+          <div className="custom-scrollbar max-h-40 overflow-y-auto rounded-lg border p-2">
             {usersLoading ? (
               <div className="flex items-center justify-center py-8">
                 <div className="h-6 w-6 animate-spin rounded-full border-b-2 border-green-600"></div>

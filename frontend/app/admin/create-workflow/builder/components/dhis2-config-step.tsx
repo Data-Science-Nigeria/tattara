@@ -59,7 +59,7 @@ export default function DHIS2ConfigStep({
   const { data: programsData } = useQuery({
     ...integrationControllerGetProgramsOptions({
       path: { connectionId: selectedConnection },
-      query: { page: 1, pageSize: 50 },
+      query: { page: 1, pageSize: 100 },
     }),
     enabled: !!selectedConnection && selectedType === 'program',
   });
@@ -67,7 +67,7 @@ export default function DHIS2ConfigStep({
   const { data: datasetsData } = useQuery({
     ...integrationControllerGetDatasetsOptions({
       path: { connectionId: selectedConnection },
-      query: { page: 1, pageSize: 50 },
+      query: { page: 1, pageSize: 100 },
     }),
     enabled: !!selectedConnection && selectedType === 'dataset',
   });

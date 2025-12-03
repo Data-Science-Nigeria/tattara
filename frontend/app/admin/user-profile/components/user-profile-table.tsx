@@ -21,6 +21,7 @@ interface UserProfileTableProps {
   currentPage: number;
   limit: number;
   totalPages: number;
+  totalFilteredUsers: number;
   onPageChange: (page: number) => void;
 }
 
@@ -44,6 +45,7 @@ export default function UserProfileTable({
   currentPage,
   limit,
   totalPages,
+  totalFilteredUsers,
   onPageChange,
 }: UserProfileTableProps) {
   return (
@@ -165,9 +167,10 @@ export default function UserProfileTable({
                 </span>{' '}
                 to{' '}
                 <span className="font-medium">
-                  {Math.min(currentPage * limit, users.length)}
+                  {Math.min(currentPage * limit, totalFilteredUsers)}
                 </span>{' '}
-                of <span className="font-medium">{users.length}</span> results
+                of <span className="font-medium">{totalFilteredUsers}</span>{' '}
+                results
               </p>
             </div>
             <div>

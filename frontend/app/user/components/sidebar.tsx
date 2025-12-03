@@ -26,7 +26,7 @@ const Sidebar = ({ isOpen = false, onToggle = () => {} }: SidebarProps) => {
   };
 
   return (
-    <>
+    <div>
       {isOpen && (
         <div
           className="fixed inset-0 z-20 bg-black/50 lg:hidden"
@@ -125,7 +125,7 @@ const Sidebar = ({ isOpen = false, onToggle = () => {} }: SidebarProps) => {
           </div>
         </div>
       </aside>
-    </>
+    </div>
   );
 };
 

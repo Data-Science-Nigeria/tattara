@@ -155,7 +155,7 @@ export function LoginForm() {
   };
 
   return (
-    <>
+    <div>
       <div className="mb-2 text-center">
         <h1 className="mb-2 text-2xl font-bold text-[#373844]">Login</h1>
         <p className="text-sm text-[#5C5D6C]">
@@ -216,6 +216,6 @@ export function LoginForm() {
           {isSubmitting ? <LoaderCircle className="animate-spin" /> : 'Log In'}
         </Button>
       </form>
-    </>
+    </div>
   );
 }

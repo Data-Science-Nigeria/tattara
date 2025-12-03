@@ -315,7 +315,7 @@ export default function TextBuilder() {
   };
 
   return (
-    <>
+    <div>
       <WorkflowBuilderLayout
         title="Text Workflow Builder"
         description="Configure DHIS2 integration and AI-powered text processing"
@@ -413,6 +413,6 @@ export default function TextBuilder() {
           setAiFieldMappings(newFields);
         }}
       />
-    </>
+    </div>
   );
 }

@@ -325,7 +325,7 @@ export default function FieldMapping() {
             {upsertMappingMutation.isPending ? 'Saving...' : 'Test Mapping'}
           </button>
         ) : (
-          <>
+          <div>
             <button
               onClick={() => setShowAiReview(false)}
               className="w-full rounded-lg bg-red-600 px-4 py-2 text-sm text-white hover:bg-red-700 sm:w-auto sm:px-6 sm:text-base"
@@ -341,7 +341,7 @@ export default function FieldMapping() {
                 ? 'Saving...'
                 : 'Save & Go to Workflows'}
             </button>
-          </>
+          </div>
         )}
       </div>
     </div>

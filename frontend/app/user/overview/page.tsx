@@ -60,7 +60,7 @@ export default function Workflows() {
     error,
   } = useQuery({
     ...workflowControllerGetWorkflowsOptions({
-      query: { page: 1, limit: 100, userId: userId },
+      query: { page: 1, limit: 1000000, userId: userId },
     }),
     enabled: !!userId,
     retry: 1,

@@ -115,7 +115,7 @@ export function SignUpForm() {
   };
 
   return (
-    <>
+    <div>
       <div className="mb-4 text-center">
         <h1 className="mb-2 text-2xl font-bold text-[#373844]">
           Create Admin Account
@@ -209,11 +209,11 @@ export function SignUpForm() {
           <label className="text-sm text-gray-600">
             By clicking Create account, I agree that I have read and accepted
             the{' '}
-            <Link href="/terms" className="text-[#008647] underline">
+            <Link href="#" className="text-[#008647] underline">
               Terms of Use
             </Link>{' '}
             and{' '}
-            <Link href="/privacy" className="text-[#008647] underline">
+            <Link href="#" className="text-[#008647] underline">
               Privacy Policy
             </Link>
           </label>
@@ -245,6 +245,6 @@ export function SignUpForm() {
           </Link>
         </div>
       </form>
-    </>
+    </div>
   );
 }
