@@ -81,7 +81,7 @@ export default function WorkflowsSection({
           </p>
         </div>
       ) : (
-        <div>
+        <>
           {/* List view for all screens */}
           <div className="space-y-3">
             {displayedWorkflows.map((workflow) => {
@@ -175,7 +175,7 @@ export default function WorkflowsSection({
               </div>
             </div>
           )}
-        </div>
+        </>
       )}
     </div>
   );

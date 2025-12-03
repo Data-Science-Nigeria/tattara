@@ -226,7 +226,7 @@ export default function AudioRenderer({
 
           <div className="flex justify-center gap-4">
             {!isRecording && !audioBlob && (
-              <div>
+              <>
                 <button
                   onClick={startRecording}
                   className="flex items-center justify-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-xs text-white hover:bg-red-700 sm:px-6 sm:py-3 sm:text-sm"
@@ -248,7 +248,7 @@ export default function AudioRenderer({
                   onChange={handleFileUpload}
                   className="hidden"
                 />
-              </div>
+              </>
             )}
 
             {isRecording && (

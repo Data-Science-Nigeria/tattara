@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
-import { collectorControllerProcessAiMutation } from '@/client/@tanstack/react-query.gen';
 import { toast } from 'sonner';
 import { FileText } from 'lucide-react';
+import { useAuthStore } from '@/app/store/use-auth-store';
+import AiResponseDisplay from '../../field-mapping/components/AiResponseDisplay';
 
 interface TextAiReviewProps {
   workflowId: string;
@@ -18,12 +19,54 @@ export default function TextAiReview({
   const [textInput, setTextInput] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [aiReviewData, setAiReviewData] = useState<{
-    extracted?: Record<string, unknown>;
-    missing_required?: string[];
+    success: boolean;
+    data?: {
+      aiData?: {
+        form_id?: string;
+        extracted?: Record<string, unknown>;
+        confidence?: Record<string, number>;
+        spans?: Record<string, unknown>;
+        missing_required?: string[];
+      };
+      metrics?: {
+        asr_seconds?: number;
+        vision_seconds?: number;
+        llm_seconds?: number;
+        total_seconds?: number;
+        tokens_in?: number;
+        tokens_out?: number;
+        cost_usd?: number;
+        model?: string;
+        provider?: string;
+      };
+      aiProcessingLogId?: string;
+    };
+    timestamp?: string;
+    error?: string;
   } | null>(null);
+  const { auth } = useAuthStore();
 
   const aiProcessMutation = useMutation({
-    ...collectorControllerProcessAiMutation(),
+    mutationFn: async ({ body }: { body: Record<string, unknown> }) => {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/collector/process-ai`,
+        {
+          method: 'POST',
+          body: JSON.stringify(body),
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${auth?.token}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return response.json();
+    },
   });
 
   const handleProcess = async () => {
@@ -39,27 +82,10 @@ export default function TextAiReview({
         },
       });
 
-      const responseData = aiResponse as {
-        data?: {
-          aiData?: {
-            extracted?: Record<string, unknown>;
-            missing_required?: string[];
-          };
-          aiProcessingLogId?: string;
-        };
-      };
-
-      const reviewData = responseData?.data?.aiData;
-      setAiReviewData(reviewData || null);
-
-      if (reviewData) {
-        toast.success('Text processed successfully!');
-        onReviewComplete?.(
-          reviewData,
-          responseData?.data?.aiProcessingLogId || ''
-        );
-        onAiTestStatusChange?.(true);
-      }
+      setAiReviewData(aiResponse);
+      toast.success('Text processed successfully!');
+      onReviewComplete?.(aiResponse, aiResponse?.data?.aiProcessingLogId || '');
+      onAiTestStatusChange?.(true);
     } catch {
       toast.error('Failed to process text');
     } finally {
@@ -94,43 +120,13 @@ export default function TextAiReview({
       )}
 
       {aiReviewData && (
-        <div className="rounded-lg border border-gray-300 bg-white p-4">
-          <h3 className="mb-3 text-lg font-semibold">AI Processing Results</h3>
-          <div>
-            <strong>Extracted Data:</strong>
-            <div className="mt-2 space-y-1">
-              {Object.entries(aiReviewData.extracted || {}).map(
-                ([key, value]) => (
-                  <div key={key} className="flex justify-between">
-                    <span className="font-medium">{key}:</span>
-                    <span>{String(value)}</span>
-                  </div>
-                )
-              )}
-            </div>
-          </div>
-          {(aiReviewData.missing_required?.length ?? 0) > 0 && (
-            <div className="mt-4 text-sm text-red-600">
-              <strong>Missing Required Fields:</strong>
-              <ul className="mt-1 list-inside list-disc">
-                {aiReviewData.missing_required?.map(
-                  (field: string, index: number) => (
-                    <li key={index}>{field}</li>
-                  )
-                )}
-              </ul>
-            </div>
-          )}
-          <button
-            onClick={() => {
-              setAiReviewData(null);
-              setTextInput('');
-            }}
-            className="mt-4 rounded-lg border border-gray-300 px-4 py-2 text-gray-700 hover:bg-gray-50"
-          >
-            Cancel
-          </button>
-        </div>
+        <AiResponseDisplay
+          responseData={aiReviewData}
+          onReset={() => {
+            setAiReviewData(null);
+            setTextInput('');
+          }}
+        />
       )}
     </div>
   );

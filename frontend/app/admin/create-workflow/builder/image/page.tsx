@@ -312,7 +312,7 @@ export default function ImageBuilder() {
   };
 
   return (
-    <div>
+    <>
       <WorkflowBuilderLayout
         title="Image Workflow Builder"
         description="Configure DHIS2 integration and AI-powered image processing"
@@ -408,6 +408,6 @@ export default function ImageBuilder() {
           setAiFieldMappings(newFields);
         }}
       />
-    </div>
+    </>
   );
 }

@@ -1,8 +1,9 @@
 import React, { useState, useRef } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { Mic, Square, X, RotateCcw, Upload } from 'lucide-react';
+import { Mic, Square, X, Upload } from 'lucide-react';
 import { useAuthStore } from '@/app/store/use-auth-store';
+import AiResponseDisplay from '../../field-mapping/components/AiResponseDisplay';
 
 interface AudioAiReviewProps {
   workflowId: string;
@@ -21,8 +22,30 @@ export default function AudioAiReview({
   const [recordingTime, setRecordingTime] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
   const [aiReviewData, setAiReviewData] = useState<{
-    extracted?: Record<string, unknown>;
-    missing_required?: string[];
+    success: boolean;
+    data?: {
+      aiData?: {
+        form_id?: string;
+        extracted?: Record<string, unknown>;
+        confidence?: Record<string, number>;
+        spans?: Record<string, unknown>;
+        missing_required?: string[];
+      };
+      metrics?: {
+        asr_seconds?: number;
+        vision_seconds?: number;
+        llm_seconds?: number;
+        total_seconds?: number;
+        tokens_in?: number;
+        tokens_out?: number;
+        cost_usd?: number;
+        model?: string;
+        provider?: string;
+      };
+      aiProcessingLogId?: string;
+    };
+    timestamp?: string;
+    error?: string;
   } | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -105,27 +128,10 @@ export default function AudioAiReview({
 
       const aiResponse = await aiProcessMutation.mutateAsync({ formData });
 
-      const responseData = aiResponse as {
-        data?: {
-          aiData?: {
-            extracted?: Record<string, unknown>;
-            missing_required?: string[];
-          };
-          aiProcessingLogId?: string;
-        };
-      };
-
-      const reviewData = responseData?.data?.aiData;
-      setAiReviewData(reviewData || null);
-
-      if (reviewData) {
-        toast.success('Audio processed successfully!');
-        onReviewComplete?.(
-          reviewData,
-          responseData?.data?.aiProcessingLogId || ''
-        );
-        onAiTestStatusChange?.(true);
-      }
+      setAiReviewData(aiResponse);
+      toast.success('Audio processed successfully!');
+      onReviewComplete?.(aiResponse, aiResponse?.data?.aiProcessingLogId || '');
+      onAiTestStatusChange?.(true);
     } catch {
       toast.error('Failed to process audio');
     } finally {
@@ -254,52 +260,7 @@ export default function AudioAiReview({
       )}
 
       {aiReviewData && (
-        <div className="rounded-lg border border-gray-300 bg-white p-4">
-          <div className="mb-3 flex items-start justify-between">
-            <h3 className="text-lg font-semibold">AI Processing Results</h3>
-            <button
-              onClick={resetAll}
-              className="rounded-lg bg-gray-100 px-3 py-1 text-sm text-gray-600 hover:bg-gray-200"
-            >
-              <RotateCcw className="mr-1 inline h-3 w-3" />
-              Reset All
-            </button>
-          </div>
-          <div>
-            <strong>Extracted Data:</strong>
-            <div className="mt-2 space-y-1">
-              {Object.entries(aiReviewData.extracted || {}).map(
-                ([key, value]) => (
-                  <div key={key} className="flex justify-between">
-                    <span className="font-medium">{key}:</span>
-                    <span>{String(value)}</span>
-                  </div>
-                )
-              )}
-            </div>
-          </div>
-          {(aiReviewData.missing_required?.length ?? 0) > 0 && (
-            <div className="mt-4 text-sm text-red-600">
-              <strong>Missing Required Fields:</strong>
-              <ul className="mt-1 list-inside list-disc">
-                {aiReviewData.missing_required?.map(
-                  (field: string, index: number) => (
-                    <li key={index}>{field}</li>
-                  )
-                )}
-              </ul>
-            </div>
-          )}
-          <button
-            onClick={() => {
-              setAiReviewData(null);
-              clearRecording();
-            }}
-            className="mt-4 rounded-lg border border-gray-300 px-4 py-2 text-gray-700 hover:bg-gray-50"
-          >
-            Cancel
-          </button>
-        </div>
+        <AiResponseDisplay responseData={aiReviewData} onReset={resetAll} />
       )}
     </div>
   );

@@ -312,7 +312,7 @@ export default function AudioBuilder() {
   };
 
   return (
-    <div>
+    <>
       <WorkflowBuilderLayout
         title="Audio Workflow Builder"
         description="Configure DHIS2 integration and AI-powered audio processing"
@@ -410,6 +410,6 @@ export default function AudioBuilder() {
           setAiFieldMappings(newFields);
         }}
       />
-    </div>
+    </>
   );
 }
