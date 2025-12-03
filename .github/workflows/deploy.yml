@@ -13,33 +13,8 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: data-science-nigeria/tattara
-
 jobs:
-  detect-changes:
-    runs-on: ubuntu-latest
-    outputs:
-      app: ${{ steps.filter.outputs.app }}
-      ai: ${{ steps.filter.outputs.ai }}
-      frontend: ${{ steps.filter.outputs.frontend }}
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Detect changed paths
-        uses: dorny/paths-filter@v3
-        id: filter
-        with:
-          filters: |
-            app:
-              - 'backend/core/**'
-            ai:
-              - 'backend/ai/**'
-            frontend:
-              - 'frontend/**'
-
   build-app:
-    needs: detect-changes
-    if: needs.detect-changes.outputs.app == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -69,8 +44,6 @@ jobs:
           cache-to: type=gha,mode=max
 
   build-ai:
-    needs: detect-changes
-    if: needs.detect-changes.outputs.ai == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -100,8 +73,6 @@ jobs:
           cache-to: type=gha,mode=max
 
   build-frontend:
-    needs: detect-changes
-    if: needs.detect-changes.outputs.frontend == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -133,7 +104,7 @@ jobs:
             NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}
 
   deploy:
-    needs: [detect-changes, build-app, build-ai, build-frontend]
+    needs: [build-app, build-ai, build-frontend]
     runs-on: ubuntu-latest
     if: |
       always() &&
@@ -161,9 +132,6 @@ jobs:
           REGISTRY: ${{ env.REGISTRY }}
           IMAGE_NAME: ${{ env.IMAGE_NAME }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          APP_CHANGED: ${{ needs.detect-changes.outputs.app }}
-          AI_CHANGED: ${{ needs.detect-changes.outputs.ai }}
-          FRONTEND_CHANGED: ${{ needs.detect-changes.outputs.frontend }}
         run: |
           ssh -i ~/.ssh/deploy_key $DEPLOY_USER@$DEPLOY_HOST << EOF
           set -e
@@ -173,24 +141,15 @@ jobs:
           # Login to GHCR
           echo $GITHUB_TOKEN | docker login ghcr.io -u $DEPLOY_USER --password-stdin
 
-          # Pull only the images that were built
-          if [ "$APP_CHANGED" = "true" ]; then
-            echo "Pulling app image..."
-            docker pull $REGISTRY/$IMAGE_NAME/app:$IMAGE_TAG
-            export COMPOSE_APP_IMAGE="$REGISTRY/$IMAGE_NAME/app:$IMAGE_TAG"
-          fi
+          # Pull latest images
+          docker pull $REGISTRY/$IMAGE_NAME/app:$IMAGE_TAG
+          docker pull $REGISTRY/$IMAGE_NAME/ai:$IMAGE_TAG
+          docker pull $REGISTRY/$IMAGE_NAME/frontend:$IMAGE_TAG
 
-          if [ "$AI_CHANGED" = "true" ]; then
-            echo "Pulling AI image..."
-            docker pull $REGISTRY/$IMAGE_NAME/ai:$IMAGE_TAG
-            export COMPOSE_AI_IMAGE="$REGISTRY/$IMAGE_NAME/ai:$IMAGE_TAG"
-          fi
-
-          if [ "$FRONTEND_CHANGED" = "true" ]; then
-            echo "Pulling frontend image..."
-            docker pull $REGISTRY/$IMAGE_NAME/frontend:$IMAGE_TAG
-            export COMPOSE_FRONTEND_IMAGE="$REGISTRY/$IMAGE_NAME/frontend:$IMAGE_TAG"
-          fi
+          # Update compose file with new image tags
+          export COMPOSE_APP_IMAGE="$REGISTRY/$IMAGE_NAME/app:$IMAGE_TAG"
+          export COMPOSE_AI_IMAGE="$REGISTRY/$IMAGE_NAME/ai:$IMAGE_TAG"
+          export COMPOSE_FRONTEND_IMAGE="$REGISTRY/$IMAGE_NAME/frontend:$IMAGE_TAG"
 
           # Stop old containers
           docker compose down
