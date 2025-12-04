@@ -69,7 +69,10 @@ export class ProgramController {
   @Roles('admin')
   @RequirePermissions('program:read')
   findOne(@Param('id') programId: string) {
-    return this.programService.findOne(programId);
+    const program = this.programService.findOne(programId);
+    return plainToInstance(ProgramResponseDto, program, {
+      excludeExtraneousValues: true,
+    });
   }
 
   /** Update a specific program by ID
@@ -121,8 +124,14 @@ export class ProgramController {
   @RequirePermissions('program:read')
   async getAllProgramsForUser(
     @Param('userId', new ParseUUIDPipe()) userId: string,
+    @CurrentUser() currentUser: User,
   ) {
-    const programs = await this.programService.getAllProgramsForUser(userId);
+    const { programs } = await this.programService.getPrograms(
+      1,
+      1000, // Get all programs for the user
+      currentUser,
+      userId,
+    );
     return {
       programs: programs.map(program => ({
         id: program.id,

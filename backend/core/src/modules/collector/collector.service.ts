@@ -71,7 +71,7 @@ export class CollectorService {
         provider_preference: payload.aiProvider,
       };
 
-      const language = workflow.supportedLanguages[0];
+      const language = payload.language ?? workflow.supportedLanguages[0];
       let response: ExtractionResponse | null = null;
 
       switch (payload.processingType) {
@@ -198,10 +198,6 @@ export class CollectorService {
           workflow.workflowFields,
           submitData.data,
         );
-
-        // return;
-
-        // console.log('extractedIntegrationData', extractedIntegrationData);
 
         for (const config of workflow.workflowConfigurations) {
           let payload: unknown;
