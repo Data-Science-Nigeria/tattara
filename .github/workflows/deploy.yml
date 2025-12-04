@@ -175,13 +175,13 @@ jobs:
           AI_CHANGED: ${{ needs.detect-changes.outputs.ai }}
           FRONTEND_CHANGED: ${{ needs.detect-changes.outputs.frontend }}
         run: |
-          ssh -i ~/.ssh/deploy_key $DEPLOY_USER@$DEPLOY_HOST << 'EOF'
+          ssh -i ~/.ssh/deploy_key $DEPLOY_USER@$DEPLOY_HOST << EOF
           set -e
 
           cd $DEPLOY_PATH
 
-          # Login to GHCR
-          echo $GITHUB_TOKEN | docker login ghcr.io -u $DEPLOY_USER --password-stdin
+          # Login to GHCR (non-interactive)
+          echo "$GITHUB_TOKEN" | docker login ghcr.io -u "\$USER" --password-stdin
 
           # Pull only changed images
           if [ "$APP_CHANGED" = "true" ]; then
@@ -207,35 +207,35 @@ jobs:
             SERVICES_TO_RESTART=""
             
             if [ "$APP_CHANGED" = "true" ]; then
-              SERVICES_TO_RESTART="$SERVICES_TO_RESTART app migrate"
+              SERVICES_TO_RESTART="\$SERVICES_TO_RESTART app migrate"
             fi
             
             if [ "$AI_CHANGED" = "true" ]; then
-              SERVICES_TO_RESTART="$SERVICES_TO_RESTART ai"
+              SERVICES_TO_RESTART="\$SERVICES_TO_RESTART ai"
             fi
             
             if [ "$FRONTEND_CHANGED" = "true" ]; then
-              SERVICES_TO_RESTART="$SERVICES_TO_RESTART frontend"
+              SERVICES_TO_RESTART="\$SERVICES_TO_RESTART frontend"
             fi
 
-            echo "🔄 Restarting services:$SERVICES_TO_RESTART"
-            docker compose up -d --no-deps $SERVICES_TO_RESTART
+            echo "🔄 Restarting services:\$SERVICES_TO_RESTART"
+            docker compose up -d --no-deps \$SERVICES_TO_RESTART
           fi
 
           # Run migrations only if app changed
           if [ "$APP_CHANGED" = "true" ]; then
             echo "⏳ Waiting for migrations to complete..."
             docker compose logs -f migrate &
-            LOGS_PID=$!
+            LOGS_PID=\$!
 
             # Wait for migrate container to exit (successful migration)
-            timeout 120 sh -c 'until [ "$(docker compose ps -q migrate | xargs docker inspect -f "{{.State.Status}}")" = "exited" ]; do sleep 2; done' || echo "Migration timeout - check logs"
-            kill $LOGS_PID 2>/dev/null || true
+            timeout 120 sh -c 'until [ "\$(docker compose ps -q migrate | xargs docker inspect -f "{{.State.Status}}")" = "exited" ]; do sleep 2; done' || echo "Migration timeout - check logs"
+            kill \$LOGS_PID 2>/dev/null || true
 
             # Check migration exit code
-            MIGRATE_EXIT_CODE=$(docker compose ps -q migrate | xargs docker inspect -f "{{.State.ExitCode}}")
-            if [ "$MIGRATE_EXIT_CODE" != "0" ]; then
-              echo "⚠️ Migration container exited with code $MIGRATE_EXIT_CODE"
+            MIGRATE_EXIT_CODE=\$(docker compose ps -q migrate | xargs docker inspect -f "{{.State.ExitCode}}")
+            if [ "\$MIGRATE_EXIT_CODE" != "0" ]; then
+              echo "⚠️ Migration container exited with code \$MIGRATE_EXIT_CODE"
               docker compose logs migrate
               if docker compose logs migrate | grep -q "No migrations are pending"; then
                 echo "✅ No migrations pending — continuing."
