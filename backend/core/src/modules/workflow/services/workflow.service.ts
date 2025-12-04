@@ -173,16 +173,22 @@ export class WorkflowService {
       .andWhere(`${alias}.status = :status`, { status: WorkflowStatus.ACTIVE });
 
     if (currentUser.hasRole('user') && !currentUser.hasRole('admin')) {
-      qb.innerJoin(`${alias}.users`, 'userFilter').andWhere(
-        'userFilter.id = :userId',
-        { userId: currentUser.id },
-      );
+      qb.leftJoin(`${alias}.users`, 'workflowUser')
+        .leftJoin('program.users', 'programUser')
+        .andWhere(
+          '(workflowUser.id = :currentUserId OR programUser.id = :currentUserId)',
+          { currentUserId: currentUser.id },
+        )
+        .distinct(true);
     } else if (userId) {
       const targetUserIds = Array.isArray(userId) ? userId : [userId];
-      qb.innerJoin(`${alias}.users`, 'userFilter').andWhere(
-        'userFilter.id IN (:...userIds)',
-        { userIds: targetUserIds },
-      );
+      qb.leftJoin(`${alias}.users`, 'workflowUser')
+        .leftJoin('program.users', 'programUser')
+        .andWhere(
+          '(workflowUser.id IN (:...userIds) OR programUser.id IN (:...userIds))',
+          { userIds: targetUserIds },
+        )
+        .distinct(true);
     } else {
       qb.leftJoinAndSelect(`${alias}.users`, 'users');
     }
@@ -227,6 +233,7 @@ export class WorkflowService {
       id: f.fieldName,
       type: f.fieldType,
       required: f.isRequired,
+      ...(f.options ? { options: f.options } : {}),
       // TODO: support flexible validation rules in future; tell ai devs
     }));
 
