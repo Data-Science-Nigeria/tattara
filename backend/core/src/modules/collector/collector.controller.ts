@@ -31,6 +31,7 @@ export class CollectorController {
     return this.collectorService.processAi({ ...processAiDto, files }, user);
   }
 
+  /** Submit collected data */
   @Post('/submit')
   @Roles('user')
   async submitData(@Body() submitDto: SubmitDto, @CurrentUser() user: User) {
