@@ -25,7 +25,7 @@ export class ProgramController {
   /**  Get all programs with pagination
    */
   @Get()
-  @Roles('admin')
+  @Roles('admin', 'user')
   @RequirePermissions('program:read')
   @ApiQuery({ name: 'userId', required: false, type: String })
   @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
@@ -66,7 +66,7 @@ export class ProgramController {
   /** Get a specific program by ID
    */
   @Get(':id')
-  @Roles('admin')
+  @Roles('admin', 'user')
   @RequirePermissions('program:read')
   findOne(@Param('id') programId: string) {
     const program = this.programService.findOne(programId);
@@ -99,7 +99,7 @@ export class ProgramController {
   /** Get all workflows associated with a specific program
    */
   @Get(':id/workflows')
-  @Roles('admin')
+  @Roles('admin', 'user')
   @RequirePermissions('program:read')
   findWorkflowsByProgram(@Param('id') programId: string) {
     return this.programService.findAllWorkflows(programId);

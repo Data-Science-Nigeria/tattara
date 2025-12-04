@@ -10,7 +10,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
-import { CurrentUser, Roles } from '@/common/decorators';
+import { CurrentUser } from '@/common/decorators';
 import { User } from '@/database/entities';
 import { CollectorService } from './collector.service';
 import { ProcessAiDto, GetSubmissionHistoryDto } from './dto';
@@ -25,7 +25,6 @@ export class CollectorController {
    * Accept language parameter for audio processing.
    */
   @Post('/process-ai')
-  @Roles('user')
   @UseInterceptors(FilesInterceptor('files'))
   async processAi(
     @Body() processAiDto: ProcessAiDto,
@@ -37,7 +36,6 @@ export class CollectorController {
 
   /** Submit collected data */
   @Post('/submit')
-  @Roles('user')
   async submitData(@Body() submitDto: SubmitDto, @CurrentUser() user: User) {
     return this.collectorService.submit(submitDto, user);
   }

@@ -73,20 +73,12 @@ export class WorkflowService {
           this.requestContext,
         );
 
-        // const workflow = manager.create(Workflow, {
-        //   ...data,
-        //   createdBy: currentUser,
-        // });
-
         const workflow = workflowRepo.create({
           ...data,
           createdBy: currentUser,
         });
 
         if (programId) {
-          // const program = await manager.findOne(Program, {
-          //   where: { id: programId },
-          // });
           const program = await programRepo.findOne({
             where: { id: programId },
           });
@@ -100,10 +92,6 @@ export class WorkflowService {
 
         const configurations: WorkflowConfiguration[] = [];
         for (const configDto of workflowConfigurations) {
-          // const externalConnection = await manager.findOne(ExternalConnection, {
-          //   where: { id: configDto.externalConnectionId },
-          // });
-
           const externalConnection = await externalConnectionRepo.findOne({
             where: { id: configDto.externalConnectionId },
           });
@@ -113,11 +101,6 @@ export class WorkflowService {
               `External Connection with ID '${configDto.externalConnectionId}' not found`,
             );
           }
-
-          // const configEntity = manager.create(WorkflowConfiguration, {
-          //   ...configDto,
-          //   externalConnection,
-          // });
 
           const configEntity = workflowConfigRepo.create({
             ...configDto,

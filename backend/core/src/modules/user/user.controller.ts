@@ -9,20 +9,16 @@ import {
   Post,
   Query,
   UploadedFile,
-  UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { CurrentUser, RequirePermissions, Roles } from '@/common/decorators';
-import { PermissionsGuard, RolesGuard } from '@/common/guards';
 import { CsvUsersValidationPipe } from '@/common/pipes';
 import { User } from '@/database/entities';
 import { RegisterDto } from '../auth/dto';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { UserService } from './user.service';
 
 @Controller('users')
-@UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
 export class UserController {
   constructor(private readonly userService: UserService) {}
 

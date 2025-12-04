@@ -15,6 +15,7 @@ import {
 } from '../dto';
 import { IntegrationService } from '../services/integration.service';
 import { GetOrgUnitsQueryDto } from '../dto/get-orgunits-query.dto';
+import { Roles } from '@/common/decorators';
 
 @Controller('integration')
 export class IntegrationController {
@@ -30,6 +31,7 @@ export class IntegrationController {
   /**  Fetch schemas
    */
   @Get(':connectionId/schemas')
+  @Roles('super-admin', 'admin')
   async fetchSchemas(
     @Param('connectionId', new ParseUUIDPipe()) connId: string,
     @Query() query: GetSchemasQueryDto,
@@ -41,6 +43,7 @@ export class IntegrationController {
   }
 
   @Get('dhis2/programs/:connectionId')
+  @Roles('super-admin', 'admin')
   async getPrograms(
     @Param('connectionId', new ParseUUIDPipe()) connId: string,
     @Query() query: GetProgramsQueryDto,
@@ -52,6 +55,7 @@ export class IntegrationController {
   }
 
   @Get('dhis2/datasets/:connectionId')
+  @Roles('super-admin', 'admin')
   async getDatasets(
     @Param('connectionId', new ParseUUIDPipe()) connId: string,
     @Query() query: GetDatasetsQueryDto,
@@ -63,6 +67,7 @@ export class IntegrationController {
   }
 
   @Get('dhis2/:connectionId/orgunits')
+  @Roles('super-admin', 'admin')
   async getOrgUnits(
     @Param('connectionId', new ParseUUIDPipe()) connId: string,
     @Query() query: GetOrgUnitsQueryDto,
