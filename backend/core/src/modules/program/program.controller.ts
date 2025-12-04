@@ -26,7 +26,6 @@ export class ProgramController {
    */
   @Get()
   @Roles('admin', 'user')
-  @RequirePermissions('program:read')
   @ApiQuery({ name: 'userId', required: false, type: String })
   @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
@@ -67,7 +66,6 @@ export class ProgramController {
    */
   @Get(':id')
   @Roles('admin', 'user')
-  @RequirePermissions('program:read')
   findOne(@Param('id') programId: string) {
     const program = this.programService.findOne(programId);
     return plainToInstance(ProgramResponseDto, program, {
