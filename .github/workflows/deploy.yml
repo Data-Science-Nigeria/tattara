@@ -224,27 +224,34 @@ jobs:
 
           # Run migrations only if app changed
           if [ "$APP_CHANGED" = "true" ]; then
-            echo "⏳ Waiting for migrations to complete..."
-            docker compose logs -f migrate &
-            LOGS_PID=\$!
-
-            # Wait for migrate container to exit (successful migration)
-            timeout 120 sh -c 'until [ "\$(docker compose ps -q migrate | xargs docker inspect -f "{{.State.Status}}")" = "exited" ]; do sleep 2; done' || echo "Migration timeout - check logs"
-            kill \$LOGS_PID 2>/dev/null || true
-
-            # Check migration exit code
-            MIGRATE_EXIT_CODE=\$(docker compose ps -q migrate | xargs docker inspect -f "{{.State.ExitCode}}")
-            if [ "\$MIGRATE_EXIT_CODE" != "0" ]; then
+            echo "⏳ Running migrations..."
+            
+            # Run migrate service and wait for it to complete
+            docker compose up migrate --wait --wait-timeout 120 || true
+            
+            # Check the exit code from the migrate service
+            MIGRATE_EXIT_CODE=\$(docker compose ps migrate --format json | grep -o '"ExitCode":[0-9]*' | grep -o '[0-9]*' || echo "0")
+            
+            if [ -z "\$MIGRATE_EXIT_CODE" ]; then
+              # Fallback: check logs for success indicators
+              if docker compose logs migrate 2>&1 | grep -q "No migrations are pending\|Migration.*has been executed"; then
+                echo "✅ Migrations completed successfully"
+              else
+                echo "⚠️ Could not determine migration status, checking logs..."
+                docker compose logs migrate
+              fi
+            elif [ "\$MIGRATE_EXIT_CODE" != "0" ]; then
               echo "⚠️ Migration container exited with code \$MIGRATE_EXIT_CODE"
               docker compose logs migrate
-              if docker compose logs migrate | grep -q "No migrations are pending"; then
+              if docker compose logs migrate 2>&1 | grep -q "No migrations are pending"; then
                 echo "✅ No migrations pending — continuing."
               else
                 echo "❌ Migration failed."
                 exit 1
               fi
+            else
+              echo "✅ Migrations completed successfully"
             fi
-            echo "✅ Migrations completed successfully"
           else
             echo "⏭️ Skipping migrations (app unchanged)"
           fi

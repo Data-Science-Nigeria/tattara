@@ -20,6 +20,10 @@ import { SubmitDto } from './dto/submit.dto';
 export class CollectorController {
   constructor(private readonly collectorService: CollectorService) {}
 
+  /** Process AI data (text, audio, image)
+   *  Accepts multiple files for processing AI data including text, audio, and images.
+   * Accept language parameter for audio processing.
+   */
   @Post('/process-ai')
   @Roles('user')
   @UseInterceptors(FilesInterceptor('files'))
