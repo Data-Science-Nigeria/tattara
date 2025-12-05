@@ -10,10 +10,10 @@ import {
   fieldMappingControllerUpsertFieldMappingsMutation,
   externalConnectionsControllerFindAllOptions,
 } from '@/client/@tanstack/react-query.gen';
-import FieldMappingStep from '../builder/components/field-mapping-step';
-import AudioAiReview from '../builder/components/AudioAiReview';
-import ImageAiReview from '../builder/components/ImageAiReview';
-import TextAiReview from '../builder/components/TextAiReview';
+import FieldMappingStep from '../components/field-mapping-step';
+import AudioAiReview from '../components/AudioAiReview';
+import ImageAiReview from '../components/ImageAiReview';
+import TextAiReview from '../components/TextAiReview';
 
 interface WorkflowField {
   id: string;

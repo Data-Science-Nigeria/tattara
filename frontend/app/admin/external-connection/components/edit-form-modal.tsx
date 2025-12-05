@@ -1,6 +1,7 @@
 'use client';
 
-import { Eye, EyeOff } from 'lucide-react';
+import DHIS2Form from './dhis2-form';
+import PostgreSQLForm from './postgresql-form';
 
 interface FormError {
   message: string | string[];
@@ -8,12 +9,25 @@ interface FormError {
 
 interface EditFormModalProps {
   isOpen: boolean;
+  connectionType: 'dhis2' | 'postgres';
   name: string;
   setName: (name: string) => void;
-  pat: string;
-  setPat: (pat: string) => void;
-  showToken: boolean;
-  setShowToken: (show: boolean) => void;
+  // DHIS2 fields
+  baseUrl?: string;
+  setBaseUrl?: (baseUrl: string) => void;
+  pat?: string;
+  setPat?: (pat: string) => void;
+  // PostgreSQL fields
+  host?: string;
+  setHost?: (host: string) => void;
+  port?: string;
+  setPort?: (port: string) => void;
+  database?: string;
+  setDatabase?: (database: string) => void;
+  username?: string;
+  setUsername?: (username: string) => void;
+  password?: string;
+  setPassword?: (password: string) => void;
   onSubmit: () => void;
   onCancel: () => void;
   onTestConnection: () => void;
@@ -26,12 +40,23 @@ interface EditFormModalProps {
 
 export default function EditFormModal({
   isOpen,
+  connectionType,
   name,
   setName,
-  pat,
-  setPat,
-  showToken,
-  setShowToken,
+  baseUrl = '',
+  setBaseUrl = () => {},
+  pat = '',
+  setPat = () => {},
+  host = '',
+  setHost = () => {},
+  port = '5432',
+  setPort = () => {},
+  database = '',
+  setDatabase = () => {},
+  username = '',
+  setUsername = () => {},
+  password = '',
+  setPassword = () => {},
   onSubmit,
   onCancel,
   onTestConnection,
@@ -63,66 +88,36 @@ export default function EditFormModal({
             />
           </div>
 
-          <div>
-            <label className="mb-1 block text-xs font-medium text-gray-700 sm:text-sm">
-              Personal Access Token (PAT)
-            </label>
-            <div className="relative">
-              <input
-                type={showToken ? 'text' : 'password'}
-                value={pat}
-                onChange={(e) => setPat(e.target.value)}
-                className="w-full rounded border border-gray-300 px-2 py-2 pr-8 text-sm focus:border-green-500 focus:outline-none sm:px-3 sm:pr-10"
-                placeholder="Enter personal access token"
-              />
-              <button
-                type="button"
-                onClick={() => setShowToken(!showToken)}
-                className="absolute top-1/2 right-2 -translate-y-1/2 text-gray-400 hover:text-gray-600 sm:right-3"
-              >
-                {showToken ? (
-                  <EyeOff className="h-3 w-3 sm:h-4 sm:w-4" />
-                ) : (
-                  <Eye className="h-3 w-3 sm:h-4 sm:w-4" />
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Test Connection Section */}
-        <div className="mt-4 rounded border border-gray-200 bg-gray-50 p-3">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-700">
-                Test Connection
-              </p>
-              <p className="text-xs text-gray-500">
-                Verify your updated credentials
-              </p>
-            </div>
-            <button
-              onClick={onTestConnection}
-              disabled={!name || !pat || isTestingConnection}
-              className="flex items-center gap-2 rounded bg-blue-600 px-3 py-2 text-sm text-white hover:bg-blue-700 disabled:opacity-50"
-            >
-              {isTestingConnection && (
-                <div className="h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-              )}
-              {isTestingConnection ? 'Testing...' : 'Test Connection'}
-            </button>
-          </div>
-          {connectionTested && (
-            <div className="mt-2 flex items-center gap-2">
-              <div className="h-2 w-2 rounded-full bg-green-500"></div>
-              <p className="text-xs text-green-600">Connection successful!</p>
-            </div>
-          )}
-          {testError && (
-            <div className="mt-2 flex items-start gap-2">
-              <div className="mt-1 h-2 w-2 flex-shrink-0 rounded-full bg-red-500"></div>
-              <p className="text-xs break-all text-red-600">{testError}</p>
-            </div>
+          {connectionType === 'dhis2' ? (
+            <DHIS2Form
+              baseUrl={baseUrl}
+              setBaseUrl={setBaseUrl}
+              pat={pat}
+              setPat={setPat}
+              onTestConnection={onTestConnection}
+              isTestingConnection={isTestingConnection}
+              connectionTested={connectionTested}
+              testError={testError}
+              name={name}
+            />
+          ) : (
+            <PostgreSQLForm
+              host={host}
+              setHost={setHost}
+              port={port}
+              setPort={setPort}
+              database={database}
+              setDatabase={setDatabase}
+              username={username}
+              setUsername={setUsername}
+              password={password}
+              setPassword={setPassword}
+              onTestConnection={onTestConnection}
+              isTestingConnection={isTestingConnection}
+              connectionTested={connectionTested}
+              testError={testError}
+              name={name}
+            />
           )}
         </div>
 
@@ -153,7 +148,14 @@ export default function EditFormModal({
           </button>
           <button
             onClick={onSubmit}
-            disabled={!name || !pat || !connectionTested || isLoading}
+            disabled={
+              !name ||
+              (connectionType === 'dhis2'
+                ? !pat || !baseUrl
+                : !host || !database || !username || !password) ||
+              !connectionTested ||
+              isLoading
+            }
             className="flex w-full items-center justify-center gap-2 rounded bg-green-600 px-3 py-2 text-sm text-white hover:bg-green-700 disabled:opacity-50 sm:w-auto sm:px-4"
           >
             {isLoading && (

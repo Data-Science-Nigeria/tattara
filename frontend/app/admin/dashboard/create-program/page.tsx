@@ -15,9 +15,21 @@ import {
 import { getApiErrorMessage } from '@/lib/get-api-error-message';
 import { toast } from 'sonner';
 
+const validateTextContent = (text: string): boolean => {
+  const textChars = text.replace(/[^a-zA-Z]/g, '').length;
+  const numberChars = text.replace(/[^0-9]/g, '').length;
+  return textChars > numberChars;
+};
+
 const programSchema = z.object({
-  name: z.string().min(8, 'Program name must be at least 8 characters'),
-  description: z.string().min(15, 'Description must be at least 15 characters'),
+  name: z
+    .string()
+    .min(8, 'Program name must be at least 8 characters')
+    .refine(validateTextContent, 'Name cannot contain only numbers'),
+  description: z
+    .string()
+    .min(15, 'Description must be at least 15 characters')
+    .refine(validateTextContent, 'Description cannot contain only numbers'),
 });
 
 type ProgramData = z.infer<typeof programSchema>;

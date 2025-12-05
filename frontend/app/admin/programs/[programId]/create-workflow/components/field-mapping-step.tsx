@@ -3,7 +3,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { integrationControllerFetchSchemasOptions } from '@/client/@tanstack/react-query.gen';
 import { _Object } from '@/client/types.gen';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
+import { ChevronDown } from 'lucide-react';
 
 interface Field {
   id: string;
@@ -56,6 +57,10 @@ export default function FieldMappingStep({
   onValidationChange,
 }: FieldMappingStepProps) {
   const [dhis2DataElements, setDhis2DataElements] = useState<DataElement[]>([]);
+  const [openDropdowns, setOpenDropdowns] = useState<Record<string, boolean>>(
+    {}
+  );
+  const dropdownRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   // Validate field name matching
   const isFieldNameMatching = (
@@ -84,6 +89,23 @@ export default function FieldMappingStep({
   useEffect(() => {
     onValidationChange?.(hasValidationErrors);
   }, [hasValidationErrors, onValidationChange]);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      Object.keys(dropdownRefs.current).forEach((fieldId) => {
+        const ref = dropdownRefs.current[fieldId];
+        if (ref && !ref.contains(event.target as Node)) {
+          setOpenDropdowns((prev) => ({ ...prev, [fieldId]: false }));
+        }
+      });
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const toggleDropdown = (fieldId: string) => {
+    setOpenDropdowns((prev) => ({ ...prev, [fieldId]: !prev[fieldId] }));
+  };
 
   const getFieldValidation = (field: Field) => {
     if (!field.dhis2DataElement) return { isValid: true, message: '' };
@@ -204,9 +226,12 @@ export default function FieldMappingStep({
         </div>
       )}
 
-      <div className="space-y-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         {fields.map((field) => (
-          <div key={field.id} className="rounded-lg border border-gray-200 p-4">
+          <div
+            key={field.id}
+            className="rounded-lg border border-[#D2DDF5] bg-white p-4"
+          >
             <div className="mb-3 flex items-center justify-between">
               <h4 className="font-medium text-gray-900">
                 {field.label || field.fieldName}
@@ -220,64 +245,84 @@ export default function FieldMappingStep({
               <label className="mb-2 block text-sm font-medium text-gray-700">
                 Map to DHIS2 Data Element
               </label>
-              <select
-                value={field.dhis2DataElement || ''}
-                onChange={(e) =>
-                  updateField(field.id, { dhis2DataElement: e.target.value })
-                }
-                className={`w-full rounded-lg border px-3 py-2 focus:outline-none ${
-                  getFieldValidation(field).isValid
-                    ? 'border-gray-300 focus:border-green-500'
-                    : 'border-red-500 bg-red-50 focus:border-red-500'
-                }`}
-                disabled={!selectedConnection || isLoading}
+              <div
+                className="relative"
+                ref={(el) => {
+                  dropdownRefs.current[field.id] = el;
+                }}
               >
-                <option value="">Select data element...</option>
-                {dhis2DataElements.length === 0 &&
-                  !isLoading &&
-                  selectedConnection && (
-                    <option value="" disabled>
-                      No data elements found
-                    </option>
+                <div
+                  className={`flex w-full cursor-pointer items-center justify-between rounded-lg border border-[#D2DDF5] bg-transparent px-3 py-2 text-sm focus:border-green-500 sm:text-base ${
+                    !selectedConnection || isLoading
+                      ? 'cursor-not-allowed opacity-50'
+                      : 'hover:border-green-400'
+                  }`}
+                  onClick={() => {
+                    if (selectedConnection && !isLoading) {
+                      toggleDropdown(field.id);
+                    }
+                  }}
+                >
+                  <span
+                    className={
+                      field.dhis2DataElement ? 'text-gray-900' : 'text-gray-500'
+                    }
+                  >
+                    {field.dhis2DataElement
+                      ? dhis2DataElements.find(
+                          (el) => el.id === field.dhis2DataElement
+                        )?.name || 'Select data element...'
+                      : 'Select data element...'}
+                  </span>
+                  <ChevronDown
+                    className={`h-4 w-4 transition-transform ${
+                      openDropdowns[field.id] ? 'rotate-180' : ''
+                    }`}
+                  />
+                </div>
+                {openDropdowns[field.id] &&
+                  selectedConnection &&
+                  !isLoading && (
+                    <div className="custom-scrollbar absolute bottom-full z-50 mb-1 max-h-48 w-full overflow-y-auto rounded-lg border border-gray-300 bg-white shadow-lg">
+                      {dhis2DataElements.map((element) => {
+                        const isAlreadySelected =
+                          selectedDataElements.includes(element.id) &&
+                          field.dhis2DataElement !== element.id;
+                        const workflowFieldName =
+                          field.label || field.fieldName || '';
+                        const isMatching = isFieldNameMatching(
+                          workflowFieldName,
+                          element.name || ''
+                        );
+                        return (
+                          <div
+                            key={element.id}
+                            className={`cursor-pointer px-3 py-2 text-sm hover:bg-green-50 sm:text-base ${
+                              isAlreadySelected
+                                ? 'cursor-not-allowed opacity-50'
+                                : ''
+                            } ${!isMatching ? 'text-red-600 italic' : ''}`}
+                            onClick={() => {
+                              if (!isAlreadySelected) {
+                                updateField(field.id, {
+                                  dhis2DataElement: element.id,
+                                });
+                                setOpenDropdowns((prev) => ({
+                                  ...prev,
+                                  [field.id]: false,
+                                }));
+                              }
+                            }}
+                          >
+                            {element.name} ({element.valueType})
+                            {isAlreadySelected ? ' - Already mapped' : ''}
+                            {!isMatching ? ' - Name mismatch' : ''}
+                          </div>
+                        );
+                      })}
+                    </div>
                   )}
-                {isLoading && (
-                  <option value="" disabled>
-                    Loading data elements...
-                  </option>
-                )}
-                {!selectedConnection && (
-                  <option value="" disabled>
-                    Configure DHIS2 connection first
-                  </option>
-                )}
-                {dhis2DataElements.map((element) => {
-                  const isAlreadySelected =
-                    selectedDataElements.includes(element.id) &&
-                    field.dhis2DataElement !== element.id;
-                  const workflowFieldName =
-                    field.label || field.fieldName || '';
-                  const isMatching = isFieldNameMatching(
-                    workflowFieldName,
-                    element.name || ''
-                  );
-                  return (
-                    <option
-                      key={element.id}
-                      value={element.id}
-                      disabled={isAlreadySelected}
-                      style={
-                        !isMatching
-                          ? { color: '#dc2626', fontStyle: 'italic' }
-                          : {}
-                      }
-                    >
-                      {element.name} ({element.valueType})
-                      {isAlreadySelected ? ' - Already mapped' : ''}
-                      {!isMatching ? ' - Name mismatch' : ''}
-                    </option>
-                  );
-                })}
-              </select>
+              </div>
             </div>
             {!getFieldValidation(field).isValid && (
               <div className="mt-2 text-sm text-red-600">
