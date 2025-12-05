@@ -1,22 +1,25 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Patch,
-  Param,
-  Delete,
-  Query,
-  ParseUUIDPipe,
-} from '@nestjs/common';
-import { ProgramService } from './program.service';
-import { CurrentUser, RequirePermissions, Roles } from '@/common/decorators';
-import { AssignUsersToProgramDto, CreateProgramDto } from './dto';
-import { UpdateProgramDto } from './dto';
+import { CurrentUser, Roles } from '@/common/decorators';
 import { User } from '@/database/entities';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  ParseUUIDPipe,
+  Patch,
+  Post,
+  Query,
+} from '@nestjs/common';
 import { ApiQuery } from '@nestjs/swagger';
 import { plainToInstance } from 'class-transformer';
+import {
+  AssignUsersToProgramDto,
+  CreateProgramDto,
+  UpdateProgramDto,
+} from './dto';
 import { ProgramResponseDto } from './dto/program-response.dto';
+import { ProgramService } from './program.service';
 
 @Controller('programs')
 export class ProgramController {
@@ -57,7 +60,6 @@ export class ProgramController {
    */
   @Post()
   @Roles('admin')
-  @RequirePermissions('program:create')
   create(@Body() createProgramDto: CreateProgramDto) {
     return this.programService.create(createProgramDto);
   }
@@ -77,7 +79,6 @@ export class ProgramController {
    */
   @Patch(':id')
   @Roles('admin')
-  @RequirePermissions('program:update')
   update(
     @Param('id') programId: string,
     @Body() updateProgramDto: UpdateProgramDto,
@@ -89,7 +90,6 @@ export class ProgramController {
    */
   @Delete(':id')
   @Roles('admin')
-  @RequirePermissions('program:delete')
   remove(@Param('id') programId: string) {
     return this.programService.remove(programId);
   }
@@ -98,7 +98,6 @@ export class ProgramController {
    */
   @Get(':id/workflows')
   @Roles('admin', 'user')
-  @RequirePermissions('program:read')
   findWorkflowsByProgram(@Param('id') programId: string) {
     return this.programService.findAllWorkflows(programId);
   }
@@ -107,7 +106,6 @@ export class ProgramController {
    */
   @Post(':id/workflows')
   @Roles('admin')
-  @RequirePermissions('program:update')
   addWorkflowToProgram(
     @Param('id') programId: string,
     @Body('workflowIds') workflowIds: string[],
@@ -119,7 +117,6 @@ export class ProgramController {
    */
   @Get(':userId/users')
   @Roles('admin')
-  @RequirePermissions('program:read')
   async getAllProgramsForUser(
     @Param('userId', new ParseUUIDPipe()) userId: string,
     @CurrentUser() currentUser: User,
@@ -145,7 +142,6 @@ export class ProgramController {
    */
   @Post(':id/users')
   @Roles('admin')
-  @RequirePermissions('program:update')
   assignUsersToProgram(
     @Param('id', new ParseUUIDPipe()) programId: string,
     @Body() dto: AssignUsersToProgramDto,
@@ -162,7 +158,6 @@ export class ProgramController {
 
   @Post(':id/users/unassign')
   @Roles('admin')
-  @RequirePermissions('program:update')
   unassignUsersFromProgram(
     @Param('id', new ParseUUIDPipe()) programId: string,
     @Body() dto: AssignUsersToProgramDto,
