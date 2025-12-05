@@ -1,29 +1,12 @@
 import { Computer, Lock, LogOut, PlusSquare, User, Users } from 'lucide-react';
 
-export const sidebarItems = [
+// Initial admin sidebar (after signup)
+export const dashboardSidebarItems = [
   {
-    name: 'Overview',
-    href: '/admin/overview',
+    name: 'Dashboard',
+    href: '/admin/dashboard',
     icon: Computer,
-    alt: 'Overview icon',
-  },
-  {
-    name: 'User Profiles',
-    href: '/admin/user-profile',
-    icon: User,
-    alt: 'User Profiles icon',
-  },
-  {
-    name: 'Create Workflow',
-    href: '/admin/create-workflow',
-    icon: PlusSquare,
-    alt: 'Workflow icon',
-  },
-  {
-    name: 'Manage User',
-    href: '/admin/manage-user',
-    icon: Users,
-    alt: 'User icon',
+    alt: 'Dashboard icon',
   },
   {
     name: 'DHIS2 Auth',
@@ -32,6 +15,50 @@ export const sidebarItems = [
     alt: 'DHIS2 Auth icon',
   },
 ];
+
+// Program-specific sidebar (when program is selected)
+export const getProgramSidebarItems = (programId: string) => [
+  {
+    name: 'Overview',
+    href: `/admin/programs/${programId}/overview`,
+    icon: Computer,
+    alt: 'Overview icon',
+  },
+  {
+    name: 'Profile',
+    href: `/admin/programs/${programId}/profile`,
+    icon: User,
+    alt: 'Program Profile icon',
+  },
+  {
+    name: 'Create Workflow',
+    href: `/admin/programs/${programId}/create-workflow`,
+    icon: PlusSquare,
+    alt: 'Workflow icon',
+  },
+  {
+    name: 'Manage Users',
+    href: `/admin/programs/${programId}/manage-users`,
+    icon: Users,
+    alt: 'User icon',
+  },
+];
+
+// Helper function to determine which sidebar items to show
+export const getSidebarItems = (pathname: string) => {
+  // Check if we're in a program context using the new route structure
+  const programMatch = pathname.match(/^\/admin\/programs\/([^/]+)/);
+
+  if (programMatch) {
+    const programId = programMatch[1];
+    return getProgramSidebarItems(programId);
+  }
+
+  return dashboardSidebarItems;
+};
+
+// Legacy export for backward compatibility
+export const sidebarItems = dashboardSidebarItems;
 
 export const logoutItem = {
   name: 'Log Out',

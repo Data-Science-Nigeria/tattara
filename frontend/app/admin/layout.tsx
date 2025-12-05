@@ -7,7 +7,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   return (
-    <ProtectRoute>
+    <ProtectRoute requiredRole="admin">
       <div>
         <Sidebar
           isOpen={isSidebarOpen}

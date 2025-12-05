@@ -20,7 +20,7 @@ export default function ConnectionCard({
   onDelete,
 }: ConnectionCardProps) {
   return (
-    <div className="overflow-hidden rounded-lg border border-gray-200 bg-white p-3 shadow-sm transition-shadow hover:shadow-md sm:p-4">
+    <div className="overflow-hidden rounded-lg border border-[#D2DDF5] bg-white p-3 sm:p-4">
       <div className="space-y-2 sm:flex sm:items-center sm:justify-between sm:gap-3 sm:space-y-0">
         <div className="flex min-w-0 flex-1 items-center gap-3">
           <div className="flex-shrink-0 rounded-lg bg-blue-50 p-1.5">

@@ -1,11 +1,19 @@
 'use client';
 
 import { useState } from 'react';
-import { ChevronDown, Download, ArrowUp, ArrowDown } from 'lucide-react';
+import {
+  ChevronDown,
+  Download,
+  ArrowUp,
+  ArrowDown,
+  Calendar,
+} from 'lucide-react';
 import SearchInput from './search-input';
 import { exportToJSON, exportToCSV, exportToPDF } from '../utils/export-utils';
+import UserProfileModal from './user-profile-modal';
 
 interface UserData {
+  id?: string;
   name: string;
   email: string;
   status: string;
@@ -297,21 +305,10 @@ export default function UserTable({
                 <div className="flex items-center gap-2 whitespace-nowrap">
                   <span className="text-sm sm:text-base">Created At</span>
                   <div className="relative">
-                    <svg
+                    <Calendar
                       className="h-4 w-4 cursor-pointer"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
                       onClick={() => setShowDatePicker(!showDatePicker)}
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                      />
-                    </svg>
-
+                    />
                     {showDatePicker && (
                       <div className="absolute top-6 right-0 z-20 w-40 rounded border bg-white p-2 shadow-lg">
                         <input
@@ -340,13 +337,16 @@ export default function UserTable({
                   </div>
                 </div>
               </th>
+              <th className="sticky right-0 border-l bg-[#F2F3FF] px-3 py-4 text-left font-semibold text-gray-700 sm:px-6">
+                <span className="text-sm sm:text-base">Actions</span>
+              </th>
             </tr>
           </thead>
           <tbody>
             {isLoading ? (
               <tr>
                 <td
-                  colSpan={4}
+                  colSpan={5}
                   className="px-3 py-4 text-center text-gray-500 sm:px-6"
                 >
                   <div className="flex items-center justify-center py-4">
@@ -358,7 +358,7 @@ export default function UserTable({
             ) : currentData.length === 0 ? (
               <tr>
                 <td
-                  colSpan={4}
+                  colSpan={5}
                   className="px-3 py-4 text-center text-sm text-gray-500 sm:px-6"
                 >
                   No users found
@@ -378,6 +378,11 @@ export default function UserTable({
                   </td>
                   <td className="px-3 py-4 text-sm text-gray-700 sm:px-6">
                     {item.createdBy || 'N/A'}
+                  </td>
+                  <td className="sticky right-0 border-l bg-white px-3 py-4 text-sm text-gray-700 sm:px-6">
+                    {item.id && (
+                      <UserProfileModal userId={item.id} userName={item.name} />
+                    )}
                   </td>
                 </tr>
               ))

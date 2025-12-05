@@ -3,45 +3,57 @@
 import React, { useLayoutEffect, useState } from 'react';
 import { useAuthStore } from '@/app/store/use-auth-store';
 
-export const ProtectRoute = ({ children }: { children: React.ReactNode }) => {
+interface ProtectRouteProps {
+  children: React.ReactNode;
+  requiredRole?: 'admin' | 'user';
+}
+
+export const ProtectRoute = ({
+  children,
+  requiredRole = 'admin',
+}: ProtectRouteProps) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const { auth, clearAuth } = useAuthStore();
 
   useLayoutEffect(() => {
-    // Add delay to allow rehydration to complete
     const timer = setTimeout(() => {
       const checkAuth = () => {
-        // Check if we have a token and user data
         if (!auth.token) {
           clearAuth();
           window.location.href = '/auth/login';
           return;
         }
 
-        // Wait for roles to load during rehydration
         if (!auth.roles || auth.roles.length === 0) {
-          return; // Don't clear auth, just wait
+          return;
         }
 
-        // Check if user has admin role
         const hasAdminRole = auth.roles.some(
           (role: string | { name: string }) =>
             role === 'admin' ||
             (typeof role === 'object' && role.name === 'admin')
         );
 
-        if (hasAdminRole) {
-          setIsAuthenticated(true);
+        if (requiredRole === 'admin') {
+          if (hasAdminRole) {
+            setIsAuthenticated(true);
+          } else {
+            window.location.href = '/user/overview';
+          }
         } else {
-          window.location.href = '/user/overview';
+          if (hasAdminRole) {
+            window.location.href = '/admin/dashboard';
+          } else {
+            setIsAuthenticated(true);
+          }
         }
       };
 
       checkAuth();
-    }, 100); // Small delay for rehydration
+    }, 100);
 
     return () => clearTimeout(timer);
-  }, [auth, clearAuth]);
+  }, [auth, clearAuth, requiredRole]);
 
   if (isAuthenticated === null) {
     return (

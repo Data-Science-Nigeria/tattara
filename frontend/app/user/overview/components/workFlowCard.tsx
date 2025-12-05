@@ -18,7 +18,7 @@ export default function WorkflowCard({
   onClick,
 }: WorkflowCardProps) {
   return (
-    <div className="flex flex-col items-start space-y-8 rounded-xl bg-white px-4 py-6 shadow-md">
+    <div className="flex flex-col items-start space-y-8 rounded-xl border border-[#D2DDF5] bg-white px-4 py-6">
       <div className="flex gap-4">
         <div className="mb-3 text-green-600">{icon}</div>
         <div>
@@ -28,7 +28,7 @@ export default function WorkflowCard({
       </div>
       <button
         onClick={onClick}
-        className="mt-auto w-full rounded-lg bg-[#008647] px-4 py-3 font-medium text-white hover:bg-green-700"
+        className="mt-auto w-full rounded-md bg-[#008647] px-4 py-3 font-medium text-white hover:bg-green-700"
       >
         {actionLabel}
       </button>
