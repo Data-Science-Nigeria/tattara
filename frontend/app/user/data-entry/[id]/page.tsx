@@ -63,7 +63,7 @@ export default function WorkflowExecution() {
   }
 
   const handleNext = async () => {
-    if (currentStep === 'input') {
+    if (currentStep === 'input' || currentStep === 'form') {
       if (!inputData.trim()) return;
       setIsProcessing(true);
       // Simulate AI processing delay
@@ -174,22 +174,22 @@ export default function WorkflowExecution() {
             Previous
           </button>
 
-          {currentStep === 'input' && (
-            <button
-              onClick={handleNext}
-              disabled={!inputData.trim() || isProcessing}
-              className="flex items-center gap-2 rounded-lg bg-green-600 px-6 py-2 text-white hover:bg-green-700 disabled:opacity-50"
-            >
-              {isProcessing ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Processing...
-                </>
-              ) : (
-                'Next'
-              )}
-            </button>
-          )}
+          <button
+            onClick={handleNext}
+            disabled={!inputData.trim() || isProcessing}
+            className="flex items-center gap-2 rounded-lg bg-green-600 px-6 py-2 text-white hover:bg-green-700 disabled:opacity-50"
+          >
+            {isProcessing ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Processing...
+              </>
+            ) : currentStep === 'form' ? (
+              'Process Again'
+            ) : (
+              'Next'
+            )}
+          </button>
         </div>
       </div>
     </div>
