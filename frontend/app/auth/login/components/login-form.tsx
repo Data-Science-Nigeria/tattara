@@ -126,7 +126,7 @@ export function LoginForm() {
       );
 
       if (hasAdminRole) {
-        router.push('/admin/overview');
+        router.push('/admin/dashboard');
       } else {
         router.push('/user/overview');
       }

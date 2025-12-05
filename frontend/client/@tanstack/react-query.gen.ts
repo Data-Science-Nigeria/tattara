@@ -47,6 +47,8 @@ import {
   fieldMappingControllerUpsertFieldMappings,
   collectorControllerProcessAi,
   collectorControllerSubmitData,
+  collectorControllerGetSubmissionHistory,
+  collectorControllerGetSubmissionById,
   integrationControllerTestConnection,
   integrationControllerFetchSchemas,
   integrationControllerGetPrograms,
@@ -125,6 +127,8 @@ import type {
   CollectorControllerProcessAiData,
   CollectorControllerProcessAiResponse,
   CollectorControllerSubmitDataData,
+  CollectorControllerGetSubmissionHistoryData,
+  CollectorControllerGetSubmissionByIdData,
   IntegrationControllerTestConnectionData,
   IntegrationControllerTestConnectionResponse,
   IntegrationControllerFetchSchemasData,
@@ -1510,6 +1514,11 @@ export const fieldMappingControllerUpsertFieldMappingsMutation = (
   return mutationOptions;
 };
 
+/**
+ * Process AI data (text, audio, image)
+ * Accepts multiple files for processing AI data including text, audio, and images.
+ * Accept language parameter for audio processing.
+ */
 export const collectorControllerProcessAiMutation = (
   options?: Partial<Options<CollectorControllerProcessAiData>>
 ): UseMutationOptions<
@@ -1534,6 +1543,9 @@ export const collectorControllerProcessAiMutation = (
   return mutationOptions;
 };
 
+/**
+ * Submit collected data
+ */
 export const collectorControllerSubmitDataMutation = (
   options?: Partial<Options<CollectorControllerSubmitDataData>>
 ): UseMutationOptions<
@@ -1556,6 +1568,115 @@ export const collectorControllerSubmitDataMutation = (
     },
   };
   return mutationOptions;
+};
+
+export const collectorControllerGetSubmissionHistoryQueryKey = (
+  options?: Options<CollectorControllerGetSubmissionHistoryData>
+) => createQueryKey('collectorControllerGetSubmissionHistory', options);
+
+/**
+ * Get submission history - scoped by role:
+ * - Users: Only their own submissions
+ * - Admins: Submissions from users they created
+ * - Super-admins: All submissions
+ */
+export const collectorControllerGetSubmissionHistoryOptions = (
+  options?: Options<CollectorControllerGetSubmissionHistoryData>
+) => {
+  return queryOptions({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await collectorControllerGetSubmissionHistory({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: collectorControllerGetSubmissionHistoryQueryKey(options),
+  });
+};
+
+export const collectorControllerGetSubmissionHistoryInfiniteQueryKey = (
+  options?: Options<CollectorControllerGetSubmissionHistoryData>
+): QueryKey<Options<CollectorControllerGetSubmissionHistoryData>> =>
+  createQueryKey('collectorControllerGetSubmissionHistory', options, true);
+
+/**
+ * Get submission history - scoped by role:
+ * - Users: Only their own submissions
+ * - Admins: Submissions from users they created
+ * - Super-admins: All submissions
+ */
+export const collectorControllerGetSubmissionHistoryInfiniteOptions = (
+  options?: Options<CollectorControllerGetSubmissionHistoryData>
+) => {
+  return infiniteQueryOptions<
+    unknown,
+    DefaultError,
+    InfiniteData<unknown>,
+    QueryKey<Options<CollectorControllerGetSubmissionHistoryData>>,
+    | number
+    | Pick<
+        QueryKey<Options<CollectorControllerGetSubmissionHistoryData>>[0],
+        'body' | 'headers' | 'path' | 'query'
+      >
+  >(
+    // @ts-ignore
+    {
+      queryFn: async ({ pageParam, queryKey, signal }) => {
+        // @ts-ignore
+        const page: Pick<
+          QueryKey<Options<CollectorControllerGetSubmissionHistoryData>>[0],
+          'body' | 'headers' | 'path' | 'query'
+        > =
+          typeof pageParam === 'object'
+            ? pageParam
+            : {
+                query: {
+                  page: pageParam,
+                },
+              };
+        const params = createInfiniteParams(queryKey, page);
+        const { data } = await collectorControllerGetSubmissionHistory({
+          ...options,
+          ...params,
+          signal,
+          throwOnError: true,
+        });
+        return data;
+      },
+      queryKey:
+        collectorControllerGetSubmissionHistoryInfiniteQueryKey(options),
+    }
+  );
+};
+
+export const collectorControllerGetSubmissionByIdQueryKey = (
+  options: Options<CollectorControllerGetSubmissionByIdData>
+) => createQueryKey('collectorControllerGetSubmissionById', options);
+
+/**
+ * Get a single submission by ID - scoped by role:
+ * - Users: Only their own submissions
+ * - Admins: Submissions from users they created
+ * - Super-admins: All submissions
+ */
+export const collectorControllerGetSubmissionByIdOptions = (
+  options: Options<CollectorControllerGetSubmissionByIdData>
+) => {
+  return queryOptions({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await collectorControllerGetSubmissionById({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: collectorControllerGetSubmissionByIdQueryKey(options),
+  });
 };
 
 /**

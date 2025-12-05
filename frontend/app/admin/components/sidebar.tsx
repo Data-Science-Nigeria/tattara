@@ -1,12 +1,13 @@
 'use client';
 import React from 'react';
-import { sidebarItems } from './sidebar-items';
+import { getSidebarItems } from './sidebar-items';
 import { SidebarItem } from './sidebar-item';
 import { LogOut, PanelLeft, PanelRight } from 'lucide-react';
 import Logo from '../../components/logo';
 import Avatar from '../../components/avatar';
 import { useAuthStore } from '../../store/use-auth-store';
 import { useLogout } from '../../hooks/use-logout';
+import { usePathname } from 'next/navigation';
 
 interface SidebarProps {
   isOpen?: boolean;
@@ -16,8 +17,10 @@ interface SidebarProps {
 const Sidebar = ({ isOpen = false, onToggle = () => {} }: SidebarProps) => {
   const { handleLogout } = useLogout();
   const { auth } = useAuthStore();
+  const pathname = usePathname();
 
   const surname = auth.lastName || 'Admin';
+  const sidebarItems = getSidebarItems(pathname);
 
   const handleItemSelect = () => {
     // Auto-close sidebar on md screens and below (1024px)

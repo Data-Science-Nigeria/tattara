@@ -92,6 +92,10 @@ import type {
   CollectorControllerProcessAiResponses,
   CollectorControllerSubmitDataData,
   CollectorControllerSubmitDataResponses,
+  CollectorControllerGetSubmissionHistoryData,
+  CollectorControllerGetSubmissionHistoryResponses,
+  CollectorControllerGetSubmissionByIdData,
+  CollectorControllerGetSubmissionByIdResponses,
   IntegrationControllerTestConnectionData,
   IntegrationControllerTestConnectionResponses,
   IntegrationControllerFetchSchemasData,
@@ -888,6 +892,11 @@ export const fieldMappingControllerUpsertFieldMappings = <
   });
 };
 
+/**
+ * Process AI data (text, audio, image)
+ * Accepts multiple files for processing AI data including text, audio, and images.
+ * Accept language parameter for audio processing.
+ */
 export const collectorControllerProcessAi = <
   ThrowOnError extends boolean = false,
 >(
@@ -907,6 +916,9 @@ export const collectorControllerProcessAi = <
   });
 };
 
+/**
+ * Submit collected data
+ */
 export const collectorControllerSubmitData = <
   ThrowOnError extends boolean = false,
 >(
@@ -923,6 +935,48 @@ export const collectorControllerSubmitData = <
       'Content-Type': 'application/json',
       ...options.headers,
     },
+  });
+};
+
+/**
+ * Get submission history - scoped by role:
+ * - Users: Only their own submissions
+ * - Admins: Submissions from users they created
+ * - Super-admins: All submissions
+ */
+export const collectorControllerGetSubmissionHistory = <
+  ThrowOnError extends boolean = false,
+>(
+  options?: Options<CollectorControllerGetSubmissionHistoryData, ThrowOnError>
+) => {
+  return (options?.client ?? _heyApiClient).get<
+    CollectorControllerGetSubmissionHistoryResponses,
+    unknown,
+    ThrowOnError
+  >({
+    url: '/api/v1/collector/submissions',
+    ...options,
+  });
+};
+
+/**
+ * Get a single submission by ID - scoped by role:
+ * - Users: Only their own submissions
+ * - Admins: Submissions from users they created
+ * - Super-admins: All submissions
+ */
+export const collectorControllerGetSubmissionById = <
+  ThrowOnError extends boolean = false,
+>(
+  options: Options<CollectorControllerGetSubmissionByIdData, ThrowOnError>
+) => {
+  return (options.client ?? _heyApiClient).get<
+    CollectorControllerGetSubmissionByIdResponses,
+    unknown,
+    ThrowOnError
+  >({
+    url: '/api/v1/collector/submissions/{id}',
+    ...options,
   });
 };
 

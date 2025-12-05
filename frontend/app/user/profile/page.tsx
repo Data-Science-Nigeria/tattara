@@ -8,7 +8,6 @@ interface UserProfile {
   firstName: string;
   lastName: string;
   email: string;
-  gender?: 'Male' | 'Female';
 }
 
 export default function ProfilePage() {
@@ -24,7 +23,7 @@ export default function ProfilePage() {
     : '';
 
   return (
-    <div className="relative min-h-screen p-3 sm:p-6">
+    <div className="relative p-3 sm:p-6">
       <div className="w-full">
         <div className="mb-6 px-0 sm:mb-8 sm:px-2">
           <h1 className="text-xl font-semibold text-gray-800 sm:text-2xl">
@@ -32,7 +31,7 @@ export default function ProfilePage() {
           </h1>
         </div>
 
-        <div className="max-w-4xl rounded-lg bg-white p-4 sm:rounded-2xl sm:p-6 lg:p-8">
+        <div className="max-w-4xl rounded-lg border border-[#D2DDF5] bg-white p-4 sm:rounded-2xl sm:p-6 lg:p-8">
           {/* Profile Header */}
           <div className="mb-6 flex flex-col items-center gap-4 border-b border-gray-200 pb-6 sm:mb-8 sm:flex-row sm:items-start sm:gap-6 sm:pb-8">
             {/* Profile Avatar */}

@@ -19,17 +19,24 @@ export const SidebarItem = ({
   const pathname = usePathname();
 
   const isActive = () => {
-    if (href === '/admin/overview') {
-      return pathname === href || pathname.startsWith('/admin/overview/');
+    // For dashboard, match exact path and sub-routes
+    if (href === '/admin/dashboard') {
+      return pathname === href || pathname.startsWith('/admin/dashboard/');
     }
-    if (href === '/admin/create-workflow') {
+
+    // For external-connection, match exact path and sub-routes
+    if (href === '/admin/external-connection') {
       return (
-        pathname === href || pathname.startsWith('/admin/create-workflow/')
+        pathname === href || pathname.startsWith('/admin/external-connection/')
       );
     }
-    if (href === '/admin/user-profile') {
-      return pathname === href || pathname.startsWith('/admin/user-profile/');
+
+    // For program-specific routes, match the base path
+    if (href.includes('/admin/programs/')) {
+      return pathname === href || pathname.startsWith(href + '/');
     }
+
+    // For other routes, exact match
     return pathname === href;
   };
 

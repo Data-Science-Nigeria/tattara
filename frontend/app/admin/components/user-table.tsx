@@ -4,8 +4,10 @@ import { useState } from 'react';
 import { ChevronDown, Download, ArrowUp, ArrowDown } from 'lucide-react';
 import SearchInput from './search-input';
 import { exportToJSON, exportToCSV, exportToPDF } from '../utils/export-utils';
+import UserProfileModal from './user-profile-modal';
 
 interface UserData {
+  id?: string;
   name: string;
   email: string;
   status: string;
@@ -340,13 +342,16 @@ export default function UserTable({
                   </div>
                 </div>
               </th>
+              <th className="sticky right-0 border-l bg-[#F2F3FF] px-3 py-4 text-left font-semibold text-gray-700 sm:px-6">
+                <span className="text-sm sm:text-base">Actions</span>
+              </th>
             </tr>
           </thead>
           <tbody>
             {isLoading ? (
               <tr>
                 <td
-                  colSpan={4}
+                  colSpan={5}
                   className="px-3 py-4 text-center text-gray-500 sm:px-6"
                 >
                   <div className="flex items-center justify-center py-4">
@@ -358,7 +363,7 @@ export default function UserTable({
             ) : currentData.length === 0 ? (
               <tr>
                 <td
-                  colSpan={4}
+                  colSpan={5}
                   className="px-3 py-4 text-center text-sm text-gray-500 sm:px-6"
                 >
                   No users found
@@ -378,6 +383,11 @@ export default function UserTable({
                   </td>
                   <td className="px-3 py-4 text-sm text-gray-700 sm:px-6">
                     {item.createdBy || 'N/A'}
+                  </td>
+                  <td className="sticky right-0 border-l bg-white px-3 py-4 text-sm text-gray-700 sm:px-6">
+                    {item.id && (
+                      <UserProfileModal userId={item.id} userName={item.name} />
+                    )}
                   </td>
                 </tr>
               ))

@@ -254,14 +254,6 @@ export type CreateProgramDto = {
   description?: string;
 };
 
-export type UpdateProgramDto = {
-  [key: string]: unknown;
-};
-
-export type AssignUsersToProgramDto = {
-  userIds: Array<string>;
-};
-
 export type WorkflowSummaryDto = {
   id: string;
   name: string;
@@ -281,6 +273,14 @@ export type ProgramResponseDto = {
   updatedAt: string;
   workflows: Array<WorkflowSummaryDto>;
   users: Array<UsersSummaryDto>;
+};
+
+export type UpdateProgramDto = {
+  [key: string]: unknown;
+};
+
+export type AssignUsersToProgramDto = {
+  userIds: Array<string>;
 };
 
 export type ProgramSummaryDto = {
@@ -453,8 +453,38 @@ export type UpsertFieldMappingsDto = {
 export type ProcessAiDto = {
   workflowId: string;
   processingType: 'audio' | 'text' | 'image';
-  aiProvider?: 'openai' | 'google_vision';
+  aiProvider?:
+    | 'gpt-4o'
+    | 'gpt-4o-mini'
+    | 'gpt-4.1'
+    | 'gpt-4.1-mini'
+    | 'gpt-4-turbo'
+    | 'gpt-3.5-turbo'
+    | 'gpt-5'
+    | 'claude-opus-4.5'
+    | 'claude-3.5-sonnet'
+    | 'claude-3.5-haiku'
+    | 'gemini-2.0-flash'
+    | 'gemini-2.0-pro'
+    | 'gemini-1.5-flash'
+    | 'gemini-1.5-pro'
+    | 'llama-3.1'
+    | 'llama-3.1-70b'
+    | 'llama-3.1-405b'
+    | 'mistral-large'
+    | 'mistral-nemo'
+    | 'mistral-small'
+    | 'mistral-tiny'
+    | 'groq-5-turbo'
+    | 'groq-llama-maverick'
+    | 'groq-llama-scout'
+    | 'groq-qwen3-32b'
+    | 'grok-2'
+    | 'grok-2-mini'
+    | 'custom'
+    | 'experimental';
   text?: string;
+  language?: string;
 };
 
 export type SubmitDto = {
@@ -748,7 +778,7 @@ export type ProgramControllerFindOneData = {
 };
 
 export type ProgramControllerFindOneResponses = {
-  200: Program;
+  200: ProgramResponseDto;
 };
 
 export type ProgramControllerFindOneResponse =
@@ -1109,6 +1139,47 @@ export type CollectorControllerSubmitDataData = {
 
 export type CollectorControllerSubmitDataResponses = {
   201: unknown;
+};
+
+export type CollectorControllerGetSubmissionHistoryData = {
+  body?: never;
+  path?: never;
+  query?: {
+    workflowId?: string;
+    status?:
+      | 'pending'
+      | 'processing'
+      | 'completed'
+      | 'failed'
+      | 'draft'
+      | 'submitted'
+      | 'synced'
+      | 'archived';
+    /**
+     * Filter by specific user ID (admin/super-admin only)
+     */
+    userId?: string;
+    page?: number;
+    limit?: number;
+  };
+  url: '/api/v1/collector/submissions';
+};
+
+export type CollectorControllerGetSubmissionHistoryResponses = {
+  200: unknown;
+};
+
+export type CollectorControllerGetSubmissionByIdData = {
+  body?: never;
+  path: {
+    id: string;
+  };
+  query?: never;
+  url: '/api/v1/collector/submissions/{id}';
+};
+
+export type CollectorControllerGetSubmissionByIdResponses = {
+  200: unknown;
 };
 
 export type IntegrationControllerTestConnectionData = {
