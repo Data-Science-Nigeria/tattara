@@ -121,7 +121,7 @@ export default function AddConnectionPage() {
               type="text"
               value={name}
               onChange={(e) => {
-                const value = e.target.value.replace(/[^a-zA-Z0-9]/g, '');
+                const value = e.target.value.replace(/[^a-zA-Z0-9 ]/g, '');
                 setName(value);
               }}
               placeholder="Enter connection name"

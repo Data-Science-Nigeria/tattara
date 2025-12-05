@@ -13,6 +13,7 @@ import type { ExternalConnection } from '@/client/types.gen';
 import { client } from '@/client/client.gen';
 import ConnectionsList from './components/connections-list';
 import EditFormModal from './components/edit-form-modal';
+import DeleteConnectionModal from './components/delete-connection-modal';
 import { toast } from 'sonner';
 
 type ApiResponse<T> = {
@@ -263,37 +264,20 @@ export default function ExternalConnections() {
         />
       )}
 
-      {/* Delete Confirmation Modal */}
-      {deleteConnectionId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-sm rounded-lg bg-white p-4 sm:p-6">
-            <h3 className="mb-2 text-base font-semibold sm:text-lg">
-              Delete Connection
-            </h3>
-            <p className="mb-4 text-sm text-gray-600 sm:text-base">
-              Are you sure you want to delete this connection? This action
-              cannot be undone.
-            </p>
-            <div className="flex flex-col gap-2 sm:flex-row sm:justify-end sm:gap-3">
-              <button
-                onClick={() => setDeleteConnectionId(null)}
-                className="w-full rounded border border-gray-300 px-3 py-2 text-sm text-gray-600 hover:text-gray-800 sm:w-auto sm:border-0 sm:px-4"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => {
-                  deleteMutation.mutate({ path: { id: deleteConnectionId } });
-                  setDeleteConnectionId(null);
-                }}
-                className="w-full rounded bg-red-600 px-3 py-2 text-sm text-white hover:bg-red-700 sm:w-auto sm:px-4"
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <DeleteConnectionModal
+        isOpen={!!deleteConnectionId}
+        onClose={() => setDeleteConnectionId(null)}
+        onConfirm={() => {
+          if (deleteConnectionId) {
+            deleteMutation.mutate({ path: { id: deleteConnectionId } });
+            setDeleteConnectionId(null);
+          }
+        }}
+        connectionName={
+          connectionsArray.find((c) => c.id === deleteConnectionId)?.name
+        }
+        isDeleting={deleteMutation.isPending}
+      />
     </div>
   );
 }

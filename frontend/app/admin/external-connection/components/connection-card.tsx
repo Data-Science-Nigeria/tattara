@@ -1,6 +1,7 @@
 'use client';
 
 import { Database, Edit, Trash2, MoreHorizontal } from 'lucide-react';
+import Image from 'next/image';
 import { useState, useEffect, useRef } from 'react';
 import type { ExternalConnection } from '@/client/types.gen';
 import DeleteConnectionModal from './delete-connection-modal';
@@ -43,7 +44,25 @@ export default function ConnectionCard({
       <div className="space-y-2 sm:flex sm:items-center sm:justify-between sm:gap-3 sm:space-y-0">
         <div className="flex min-w-0 flex-1 items-center gap-3">
           <div className="flex-shrink-0 rounded-lg bg-blue-50 p-1.5">
-            <Database className="h-4 w-4 text-blue-600 sm:h-5 sm:w-5" />
+            {connection.type === 'dhis2' ? (
+              <Image
+                src="/dhis2-logo.svg"
+                alt="DHIS2"
+                width={20}
+                height={20}
+                className="h-4 w-4 text-blue-600 sm:h-5 sm:w-5"
+              />
+            ) : connection.type === 'postgres' ? (
+              <Image
+                src="/postgresql-logo.svg"
+                alt="PostgreSQL"
+                width={20}
+                height={20}
+                className="h-4 w-4 sm:h-5 sm:w-5"
+              />
+            ) : (
+              <Database className="h-4 w-4 text-blue-600 sm:h-5 sm:w-5" />
+            )}
           </div>
           <div className="min-w-0 flex-1">
             <h3 className="truncate text-sm font-semibold text-gray-900 sm:text-base">
