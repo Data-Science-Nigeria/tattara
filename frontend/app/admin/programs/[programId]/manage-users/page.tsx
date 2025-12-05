@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { UserPlus, CloudUpload, ChevronDown } from 'lucide-react';
 import UserTable from '@/app/admin/components/user-table';
 import AddUserModal from './components/add-user-modal';
 import UploadDropdown from './components/upload-dropdown';
@@ -65,6 +66,9 @@ export default function ManageUsers() {
       ? responseData.users
       : [];
   const totalUsers = users.length;
+  const activeUsers = users.filter(
+    (user: User) => user.isEmailVerified === true
+  ).length;
 
   const handleUploadDropdownClick = (event: React.MouseEvent) => {
     const rect = (event.target as HTMLElement).getBoundingClientRect();
@@ -94,19 +98,7 @@ export default function ManageUsers() {
             onClick={() => setShowAddModal(true)}
             className="flex items-center justify-center gap-2 rounded-lg border-2 border-green-600 bg-white px-4 py-2 text-sm font-medium text-green-800 transition-colors hover:border-green-800 hover:bg-green-800 hover:text-white sm:px-6 sm:text-base"
           >
-            <svg
-              className="h-4 w-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={1.5}
-                d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"
-              />
-            </svg>
+            <UserPlus className="h-4 w-4" />
             <span className="whitespace-nowrap">Add User</span>
           </button>
           <div className="relative">
@@ -114,33 +106,9 @@ export default function ManageUsers() {
               onClick={handleUploadDropdownClick}
               className="flex w-full items-center justify-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-green-900 sm:px-6 sm:text-base lg:w-auto"
             >
-              <svg
-                className="h-4 w-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-                />
-              </svg>
+              <CloudUpload className="h-4 w-4" />
               <span className="whitespace-nowrap">Upload Users</span>
-              <svg
-                className="h-4 w-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M19 9l-7 7-7-7"
-                />
-              </svg>
+              <ChevronDown className="h-4 w-4" />
             </button>
 
             <UploadDropdown
@@ -153,7 +121,7 @@ export default function ManageUsers() {
       </div>
 
       {/* Summary Cards */}
-      <StatsCards totalUsers={totalUsers} />
+      <StatsCards totalUsers={totalUsers} activeUsers={activeUsers} />
 
       {/* User Table */}
       <UserTable

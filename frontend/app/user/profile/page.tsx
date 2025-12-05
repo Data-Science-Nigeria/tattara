@@ -1,5 +1,6 @@
 'use client';
 
+import { User } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { authControllerGetProfileOptions } from '../../../client/@tanstack/react-query.gen';
 
@@ -37,13 +38,7 @@ export default function ProfilePage() {
             {/* Profile Avatar */}
             <div className="relative">
               <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-green-400 to-green-600 sm:h-24 sm:w-24">
-                <svg
-                  className="h-10 w-10 text-white sm:h-12 sm:w-12"
-                  fill="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
-                </svg>
+                <User className="h-10 w-10 text-white sm:h-12 sm:w-12" />
               </div>
             </div>
 

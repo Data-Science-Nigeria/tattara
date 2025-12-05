@@ -1,7 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { ChevronDown, Download, ArrowUp, ArrowDown } from 'lucide-react';
+import {
+  ChevronDown,
+  Download,
+  ArrowUp,
+  ArrowDown,
+  Calendar,
+} from 'lucide-react';
 import SearchInput from './search-input';
 import { exportToJSON, exportToCSV, exportToPDF } from '../utils/export-utils';
 import UserProfileModal from './user-profile-modal';
@@ -299,21 +305,10 @@ export default function UserTable({
                 <div className="flex items-center gap-2 whitespace-nowrap">
                   <span className="text-sm sm:text-base">Created At</span>
                   <div className="relative">
-                    <svg
+                    <Calendar
                       className="h-4 w-4 cursor-pointer"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
                       onClick={() => setShowDatePicker(!showDatePicker)}
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                      />
-                    </svg>
-
+                    />
                     {showDatePicker && (
                       <div className="absolute top-6 right-0 z-20 w-40 rounded border bg-white p-2 shadow-lg">
                         <input

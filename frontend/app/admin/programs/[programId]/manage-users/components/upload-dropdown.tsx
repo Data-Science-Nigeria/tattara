@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { Download, Upload } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useAuthStore } from '@/app/store/use-auth-store';
@@ -105,19 +106,7 @@ export default function UploadDropdown({
           onClick={downloadTemplate}
           className="flex w-full items-center gap-3 rounded-t-lg px-4 py-3 text-left text-gray-600 hover:bg-green-800 hover:text-white"
         >
-          <svg
-            className="h-5 w-5 flex-shrink-0"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-            />
-          </svg>
+          <Download className="h-5 w-5 flex-shrink-0" />
           <div className="min-w-0">
             <p className="text-sm font-medium">Download Template</p>
             <p className="hidden text-xs opacity-75 lg:block">
@@ -133,19 +122,7 @@ export default function UploadDropdown({
             onChange={handleFileUpload}
             className="hidden"
           />
-          <svg
-            className="h-5 w-5 flex-shrink-0"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 11l3-3m0 0l3 3m-3-3v8"
-            />
-          </svg>
+          <Upload className="h-5 w-5 flex-shrink-0" />
           <div className="min-w-0">
             <p className="text-sm font-medium">Upload CSV File</p>
             <p className="hidden text-xs opacity-75 lg:block">

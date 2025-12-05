@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { userControllerRegisterSingleUserMutation } from '@/client/@tanstack/react-query.gen';
 import { toast } from 'sonner';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, X } from 'lucide-react';
 
 interface AddUserModalProps {
   isOpen: boolean;
@@ -141,19 +141,7 @@ export default function AddUserModal({
             onClick={onClose}
             className="flex-shrink-0 text-gray-400 hover:text-gray-600"
           >
-            <svg
-              className="h-5 w-5 sm:h-6 sm:w-6"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
+            <X className="h-5 w-5 sm:h-6 sm:w-6" />
           </button>
         </div>
 
