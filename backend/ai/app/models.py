@@ -43,7 +43,41 @@ class ExtractionResponse(BaseModel):
     meta: Optional[Dict[str, Any]] = None
 
 
+class ExtractedRow(BaseModel):
+    """A single extracted row/entry from a multi-row document."""
+
+    row_index: int = Field(..., description="0-based index of the row")
+    extracted: Dict[str, Any] = Field(default_factory=dict)
+    missing_required: List[str] = Field(default_factory=list)
+
+
+class MultiRowExtractionResponse(BaseModel):
+    """Response for multi-row/multi-entry image extraction."""
+
+    form_id: str
+    form_version: Optional[str] = None
+    total_rows: int = Field(..., description="Total number of rows/entries extracted")
+    rows: List[ExtractedRow] = Field(
+        default_factory=list, description="Array of extracted rows"
+    )
+    confidence: Optional[Dict[str, float]] = Field(
+        default=None, description="Confidence scores per field (applies to all rows)"
+    )
+    metrics: Optional[ExtractionMetrics] = None
+    meta: Optional[Dict[str, Any]] = None
+
+
 class TextRequest(BaseModel):
+    form_id: str
+    form_schema: Dict[str, Any]
+    text: str
+    model_preference: Optional[ModelPreference] = None
+    locale: Optional[str] = None
+
+
+class TextBatchRequest(BaseModel):
+    """Request for multi-row text extraction."""
+
     form_id: str
     form_schema: Dict[str, Any]
     text: str
