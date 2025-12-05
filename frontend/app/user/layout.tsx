@@ -1,13 +1,13 @@
 'use client';
 import React, { useState } from 'react';
 import Sidebar from './components/sidebar';
-import { ProtectUserRoute } from '../auth/components/protect-user-route';
+import { ProtectRoute } from '../auth/components/protect-route';
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   return (
-    <ProtectUserRoute>
+    <ProtectRoute requiredRole="user">
       <div>
         <Sidebar
           isOpen={isSidebarOpen}
@@ -21,6 +21,6 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           <div className="lg:pt-auto p-4 pt-20 lg:p-8">{children}</div>
         </main>
       </div>
-    </ProtectUserRoute>
+    </ProtectRoute>
   );
 }

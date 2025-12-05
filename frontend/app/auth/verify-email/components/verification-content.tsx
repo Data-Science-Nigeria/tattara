@@ -1,7 +1,7 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { LoaderCircle } from 'lucide-react';
+import { LoaderCircle, X, Check } from 'lucide-react';
 import Link from 'next/link';
 
 type VerificationState = 'loading' | 'success' | 'error';
@@ -46,33 +46,9 @@ export const VerificationContent = ({
         className={`mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full ${isError ? 'bg-red-100' : 'bg-green-100'}`}
       >
         {isError ? (
-          <svg
-            className="h-8 w-8 text-red-600"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M6 18L18 6M6 6l12 12"
-            />
-          </svg>
+          <X className="h-8 w-8 text-red-600" />
         ) : (
-          <svg
-            className="h-8 w-8 text-green-600"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M5 13l4 4L19 7"
-            />
-          </svg>
+          <Check className="h-8 w-8 text-green-600" />
         )}
       </div>
       <h1 className="mb-2 text-2xl font-bold text-[#373844]">{title}</h1>

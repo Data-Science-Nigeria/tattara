@@ -2,8 +2,8 @@
 
 import React, { useState } from 'react';
 import WorkflowCard from './components/workFlowCard';
-import { Mic, FileText, Image } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
+import Image from 'next/image';
 import {
   authControllerGetProfileOptions,
   workflowControllerGetWorkflowsOptions,
@@ -69,10 +69,10 @@ export default function Workflows() {
   const getIconForWorkflow = (
     enabledModes: Array<'audio' | 'text' | 'image'>
   ) => {
-    if (enabledModes.includes('audio')) return Mic;
-    if (enabledModes.includes('image')) return Image;
-    if (enabledModes.includes('text')) return FileText;
-    return FileText;
+    if (enabledModes.includes('audio')) return '/microphone-2.svg';
+    if (enabledModes.includes('image')) return '/gallery.svg';
+    if (enabledModes.includes('text')) return '/edit-2.svg';
+    return '/document-text.svg';
   };
 
   // Extract workflows from API response
@@ -91,7 +91,7 @@ export default function Workflows() {
   const getActionLabel = (
     enabledModes: Array<'audio' | 'text' | 'image'>
   ): string => {
-    if (enabledModes.includes('text')) return 'Fill';
+    if (enabledModes.includes('text')) return 'Write Text';
     if (enabledModes.includes('image')) return 'Upload Image';
     if (enabledModes.includes('audio')) return 'Upload or Record Audio';
     return 'Start Collection';
@@ -99,13 +99,19 @@ export default function Workflows() {
 
   const workflows: Workflow[] = currentWorkflows.map(
     (workflow: ApiWorkflow) => ({
-      icon: React.createElement(getIconForWorkflow(workflow.enabledModes), {
-        className: 'h-6 w-6',
-      }),
+      icon: (
+        <Image
+          src={getIconForWorkflow(workflow.enabledModes)}
+          alt="Workflow icon"
+          width={24}
+          height={24}
+          className="h-6 w-6"
+        />
+      ),
       title: workflow.name,
       description: workflow.description || 'No description available',
       actionLabel: getActionLabel(workflow.enabledModes),
-      onClick: () => (window.location.href = `/user/workflow/${workflow.id}`),
+      onClick: () => (window.location.href = `/user/data-entry/${workflow.id}`),
     })
   );
 
@@ -144,10 +150,9 @@ export default function Workflows() {
         )}
 
         {/* Pagination */}
-        {workflows.length > 0 && totalPages > 1 && (
+        {workflows.length > 0 && (
           <div className="mt-8 flex flex-col items-center justify-between gap-4 sm:flex-row">
             <div className="flex items-center gap-2 text-sm text-gray-600">
-              <span>Items per page:</span>
               <select
                 value={itemsPerPage}
                 onChange={(e) => {
@@ -165,23 +170,35 @@ export default function Workflows() {
               <button
                 onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                 disabled={currentPage === 1}
-                className="rounded border border-gray-300 px-3 py-1 hover:bg-gray-50 disabled:opacity-50"
+                className="flex items-center gap-1 px-3 py-2 text-sm text-gray-600 hover:text-gray-900 disabled:opacity-50"
               >
-                Previous
+                &lt; Previous
               </button>
 
-              <span className="text-sm text-gray-600">
-                Page {currentPage} of {totalPages}
-              </span>
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                (page) => (
+                  <button
+                    key={page}
+                    onClick={() => setCurrentPage(page)}
+                    className={`h-8 w-8 rounded border text-sm ${
+                      currentPage === page
+                        ? 'border-[#008647] bg-[#008647] text-white'
+                        : 'border-gray-300 bg-white text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    {page}
+                  </button>
+                )
+              )}
 
               <button
                 onClick={() =>
                   setCurrentPage(Math.min(totalPages, currentPage + 1))
                 }
                 disabled={currentPage === totalPages}
-                className="rounded border border-gray-300 px-3 py-1 hover:bg-gray-50 disabled:opacity-50"
+                className="flex items-center gap-1 px-3 py-2 text-sm text-gray-600 hover:text-gray-900 disabled:opacity-50"
               >
-                Next
+                Next &gt;
               </button>
             </div>
           </div>

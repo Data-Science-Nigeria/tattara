@@ -1,0 +1,172 @@
+'use client';
+
+import React, { useState } from 'react';
+import { ArrowLeft, FileText } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { useSearchParams, useRouter, useParams } from 'next/navigation';
+import { getIconForProgram } from '@/app/admin/components/getIconForProgram';
+import { programControllerGetProgramsOptions } from '@/client/@tanstack/react-query.gen';
+
+interface Program {
+  id: string;
+  name: string;
+  description?: string;
+}
+
+interface ApiResponse {
+  data?: {
+    programs?: Program[];
+  };
+}
+
+export default function SelectProgram() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const params = useParams();
+  const programId = params.programId as string;
+  const programIdFromUrl = searchParams.get('programId') || programId;
+  const [selectedProgram, setSelectedProgram] = useState('');
+
+  const { data: programsData, isLoading } = useQuery({
+    ...programControllerGetProgramsOptions({
+      query: { page: 1, limit: 1000000 },
+    }),
+  });
+
+  const programs: Program[] =
+    (programsData as ApiResponse)?.data?.programs || [];
+
+  // Filter programs to show only the selected one
+  const displayPrograms = programIdFromUrl
+    ? programs.filter((p) => p.id === programIdFromUrl)
+    : programs;
+
+  const handleNext = () => {
+    if (selectedProgram) {
+      router.push(
+        `/admin/programs/${programId}/create-workflow/workflow-details?programId=${selectedProgram}`
+      );
+    }
+  };
+
+  return (
+    <div className="space-y-4 p-3 sm:space-y-6 sm:p-6 lg:space-y-8 lg:p-8">
+      <div>
+        <button
+          onClick={() =>
+            router.push(`/admin/programs/${programId}/create-workflow`)
+          }
+          className="mb-3 flex items-center gap-2 text-gray-600 hover:text-gray-900 sm:mb-4"
+        >
+          <ArrowLeft size={18} className="sm:h-5 sm:w-5" />
+          <span className="text-sm sm:text-base">Back</span>
+        </button>
+        <div>
+          <h1 className="mb-1 text-xl font-semibold text-gray-900 sm:mb-2 sm:text-2xl lg:text-3xl">
+            {programIdFromUrl ? 'Confirm Program' : 'Select Program'}
+          </h1>
+          <p className="text-sm text-gray-600 sm:text-base">
+            {programIdFromUrl
+              ? 'Creating workflow for the selected program'
+              : 'Choose a program to create workflow for'}
+          </p>
+        </div>
+      </div>
+
+      {isLoading ? (
+        <div className="flex items-center justify-center py-12">
+          <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-[#008647]"></div>
+        </div>
+      ) : displayPrograms.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-12 text-center">
+          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gray-100">
+            <FileText className="h-8 w-8 text-gray-400" />
+          </div>
+          <h3 className="mb-2 text-lg font-semibold text-gray-900">
+            No Programs Found
+          </h3>
+          <p className="mb-6 text-gray-600">
+            You need to create a program first before creating workflows.
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2 lg:gap-6">
+          {displayPrograms.map((program: Program) => (
+            <div key={program.id} className="relative">
+              <input
+                type="radio"
+                id={program.id}
+                name="program"
+                value={program.id}
+                checked={selectedProgram === program.id}
+                onChange={() => {
+                  if (selectedProgram === program.id) {
+                    setSelectedProgram('');
+                  } else {
+                    setSelectedProgram(program.id);
+                  }
+                }}
+                className="peer sr-only"
+              />
+              <div
+                onClick={() => {
+                  if (selectedProgram === program.id) {
+                    setSelectedProgram('');
+                  } else {
+                    setSelectedProgram(program.id);
+                  }
+                }}
+                className={`group flex cursor-pointer rounded-xl border-2 p-3 transition-all hover:border-green-600 sm:p-4 ${
+                  selectedProgram === program.id
+                    ? 'border-green-600 bg-white'
+                    : 'border-gray-200 bg-white'
+                }`}
+              >
+                <div className="mb-2 flex items-start gap-2 sm:mb-3 sm:gap-3">
+                  <div className="flex-shrink-0 rounded-lg bg-white p-2">
+                    {selectedProgram === program.id ? (
+                      <div className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-green-600 bg-green-600 sm:h-7 sm:w-7">
+                        <div className="h-2 w-2 rounded-full bg-white"></div>
+                      </div>
+                    ) : (
+                      (() => {
+                        const IconComponent = getIconForProgram();
+                        return (
+                          <IconComponent className="h-6 w-6 text-gray-600 group-hover:hidden sm:h-7 sm:w-7" />
+                        );
+                      })()
+                    )}
+                    {selectedProgram !== program.id && (
+                      <div className="hidden h-6 w-6 items-center justify-center rounded-full border-2 border-green-600 bg-green-600 group-hover:flex sm:h-7 sm:w-7">
+                        <div className="h-2 w-2 rounded-full bg-white"></div>
+                      </div>
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="mb-1 text-lg font-semibold break-words text-gray-800 sm:text-xl">
+                      {program.name}
+                    </h3>
+                    <p className="mb-2 text-xs leading-relaxed break-words whitespace-break-spaces text-gray-600">
+                      {program.description || 'No description available'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {selectedProgram && (
+        <div className="flex justify-end">
+          <button
+            onClick={handleNext}
+            className="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-green-700 sm:px-6"
+          >
+            Next
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}

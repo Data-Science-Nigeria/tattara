@@ -1,5 +1,6 @@
 'use client';
 
+import { User } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { authControllerGetProfileOptions } from '../../../client/@tanstack/react-query.gen';
 
@@ -8,7 +9,6 @@ interface UserProfile {
   firstName: string;
   lastName: string;
   email: string;
-  gender?: 'Male' | 'Female';
 }
 
 export default function ProfilePage() {
@@ -24,7 +24,7 @@ export default function ProfilePage() {
     : '';
 
   return (
-    <div className="relative min-h-screen p-3 sm:p-6">
+    <div className="relative p-3 sm:p-6">
       <div className="w-full">
         <div className="mb-6 px-0 sm:mb-8 sm:px-2">
           <h1 className="text-xl font-semibold text-gray-800 sm:text-2xl">
@@ -32,19 +32,13 @@ export default function ProfilePage() {
           </h1>
         </div>
 
-        <div className="max-w-4xl rounded-lg bg-white p-4 sm:rounded-2xl sm:p-6 lg:p-8">
+        <div className="max-w-4xl rounded-lg border border-[#D2DDF5] bg-white p-4 sm:rounded-2xl sm:p-6 lg:p-8">
           {/* Profile Header */}
           <div className="mb-6 flex flex-col items-center gap-4 border-b border-gray-200 pb-6 sm:mb-8 sm:flex-row sm:items-start sm:gap-6 sm:pb-8">
             {/* Profile Avatar */}
             <div className="relative">
               <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-green-400 to-green-600 sm:h-24 sm:w-24">
-                <svg
-                  className="h-10 w-10 text-white sm:h-12 sm:w-12"
-                  fill="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
-                </svg>
+                <User className="h-10 w-10 text-white sm:h-12 sm:w-12" />
               </div>
             </div>
 

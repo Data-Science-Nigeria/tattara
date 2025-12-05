@@ -2,17 +2,18 @@
 
 import React, { useState } from 'react';
 import { Plus } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   externalConnectionsControllerFindAllOptions,
-  externalConnectionsControllerCreateMutation,
   externalConnectionsControllerRemoveMutation,
   integrationControllerTestConnectionMutation,
 } from '@/client/@tanstack/react-query.gen';
 import type { ExternalConnection } from '@/client/types.gen';
 import { client } from '@/client/client.gen';
 import ConnectionsList from './components/connections-list';
-import ConnectionFormModal from './components/connection-form-modal';
+import EditFormModal from './components/edit-form-modal';
+import { toast } from 'sonner';
 
 type ApiResponse<T> = {
   success: boolean;
@@ -20,13 +21,11 @@ type ApiResponse<T> = {
   timestamp: string;
 };
 export default function ExternalConnections() {
+  const router = useRouter();
   const queryClient = useQueryClient();
-
-  const [showCreateForm, setShowCreateForm] = useState(false);
   const [editingConnection, setEditingConnection] =
     useState<ExternalConnection | null>(null);
   const [name, setName] = useState('');
-  const [type, setType] = useState('dhis2');
   const [baseUrl, setBaseUrl] = useState('');
   const [pat, setPat] = useState('');
   const [showToken, setShowToken] = useState(false);
@@ -45,17 +44,6 @@ export default function ExternalConnections() {
 
   const connectionsArray =
     (connections as unknown as ApiResponse<ExternalConnection[]>)?.data || [];
-
-  const createMutation = useMutation({
-    ...externalConnectionsControllerCreateMutation(),
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: externalConnectionsControllerFindAllOptions().queryKey,
-      });
-      resetForm();
-      setShowCreateForm(false);
-    },
-  });
 
   const updateMutation = useMutation({
     mutationFn: async ({
@@ -83,9 +71,12 @@ export default function ExternalConnections() {
       queryClient.invalidateQueries({
         queryKey: externalConnectionsControllerFindAllOptions().queryKey,
       });
+      toast.success('Connection updated successfully!');
       resetForm();
       setEditingConnection(null);
-      setShowCreateForm(false);
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Failed to update connection');
     },
   });
 
@@ -95,6 +86,10 @@ export default function ExternalConnections() {
       queryClient.invalidateQueries({
         queryKey: externalConnectionsControllerFindAllOptions().queryKey,
       });
+      toast.success('Connection deleted successfully!');
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Failed to delete connection');
     },
   });
 
@@ -119,7 +114,7 @@ export default function ExternalConnections() {
     try {
       await testConnectionMutation.mutateAsync({
         body: {
-          type: type as 'dhis2',
+          type: 'dhis2' as const,
           config: { baseUrl, pat },
         },
       });
@@ -135,35 +130,27 @@ export default function ExternalConnections() {
   const handleEdit = (connection: ExternalConnection) => {
     setEditingConnection(connection);
     setName(connection.name);
-    setType(connection.type);
+
     const config = connection.configuration as {
       baseUrl?: string;
       pat?: string;
     };
     setBaseUrl(config.baseUrl || '');
     setPat(config.pat || '');
-    setShowCreateForm(true);
+    setConnectionTested(false);
+    setTestError(undefined);
   };
 
   const handleSubmit = () => {
-    if (editingConnection) {
-      const updatePayload = {
-        name,
-        isActive: true,
-        configuration: { baseUrl, pat },
-      };
-      updateMutation.mutate({
-        id: editingConnection.id,
-        data: updatePayload,
-      });
-    } else {
-      const createPayload = {
-        name,
-        type: type as 'dhis2',
-        configuration: { baseUrl, pat },
-      };
-      createMutation.mutate({ body: createPayload });
-    }
+    const updatePayload = {
+      name,
+      isActive: true,
+      configuration: { baseUrl, pat },
+    };
+    updateMutation.mutate({
+      id: editingConnection!.id,
+      data: updatePayload,
+    });
   };
 
   return (
@@ -172,19 +159,14 @@ export default function ExternalConnections() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-xl font-semibold text-gray-800 sm:text-2xl">
-            External Connections
+            DHIS2 Auth
           </h1>
-          <p className="text-sm text-gray-600 sm:text-base">
-            Manage external system connections
-          </p>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row sm:gap-3">
           <button
-            onClick={() => {
-              resetForm();
-              setEditingConnection(null);
-              setShowCreateForm(true);
-            }}
+            onClick={() =>
+              router.push('/admin/external-connection/add-connection')
+            }
             className="flex items-center justify-center gap-2 rounded-lg bg-green-600 px-3 py-2 text-sm text-white hover:bg-green-700 sm:px-4"
           >
             <Plus className="h-4 w-4" />
@@ -201,38 +183,32 @@ export default function ExternalConnections() {
         onDelete={(id) => setDeleteConnectionId(id)}
       />
 
-      <ConnectionFormModal
-        isOpen={showCreateForm}
-        editingConnection={editingConnection}
-        name={name}
-        setName={setName}
-        type={type}
-        setType={setType}
-        baseUrl={baseUrl}
-        setBaseUrl={setBaseUrl}
-        pat={pat}
-        setPat={setPat}
-        showToken={showToken}
-        setShowToken={setShowToken}
-        onSubmit={handleSubmit}
-        onCancel={() => {
-          setShowCreateForm(false);
-          setEditingConnection(null);
-          resetForm();
-        }}
-        onTestConnection={handleTestConnection}
-        isLoading={createMutation.isPending || updateMutation.isPending}
-        isTestingConnection={isTestingConnection}
-        connectionTested={connectionTested}
-        testError={testError}
-        error={
-          createMutation.error
-            ? { message: createMutation.error.message }
-            : updateMutation.error
+      {editingConnection && (
+        <EditFormModal
+          isOpen={true}
+          name={name}
+          setName={setName}
+          pat={pat}
+          setPat={setPat}
+          showToken={showToken}
+          setShowToken={setShowToken}
+          onSubmit={handleSubmit}
+          onCancel={() => {
+            setEditingConnection(null);
+            resetForm();
+          }}
+          onTestConnection={handleTestConnection}
+          isLoading={updateMutation.isPending}
+          isTestingConnection={isTestingConnection}
+          connectionTested={connectionTested}
+          testError={testError}
+          error={
+            updateMutation.error
               ? { message: updateMutation.error.message }
               : undefined
-        }
-      />
+          }
+        />
+      )}
 
       {/* Delete Confirmation Modal */}
       {deleteConnectionId && (
