@@ -25,6 +25,7 @@ import { WorkflowModule } from './modules/workflow/workflow.module';
 import { MailModule } from './shared/mail/mail.module';
 import { QueueModule } from './shared/queue/queue.module';
 import { RequestContextModule } from './shared/request-context/request-context.module';
+import { PermissionsGuard, RolesGuard } from './common/guards';
 
 @Module({
   imports: [
@@ -98,6 +99,14 @@ import { RequestContextModule } from './shared/request-context/request-context.m
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: RolesGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: PermissionsGuard,
     },
   ],
 })

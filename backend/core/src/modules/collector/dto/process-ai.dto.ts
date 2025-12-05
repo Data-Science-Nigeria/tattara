@@ -23,4 +23,8 @@ export class ProcessAiDto {
   @IsString()
   @IsOptional()
   text?: string;
+
+  @IsString()
+  @IsOptional()
+  language?: string;
 }

@@ -10,11 +10,40 @@ on:
       - "frontend/**"
       - ".github/workflows/deploy.yml"
 
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: data-science-nigeria/tattara
+
 jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      app: ${{ steps.filter.outputs.app }}
+      ai: ${{ steps.filter.outputs.ai }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Detect changed paths
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            app:
+              - 'backend/core/**'
+            ai:
+              - 'backend/ai/**'
+            frontend:
+              - 'frontend/**'
+
   build-app:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.app == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -39,11 +68,15 @@ jobs:
           context: ./backend/core
           file: ./backend/core/docker/Dockerfile
           push: true
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/app:${{ github.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/app:${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/app:latest
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/app:buildcache
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/app:buildcache,mode=max
 
   build-ai:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.ai == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -68,11 +101,15 @@ jobs:
           context: ./backend/ai
           file: ./backend/ai/Dockerfile
           push: true
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/ai:${{ github.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/ai:${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/ai:latest
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/ai:buildcache
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/ai:buildcache,mode=max
 
   build-frontend:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.frontend == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -97,14 +134,16 @@ jobs:
           context: ./frontend
           file: ./frontend/Dockerfile
           push: true
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:${{ github.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:latest
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:buildcache
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:buildcache,mode=max
           build-args: |
             NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}
 
   deploy:
-    needs: [build-app, build-ai, build-frontend]
+    needs: [detect-changes, build-app, build-ai, build-frontend]
     runs-on: ubuntu-latest
     if: |
       always() &&
@@ -132,61 +171,95 @@ jobs:
           REGISTRY: ${{ env.REGISTRY }}
           IMAGE_NAME: ${{ env.IMAGE_NAME }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          APP_CHANGED: ${{ needs.detect-changes.outputs.app }}
+          AI_CHANGED: ${{ needs.detect-changes.outputs.ai }}
+          FRONTEND_CHANGED: ${{ needs.detect-changes.outputs.frontend }}
         run: |
           ssh -i ~/.ssh/deploy_key $DEPLOY_USER@$DEPLOY_HOST << EOF
           set -e
 
           cd $DEPLOY_PATH
 
-          # Login to GHCR
-          echo $GITHUB_TOKEN | docker login ghcr.io -u $DEPLOY_USER --password-stdin
+          # Login to GHCR (non-interactive)
+          echo "$GITHUB_TOKEN" | docker login ghcr.io -u "\$USER" --password-stdin
 
-          # Pull latest images
-          docker pull $REGISTRY/$IMAGE_NAME/app:$IMAGE_TAG
-          docker pull $REGISTRY/$IMAGE_NAME/ai:$IMAGE_TAG
-          docker pull $REGISTRY/$IMAGE_NAME/frontend:$IMAGE_TAG
-
-          # Update compose file with new image tags
-          export COMPOSE_APP_IMAGE="$REGISTRY/$IMAGE_NAME/app:$IMAGE_TAG"
-          export COMPOSE_AI_IMAGE="$REGISTRY/$IMAGE_NAME/ai:$IMAGE_TAG"
-          export COMPOSE_FRONTEND_IMAGE="$REGISTRY/$IMAGE_NAME/frontend:$IMAGE_TAG"
-
-          # Stop old containers
-          docker compose down
-
-          # Start containers with new images (migrations will run automatically via migrate service)
-          docker compose up -d
-
-
-          # Wait for migrations to complete
-          echo "Waiting for migrations to complete..."
-          docker compose logs -f migrate &
-          LOGS_PID=$!
-
-          # Wait for migrate container to exit (successful migration)
-          timeout 120 sh -c 'until [ "$(docker compose ps -q migrate | xargs docker inspect -f "{{.State.Status}}")" = "exited" ]; do sleep 2; done' || echo "Migration timeout - check logs"
-          kill $LOGS_PID 2>/dev/null || true
-
-          # Check migration exit code
-          MIGRATE_EXIT_CODE=$(docker compose ps -q migrate | xargs docker inspect -f "{{.State.ExitCode}}")
-          if [ "$MIGRATE_EXIT_CODE" != "0" ]; then
-            echo "⚠️ Migration container exited with code $MIGRATE_EXIT_CODE"
-            docker compose logs migrate
-            if docker compose logs migrate | grep -q "No migrations are pending"; then
-              echo "✅ No migrations pending — continuing."
-            else
-              echo "❌ Migration failed."
-              exit 1
-            fi
+          # Pull only changed images
+          if [ "$APP_CHANGED" = "true" ]; then
+            echo "📦 Pulling app image..."
+            docker pull $REGISTRY/$IMAGE_NAME/app:$IMAGE_TAG
+            export COMPOSE_APP_IMAGE="$REGISTRY/$IMAGE_NAME/app:$IMAGE_TAG"
           fi
 
+          if [ "$AI_CHANGED" = "true" ]; then
+            echo "📦 Pulling AI image..."
+            docker pull $REGISTRY/$IMAGE_NAME/ai:$IMAGE_TAG
+            export COMPOSE_AI_IMAGE="$REGISTRY/$IMAGE_NAME/ai:$IMAGE_TAG"
+          fi
 
-          echo "Migrations completed successfully"
+          if [ "$FRONTEND_CHANGED" = "true" ]; then
+            echo "📦 Pulling frontend image..."
+            docker pull $REGISTRY/$IMAGE_NAME/frontend:$IMAGE_TAG
+            export COMPOSE_FRONTEND_IMAGE="$REGISTRY/$IMAGE_NAME/frontend:$IMAGE_TAG"
+          fi
+
+          # Restart only changed services (or all if compose file changed)
+          if [ "$APP_CHANGED" = "true" ] || [ "$AI_CHANGED" = "true" ] || [ "$FRONTEND_CHANGED" = "true" ]; then
+            SERVICES_TO_RESTART=""
+            
+            if [ "$APP_CHANGED" = "true" ]; then
+              SERVICES_TO_RESTART="\$SERVICES_TO_RESTART app migrate"
+            fi
+            
+            if [ "$AI_CHANGED" = "true" ]; then
+              SERVICES_TO_RESTART="\$SERVICES_TO_RESTART ai"
+            fi
+            
+            if [ "$FRONTEND_CHANGED" = "true" ]; then
+              SERVICES_TO_RESTART="\$SERVICES_TO_RESTART frontend"
+            fi
+
+            echo "🔄 Restarting services:\$SERVICES_TO_RESTART"
+            docker compose up -d --no-deps \$SERVICES_TO_RESTART
+          fi
+
+          # Run migrations only if app changed
+          if [ "$APP_CHANGED" = "true" ]; then
+            echo "⏳ Running migrations..."
+            
+            # Run migrate service and wait for it to complete
+            docker compose up migrate --wait --wait-timeout 120 || true
+            
+            # Check the exit code from the migrate service
+            MIGRATE_EXIT_CODE=\$(docker compose ps migrate --format json | grep -o '"ExitCode":[0-9]*' | grep -o '[0-9]*' || echo "0")
+            
+            if [ -z "\$MIGRATE_EXIT_CODE" ]; then
+              # Fallback: check logs for success indicators
+              if docker compose logs migrate 2>&1 | grep -q "No migrations are pending\|Migration.*has been executed"; then
+                echo "✅ Migrations completed successfully"
+              else
+                echo "⚠️ Could not determine migration status, checking logs..."
+                docker compose logs migrate
+              fi
+            elif [ "\$MIGRATE_EXIT_CODE" != "0" ]; then
+              echo "⚠️ Migration container exited with code \$MIGRATE_EXIT_CODE"
+              docker compose logs migrate
+              if docker compose logs migrate 2>&1 | grep -q "No migrations are pending"; then
+                echo "✅ No migrations pending — continuing."
+              else
+                echo "❌ Migration failed."
+                exit 1
+              fi
+            else
+              echo "✅ Migrations completed successfully"
+            fi
+          else
+            echo "⏭️ Skipping migrations (app unchanged)"
+          fi
 
           # Cleanup old images
           docker image prune -f
 
-          echo "Deployment successful!"
+          echo "🚀 Deployment successful!"
           EOF
 
       - name: Cleanup SSH key

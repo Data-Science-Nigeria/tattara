@@ -25,8 +25,7 @@ export class ProgramController {
   /**  Get all programs with pagination
    */
   @Get()
-  @Roles('admin')
-  @RequirePermissions('program:read')
+  @Roles('admin', 'user')
   @ApiQuery({ name: 'userId', required: false, type: String })
   @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
@@ -66,10 +65,12 @@ export class ProgramController {
   /** Get a specific program by ID
    */
   @Get(':id')
-  @Roles('admin')
-  @RequirePermissions('program:read')
+  @Roles('admin', 'user')
   findOne(@Param('id') programId: string) {
-    return this.programService.findOne(programId);
+    const program = this.programService.findOne(programId);
+    return plainToInstance(ProgramResponseDto, program, {
+      excludeExtraneousValues: true,
+    });
   }
 
   /** Update a specific program by ID
@@ -96,7 +97,7 @@ export class ProgramController {
   /** Get all workflows associated with a specific program
    */
   @Get(':id/workflows')
-  @Roles('admin')
+  @Roles('admin', 'user')
   @RequirePermissions('program:read')
   findWorkflowsByProgram(@Param('id') programId: string) {
     return this.programService.findAllWorkflows(programId);
@@ -121,8 +122,14 @@ export class ProgramController {
   @RequirePermissions('program:read')
   async getAllProgramsForUser(
     @Param('userId', new ParseUUIDPipe()) userId: string,
+    @CurrentUser() currentUser: User,
   ) {
-    const programs = await this.programService.getAllProgramsForUser(userId);
+    const { programs } = await this.programService.getPrograms(
+      1,
+      1000, // Get all programs for the user
+      currentUser,
+      userId,
+    );
     return {
       programs: programs.map(program => ({
         id: program.id,

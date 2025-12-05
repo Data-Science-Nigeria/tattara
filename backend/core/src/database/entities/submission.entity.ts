@@ -9,7 +9,7 @@ import {
 import { User, Workflow } from '.';
 import { SubmissionStatus } from '@/common/enums';
 
-interface Metadata {
+export interface SubmissionMetadata {
   source: string;
   aiProcessingId: string;
   confidenceScore: number;
@@ -42,7 +42,7 @@ export class Submission {
   data: Record<string, any>;
 
   @Column({ type: 'jsonb', nullable: true })
-  metadata: Metadata;
+  metadata: SubmissionMetadata;
 
   @Column({
     type: 'enum',
