@@ -199,82 +199,112 @@ export class CollectorService {
           throw new BadRequestException('Field Mappings not set');
         }
 
-        const extractedIntegrationData = this.extractIntegrationData(
-          workflow.workflowFields,
-          submitData.data,
+        // Normalize to array of data entries
+        const dataEntries = submitData.dataEntries ?? [submitData.data!];
+
+        // Extract integration data for each entry
+        const allExtractedData = dataEntries.map(data =>
+          this.extractIntegrationData(workflow.workflowFields, data),
         );
 
         for (const config of workflow.workflowConfigurations) {
-          let payload: unknown;
-
           if (config.type === IntegrationType.DHIS2) {
-            if (
-              workflow.workflowFields.length !==
-              extractedIntegrationData[IntegrationType.DHIS2]?.length
-            ) {
-              throw new BadRequestException(
-                `Field mappings for ${IntegrationType.DHIS2} missing`,
-              );
+            // Validate all entries have proper field mappings
+            for (const extractedData of allExtractedData) {
+              if (
+                workflow.workflowFields.length !==
+                extractedData[IntegrationType.DHIS2]?.length
+              ) {
+                throw new BadRequestException(
+                  `Field mappings for ${IntegrationType.DHIS2} missing`,
+                );
+              }
             }
+
             if (
               'program' in config.configuration &&
               !('schema' in config.configuration)
             ) {
-              payload = {
-                ...config.configuration,
-                program: config.configuration.program,
-                programStage: config.configuration.programStage,
+              // Cast to access program-specific properties
+              const programConfig = config.configuration as {
+                program: string;
+                programStage: string;
+                orgUnit: string;
+              };
+
+              // Build array of event payloads - always send as array
+              const eventPayloads = allExtractedData.map(extractedData => ({
+                ...programConfig,
+                program: programConfig.program,
+                programStage: programConfig.programStage,
                 eventDate: format(new Date(), 'yyyy-MM-dd'),
                 status: 'ACTIVE',
-                dataValues: extractedIntegrationData[IntegrationType.DHIS2],
-              };
+                dataValues: extractedData[IntegrationType.DHIS2],
+              }));
+
+              await this.integrationService.pushData(config, eventPayloads);
             } else if ('dataset' in config.configuration) {
-              payload = {
+              // For datasets, merge all data values into one payload
+              const allDataValues = allExtractedData.flatMap(
+                extractedData => extractedData[IntegrationType.DHIS2] ?? [],
+              );
+
+              const payload = {
                 ...config.configuration,
                 completeDate: format(new Date(), 'yyyy-MM-dd'),
                 period: format(new Date(), 'yyyyMM'),
-                dataValues: extractedIntegrationData[IntegrationType.DHIS2],
+                dataValues: allDataValues,
               };
-            }
 
-            await this.integrationService.pushData(config, payload);
+              await this.integrationService.pushData(config, payload);
+            }
           }
 
           if (config.type === IntegrationType.POSTGRES) {
-            if (
-              workflow.workflowFields.length !==
-              extractedIntegrationData[IntegrationType.POSTGRES]?.length
-            ) {
-              throw new BadRequestException(
-                `Field mappings for ${IntegrationType.POSTGRES} missing`,
-              );
-            }
+            // For Postgres, process each entry individually
+            for (const extractedData of allExtractedData) {
+              if (
+                workflow.workflowFields.length !==
+                extractedData[IntegrationType.POSTGRES]?.length
+              ) {
+                throw new BadRequestException(
+                  `Field mappings for ${IntegrationType.POSTGRES} missing`,
+                );
+              }
 
-            if ('schema' in config.configuration) {
-              payload = {
-                ...config.configuration,
-                values: extractedIntegrationData[IntegrationType.POSTGRES],
-              };
-            }
+              if ('schema' in config.configuration) {
+                const payload = {
+                  ...config.configuration,
+                  values: extractedData[IntegrationType.POSTGRES],
+                };
 
-            await this.integrationService.pushData(config, payload);
+                await this.integrationService.pushData(config, payload);
+              }
+            }
           }
         }
 
-        const submission = manager.create(Submission, {
-          status: SubmissionStatus.COMPLETED,
-          user,
-          workflow,
-          submittedAt: new Date(),
-          data: submitData.data,
-          metadata: submitData.metadata,
-          localId: submitData.localId,
-        });
+        // Create submission record(s)
+        const submissions = dataEntries.map(data =>
+          manager.create(Submission, {
+            status: SubmissionStatus.COMPLETED,
+            user,
+            workflow,
+            submittedAt: new Date(),
+            data,
+            metadata: submitData.metadata,
+            localId: submitData.localId,
+          }),
+        );
 
-        await manager.save(submission);
+        await manager.save(submissions);
 
         return {
-          message: 'Form submitted successfully',
+          message:
+            submissions.length === 1
+              ? 'Form submitted successfully'
+              : `${submissions.length} forms submitted successfully`,
+          count: submissions.length,
         };
       });
     } catch (error) {
@@ -479,17 +509,12 @@ export class CollectorService {
     if (!result.success) {
       const formattedErrors = formatZodErrors(result.error.issues);
 
-      this.logger.log(
-        `❌ Validation failed: ${JSON.stringify(formattedErrors, null, 2)}`,
-      );
-
       throw new BadRequestException({
         statusCode: 400,
         message: 'Validation Failed',
         errors: formattedErrors,
       });
     } else {
-      this.logger.log(`✅ Valid data: ${JSON.stringify(result.data)}`);
       return true;
     }
   }
