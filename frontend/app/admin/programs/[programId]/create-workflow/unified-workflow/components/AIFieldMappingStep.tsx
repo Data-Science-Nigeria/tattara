@@ -141,7 +141,12 @@ export default function AIFieldMappingStep({
   const addFieldsFromExternal = () => {
     const newFields = availableFields
       .filter(
-        (field) => !fields.find((f) => f.externalDataElement === field.id)
+        (field) =>
+          !fields.find(
+            (f) =>
+              f.externalDataElement === field.id ||
+              f.fieldName === field.name.toLowerCase().replace(/\s+/g, '_')
+          )
       )
       .map((field, index) => ({
         id: Date.now().toString() + index,
@@ -228,8 +233,17 @@ export default function AIFieldMappingStep({
           >
             <Eye className="h-4 w-4" />
             Add External Fields (
-            {availableFields.length -
-              fields.filter((f) => f.externalDataElement).length}{' '}
+            {
+              availableFields.filter(
+                (field) =>
+                  !fields.find(
+                    (f) =>
+                      f.externalDataElement === field.id ||
+                      f.fieldName ===
+                        field.name.toLowerCase().replace(/\s+/g, '_')
+                  )
+              ).length
+            }{' '}
             available)
           </button>
         )}

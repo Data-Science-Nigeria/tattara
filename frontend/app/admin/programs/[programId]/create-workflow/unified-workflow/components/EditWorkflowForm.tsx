@@ -1,22 +1,22 @@
 'use client';
 
-import { useState } from 'react';
-import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
-  workflowControllerCreateWorkflowMutation,
-  workflowControllerFindWorkflowByIdOptions,
+  workflowControllerUpdateWorkflowBasicInfoMutation,
+  fieldControllerUpsertWorkflowFieldsMutation,
+  configurationControllerUpsertWorkflowConfigurationsMutation,
 } from '@/client/@tanstack/react-query.gen';
 
-import WorkflowDetailsStep from './components/WorkflowDetailsStep';
-import DHIS2ConfigurationStep from './components/DHIS2ConfigurationStep';
-import AIFieldMappingStep from './components/AIFieldMappingStep';
-import ManualFieldStep from './components/ManualFieldStep';
-import CreateWorkflowStep from './components/CreateWorkflowStep';
-import StepIndicator from './components/StepIndicator';
-import EditWorkflowForm from './components/EditWorkflowForm';
+import WorkflowDetailsStep from './WorkflowDetailsStep';
+import DHIS2ConfigurationStep from './DHIS2ConfigurationStep';
+import AIFieldMappingStep from './AIFieldMappingStep';
+import ManualFieldStep from './ManualFieldStep';
+import CreateWorkflowStep from './CreateWorkflowStep';
+import StepIndicator from './StepIndicator';
 
 interface WorkflowData {
   name: string;
@@ -55,53 +55,17 @@ interface ManualField {
   options?: string[];
 }
 
-export default function UnifiedWorkflow() {
-  const params = useParams();
-  const searchParams = useSearchParams();
-  const programId = params.programId as string;
-  const workflowId = searchParams.get('workflowId');
-  const isEditMode = !!workflowId;
-
-  // Load existing workflow data if editing
-  const { data: existingWorkflow, isLoading: isLoadingWorkflow } = useQuery({
-    ...workflowControllerFindWorkflowByIdOptions({
-      path: { workflowId: workflowId || '' },
-    }),
-    enabled: isEditMode,
-  });
-
-  // If in edit mode, render EditWorkflowForm
-  if (isEditMode) {
-    if (isLoadingWorkflow) {
-      return (
-        <div className="flex min-h-screen items-center justify-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-green-600"></div>
-        </div>
-      );
-    }
-
-    if (!existingWorkflow) {
-      return (
-        <div className="flex min-h-screen items-center justify-center">
-          <p className="text-red-600">Workflow not found</p>
-        </div>
-      );
-    }
-
-    return (
-      <EditWorkflowForm
-        workflowId={workflowId}
-        programId={programId}
-        existingWorkflow={existingWorkflow}
-      />
-    );
-  }
-
-  // Create mode - continue with existing logic
-  return <CreateWorkflowContent programId={programId} />;
+interface EditWorkflowFormProps {
+  workflowId: string;
+  programId: string;
+  existingWorkflow: Record<string, unknown>;
 }
 
-function CreateWorkflowContent({ programId }: { programId: string }) {
+export default function EditWorkflowForm({
+  workflowId,
+  programId,
+  existingWorkflow,
+}: EditWorkflowFormProps) {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
   const [isExternalMode, setIsExternalMode] = useState<boolean | null>(null);
@@ -124,49 +88,101 @@ function CreateWorkflowContent({ programId }: { programId: string }) {
   const [aiFields, setAiFields] = useState<AIField[]>([]);
   const [manualFields, setManualFields] = useState<ManualField[]>([]);
 
-  const createWorkflowMutation = useMutation({
-    ...workflowControllerCreateWorkflowMutation(),
-    onSuccess: () => {
-      toast.success('Workflow created successfully!');
-      router.push(`/admin/programs/${programId}/create-workflow`);
-    },
+  // Update mutations
+  const updateBasicInfoMutation = useMutation({
+    ...workflowControllerUpdateWorkflowBasicInfoMutation(),
     onError: (error) => {
-      console.error('Failed to create workflow:', error);
-      toast.error('Failed to create workflow');
+      console.error('Failed to update workflow basic info:', error);
+      toast.error('Failed to update workflow basic info');
     },
   });
 
-  const maxSteps = isExternalMode ? 4 : isExternalMode === false ? 2 : 1;
+  const upsertFieldsMutation = useMutation({
+    ...fieldControllerUpsertWorkflowFieldsMutation(),
+    onError: (error) => {
+      console.error('Failed to update workflow fields:', error);
+      toast.error('Failed to update workflow fields');
+    },
+  });
 
-  const handleExternalModeChange = (
-    useExternal: boolean,
-    connectionId?: string
-  ) => {
-    if (isExternalMode !== useExternal) {
-      setIsExternalMode(useExternal);
-      // Clear data when switching modes
-      if (useExternal) {
-        setManualFields([]);
-        if (connectionId) {
-          setExternalConfig((prev) => ({ ...prev, connectionId }));
-        }
-      } else {
+  const upsertConfigurationsMutation = useMutation({
+    ...configurationControllerUpsertWorkflowConfigurationsMutation(),
+    onError: (error) => {
+      console.error('Failed to update workflow configurations:', error);
+      toast.error('Failed to update workflow configurations');
+    },
+  });
+
+  // Load existing workflow data
+  useEffect(() => {
+    const workflow = (existingWorkflow as { data?: Record<string, unknown> })
+      ?.data;
+    if (workflow) {
+      setWorkflowData({
+        name: (workflow.name as string) || '',
+        description: (workflow.description as string) || '',
+        inputType:
+          (Array.isArray(workflow.enabledModes)
+            ? (workflow.enabledModes[0] as 'text' | 'audio' | 'image')
+            : 'text') || 'text',
+        supportedLanguages: Array.isArray(workflow.supportedLanguages)
+          ? (workflow.supportedLanguages as string[])
+          : ['en'],
+      });
+
+      const externalConfiguration = Array.isArray(
+        workflow.workflowConfigurations
+      )
+        ? (workflow.workflowConfigurations.find(
+            (config: unknown) =>
+              (config as Record<string, unknown>)?.type === 'dhis2'
+          ) as Record<string, unknown> | undefined)
+        : undefined;
+
+      if (externalConfiguration) {
+        setIsExternalMode(true);
+        const config = externalConfiguration.configuration as
+          | Record<string, unknown>
+          | undefined;
+        const externalConnection = externalConfiguration.externalConnection as
+          | Record<string, unknown>
+          | undefined;
         setExternalConfig({
-          connectionId: '',
-          type: '',
-          programId: '',
-          orgUnits: [],
-          language: 'en',
+          connectionId: (externalConnection?.id as string) || '',
+          type: (config?.type as string) || 'program',
+          programId: (config?.programId as string) || '',
+          orgUnits: Array.isArray(config?.orgUnits)
+            ? (config.orgUnits as string[])
+            : [],
+          language: (config?.language as string) || 'en',
         });
-        setAiFields([]);
+        setAiFields(
+          Array.isArray(workflow.workflowFields)
+            ? (workflow.workflowFields as AIField[])
+            : []
+        );
+      } else {
+        setIsExternalMode(false);
+        setManualFields(
+          Array.isArray(workflow.workflowFields)
+            ? (workflow.workflowFields as ManualField[])
+            : []
+        );
       }
     }
+  }, [existingWorkflow]);
+
+  const maxSteps = isExternalMode ? 4 : isExternalMode === false ? 2 : 1;
+
+  const handleExternalModeChange = () => {
+    toast.error(
+      'Cannot change integration mode when editing. Create a new workflow instead.'
+    );
   };
 
   const handleExternalConfigChange = (newConfig: Partial<ExternalConfig>) => {
     const updatedConfig = { ...externalConfig, ...newConfig };
 
-    // Clear AI fields if connection, type, or program changes
     if (
       newConfig.connectionId !== undefined ||
       newConfig.type !== undefined ||
@@ -218,17 +234,31 @@ function CreateWorkflowContent({ programId }: { programId: string }) {
     }
   };
 
+  const isUUID = (id: string): boolean => {
+    const uuidRegex =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    return uuidRegex.test(id);
+  };
+
   const handleSubmit = async () => {
-    if (isExternalMode) {
-      // DHIS2 workflow creation
-      await createWorkflowMutation.mutateAsync({
+    try {
+      // Step 1: Update basic workflow info
+      await updateBasicInfoMutation.mutateAsync({
+        path: { workflowId },
         body: {
-          programId: programId || undefined,
           name: workflowData.name,
           description: workflowData.description,
           supportedLanguages: workflowData.supportedLanguages,
           enabledModes: [workflowData.inputType],
-          workflowFields: aiFields.map((field) => ({
+        },
+      });
+
+      // Step 2: Upsert workflow fields
+      if (isExternalMode) {
+        const fieldsToUpsert = aiFields
+          .filter((field) => isUUID(field.id))
+          .map((field) => ({
+            id: field.id,
             fieldName: field.fieldName,
             label: field.label,
             fieldType: field.fieldType as
@@ -247,31 +277,36 @@ function CreateWorkflowContent({ programId }: { programId: string }) {
             displayOrder: field.displayOrder,
             aiMapping: { prompt: field.aiPrompt },
             options: field.options,
-          })),
-          workflowConfigurations: [
-            {
-              type: 'dhis2' as const,
-              externalConnectionId: externalConfig.connectionId,
-              configuration: {
-                programId: externalConfig.programId,
-                orgUnits: externalConfig.orgUnits,
-                language: externalConfig.language,
+          }));
+
+        await upsertFieldsMutation.mutateAsync({
+          path: { workflowId },
+          body: { fields: fieldsToUpsert },
+        });
+
+        // Step 3: Upsert DHIS2 configurations
+        await upsertConfigurationsMutation.mutateAsync({
+          path: { workflowId },
+          body: {
+            configurations: [
+              {
+                type: 'dhis2',
+                externalConnectionId: externalConfig.connectionId,
+                configuration: {
+                  programId: externalConfig.programId,
+                  orgUnits: externalConfig.orgUnits,
+                  language: externalConfig.language,
+                },
+                isActive: true,
               },
-              isActive: true as boolean,
-            },
-          ],
-        },
-      });
-    } else {
-      // Manual workflow creation
-      await createWorkflowMutation.mutateAsync({
-        body: {
-          programId: programId || undefined,
-          name: workflowData.name,
-          description: workflowData.description,
-          supportedLanguages: workflowData.supportedLanguages,
-          enabledModes: [workflowData.inputType],
-          workflowFields: manualFields.map((field, index) => ({
+            ],
+          } as unknown as undefined,
+        });
+      } else {
+        const fieldsToUpsert = manualFields
+          .filter((field) => isUUID(field.id))
+          .map((field, index) => ({
+            id: field.id,
             fieldName: field.name,
             label: field.label,
             fieldType: field.type.toLowerCase() as
@@ -294,17 +329,29 @@ function CreateWorkflowContent({ programId }: { programId: string }) {
                 `Extract ${field.label.toLowerCase()} from the ${workflowData.inputType} input`,
             },
             options: field.options,
-          })),
-          workflowConfigurations: [],
-        },
-      });
+          }));
+
+        await upsertFieldsMutation.mutateAsync({
+          path: { workflowId },
+          body: { fields: fieldsToUpsert },
+        });
+      }
+
+      toast.success('Workflow updated successfully!');
+      router.push(`/admin/programs/${programId}/create-workflow`);
+    } catch (error) {
+      console.error('Failed to update workflow:', error);
     }
   };
+
+  const isLoading =
+    updateBasicInfoMutation.isPending ||
+    upsertFieldsMutation.isPending ||
+    upsertConfigurationsMutation.isPending;
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="mx-auto max-w-4xl">
-        {/* Header */}
         <div className="mb-8">
           <button
             onClick={() =>
@@ -316,14 +363,11 @@ function CreateWorkflowContent({ programId }: { programId: string }) {
             Back to Workflows
           </button>
           <h1 className="text-3xl font-semibold text-gray-900">
-            Create Workflow
+            Edit Workflow
           </h1>
-          <p className="text-gray-600">
-            Set up your AI-powered data collection workflow
-          </p>
+          <p className="text-gray-600">Update your workflow configuration</p>
         </div>
 
-        {/* Step Indicator */}
         <StepIndicator
           currentStep={currentStep}
           maxSteps={maxSteps}
@@ -332,7 +376,6 @@ function CreateWorkflowContent({ programId }: { programId: string }) {
           canProceedToStep={canProceedToStep}
         />
 
-        {/* Step Content */}
         <div className="mt-8 rounded-lg bg-white p-8 shadow-sm">
           {currentStep === 1 && (
             <WorkflowDetailsStep
@@ -340,7 +383,7 @@ function CreateWorkflowContent({ programId }: { programId: string }) {
               setWorkflowData={setWorkflowData}
               isExternalMode={isExternalMode}
               onExternalModeChange={handleExternalModeChange}
-              isEditMode={false}
+              isEditMode={true}
             />
           )}
 
@@ -366,7 +409,7 @@ function CreateWorkflowContent({ programId }: { programId: string }) {
               externalConfig={externalConfig}
               aiFields={aiFields}
               onSubmit={handleSubmit}
-              isLoading={createWorkflowMutation.isPending}
+              isLoading={isLoading}
             />
           )}
 
@@ -376,12 +419,11 @@ function CreateWorkflowContent({ programId }: { programId: string }) {
               fields={manualFields}
               setFields={setManualFields}
               onSubmit={handleSubmit}
-              isLoading={createWorkflowMutation.isPending}
+              isLoading={isLoading}
             />
           )}
         </div>
 
-        {/* Navigation */}
         <div className="mt-8 flex justify-between">
           <button
             onClick={() => goToStep(currentStep - 1)}

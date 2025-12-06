@@ -71,7 +71,7 @@ export default function Overview() {
     ...collectorControllerGetSubmissionHistoryOptions({
       query: {
         status: 'completed',
-        limit: 1000, // Get all completed submissions
+        limit: 100, // Get all completed submissions
       },
     }),
     enabled: workflows.length > 0,

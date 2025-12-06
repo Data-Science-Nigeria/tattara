@@ -16,6 +16,7 @@ interface WorkflowDetailsStepProps {
   setWorkflowData: (data: WorkflowData) => void;
   isExternalMode: boolean | null;
   onExternalModeChange: (useExternal: boolean, connectionId?: string) => void;
+  isEditMode?: boolean;
 }
 
 export default function WorkflowDetailsStep({
@@ -23,6 +24,7 @@ export default function WorkflowDetailsStep({
   setWorkflowData,
   isExternalMode,
   onExternalModeChange,
+  isEditMode = false,
 }: WorkflowDetailsStepProps) {
   const [showExternalModal, setShowExternalModal] = useState(false);
   const [externalStatus, setExternalStatus] = useState<
@@ -221,11 +223,14 @@ export default function WorkflowDetailsStep({
           <div className="space-y-4">
             <button
               onClick={() => setShowExternalModal(true)}
-              className="w-full rounded-lg bg-green-600 px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-green-700 sm:w-auto"
+              disabled={isEditMode}
+              className="w-full rounded-lg bg-green-600 px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
             >
               {externalStatus === 'none'
                 ? 'Select External Integration'
-                : 'Change Integration Selection'}
+                : isEditMode
+                  ? 'Integration Mode (Cannot Change)'
+                  : 'Change Integration Selection'}
             </button>
 
             {externalStatus === 'selected' && (

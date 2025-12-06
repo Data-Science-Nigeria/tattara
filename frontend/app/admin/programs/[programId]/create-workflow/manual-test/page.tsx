@@ -27,10 +27,7 @@ export default function ManualTestPage() {
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <div className="text-center">
-          <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-b-2 border-green-600"></div>
-          <p className="text-gray-600">Loading workflow...</p>
-        </div>
+        <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-green-600"></div>
       </div>
     );
   }
@@ -38,9 +35,7 @@ export default function ManualTestPage() {
   if (!workflow) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <div className="text-center">
-          <p className="text-red-600">Workflow not found</p>
-        </div>
+        <p className="text-red-600">Workflow not found</p>
       </div>
     );
   }

@@ -7,6 +7,7 @@ import Image from 'next/image';
 import {
   authControllerGetProfileOptions,
   workflowControllerGetWorkflowsOptions,
+  collectorControllerGetSubmissionHistoryOptions,
 } from '../../../client/@tanstack/react-query.gen';
 
 interface Workflow {
@@ -15,6 +16,7 @@ interface Workflow {
   description: string;
   actionLabel: string;
   onClick: () => void;
+  isSubmitted?: boolean;
 }
 
 interface ApiWorkflow {
@@ -97,6 +99,28 @@ export default function Workflows() {
     return 'Start Collection';
   };
 
+  // Get user submissions to check which workflows have been submitted
+  const { data: submissionsData } = useQuery({
+    ...collectorControllerGetSubmissionHistoryOptions({
+      query: { page: 1, limit: 100 },
+    }),
+    enabled: !!userId,
+  });
+
+  const submissions =
+    (
+      submissionsData as {
+        data?: Array<{ workflow: { id: string }; status: string }>;
+      }
+    )?.data || [];
+  const submittedWorkflowIds = new Set(
+    submissions
+      .filter((s) =>
+        ['submitted', 'completed', 'synced'].includes(s.status.toLowerCase())
+      )
+      .map((s) => s.workflow?.id)
+  );
+
   const workflows: Workflow[] = currentWorkflows.map(
     (workflow: ApiWorkflow) => ({
       icon: (
@@ -112,6 +136,7 @@ export default function Workflows() {
       description: workflow.description || 'No description available',
       actionLabel: getActionLabel(workflow.enabledModes),
       onClick: () => (window.location.href = `/user/data-entry/${workflow.id}`),
+      isSubmitted: submittedWorkflowIds.has(workflow.id),
     })
   );
 

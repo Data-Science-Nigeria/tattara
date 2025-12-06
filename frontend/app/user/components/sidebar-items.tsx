@@ -1,4 +1,11 @@
-import { Computer, LogOut, User, Headphones, Database } from 'lucide-react';
+import {
+  Computer,
+  LogOut,
+  User,
+  Headphones,
+  // Database,
+  ClipboardList,
+} from 'lucide-react';
 
 export const sidebarItems = [
   {
@@ -13,11 +20,17 @@ export const sidebarItems = [
     icon: User,
     alt: 'Profile icon',
   },
-  {
+  /* {
     name: 'Data Entry',
     href: '/user/data-entry',
     icon: Database,
     alt: 'Data Entry icon',
+  }, */
+  {
+    name: 'My Submissions',
+    href: '/user/my-submissions',
+    icon: ClipboardList,
+    alt: 'My Submissions icon',
   },
   {
     name: 'Contact Admin',
