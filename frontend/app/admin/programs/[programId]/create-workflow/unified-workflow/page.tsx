@@ -41,6 +41,7 @@ interface AIField {
   displayOrder: number;
   aiPrompt: string;
   externalDataElement?: string;
+  options?: string[];
 }
 
 interface ManualField {
@@ -273,6 +274,7 @@ export default function UnifiedWorkflow() {
             isRequired: field.isRequired,
             displayOrder: field.displayOrder,
             aiMapping: { prompt: field.aiPrompt },
+            options: field.options,
           })),
           workflowConfigurations: [
             {

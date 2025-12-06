@@ -5,7 +5,7 @@ import { AlertCircle, AlertTriangle, Loader2 } from 'lucide-react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import {
   collectorControllerSubmitDataMutation,
-  fieldControllerGetWorkflowFieldsOptions,
+  workflowControllerFindWorkflowByIdOptions,
 } from '@/client/@tanstack/react-query.gen';
 import { toast } from 'sonner';
 import { validateFieldValue } from '@/lib/field-validation';
@@ -65,26 +65,35 @@ export default function FormRenderer({
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isBulkMode, setIsBulkMode] = useState(false);
+  const hasProcessedRef = React.useRef(false);
   const { auth } = useAuthStore();
 
   // Auto-process when component mounts with input data
   useEffect(() => {
-    if (inputData && !aiReviewData && !isProcessing) {
+    if (
+      inputData &&
+      !aiReviewData &&
+      !isProcessing &&
+      !hasProcessedRef.current
+    ) {
+      hasProcessedRef.current = true;
       handleProcess();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [inputData, aiReviewData, isProcessing]);
+  }, [inputData, aiReviewData]);
 
-  const { data: fieldsData } = useQuery({
-    ...fieldControllerGetWorkflowFieldsOptions({
+  const { data: workflowData } = useQuery({
+    ...workflowControllerFindWorkflowByIdOptions({
       path: { workflowId },
     }),
   });
 
   const sortedFields = React.useMemo(() => {
-    const fields = (fieldsData as { data?: FormField[] })?.data || [];
+    const fields =
+      (workflowData as { data?: { workflowFields?: FormField[] } })?.data
+        ?.workflowFields || [];
     return fields.sort((a, b) => a.displayOrder - b.displayOrder);
-  }, [fieldsData]);
+  }, [workflowData]);
 
   const aiProcessMutation = useMutation({
     mutationFn: async ({
@@ -217,9 +226,18 @@ export default function FormRenderer({
       (error) => error !== ''
     );
 
-    // Check for empty fields (ALL fields must be completed)
-    const hasEmptyFields = sortedFields.some((field) => {
+    // Check for empty REQUIRED fields only
+    const hasEmptyRequiredFields = sortedFields.some((field) => {
+      if (!field.isRequired) return false;
+
       const value = formData[field.fieldName];
+
+      // For multiselect, check if array is empty
+      if (field.fieldType === 'multiselect') {
+        return !Array.isArray(value) || value.length === 0;
+      }
+
+      // For other fields, check if empty
       return (
         value === undefined ||
         value === null ||
@@ -228,7 +246,7 @@ export default function FormRenderer({
       );
     });
 
-    return hasFieldErrors || hasEmptyFields;
+    return hasFieldErrors || hasEmptyRequiredFields;
   };
 
   const handleSubmit = async () => {

@@ -44,6 +44,7 @@ export default function CreateWorkflow() {
   const programId = params.programId as string;
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   // Get workflows for this specific program
   const { data: workflowsData, isLoading } = useQuery({
@@ -63,11 +64,6 @@ export default function CreateWorkflow() {
   const allWorkflows = Array.isArray(responseData?.data)
     ? responseData.data
     : [];
-  const pagination = {
-    total: responseData?.total || 0,
-    pages: responseData?.pages || 1,
-    currentPage: responseData?.page || 1,
-  };
 
   // Filter workflows based on search term
   const filteredWorkflows = allWorkflows.filter(
@@ -76,7 +72,18 @@ export default function CreateWorkflow() {
       workflow.description?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const workflows = filteredWorkflows;
+  // Client-side pagination
+  const totalWorkflows = filteredWorkflows.length;
+  const totalPages = Math.ceil(totalWorkflows / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const workflows = filteredWorkflows.slice(startIndex, endIndex);
+
+  const pagination = {
+    total: totalWorkflows,
+    pages: totalPages,
+    currentPage: currentPage,
+  };
 
   return (
     <div className="relative min-h-screen p-3 sm:p-6">
