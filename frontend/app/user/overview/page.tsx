@@ -107,12 +107,19 @@ export default function Workflows() {
     enabled: !!userId,
   });
 
-  const submissions =
+  const submissions = Array.isArray(
     (
       submissionsData as {
-        data?: Array<{ workflow: { id: string }; status: string }>;
+        data?: { data?: Array<{ workflow: { id: string }; status: string }> };
       }
-    )?.data || [];
+    )?.data?.data
+  )
+    ? (
+        submissionsData as {
+          data: { data: Array<{ workflow: { id: string }; status: string }> };
+        }
+      ).data.data
+    : [];
   const submittedWorkflowIds = new Set(
     submissions
       .filter((s) =>

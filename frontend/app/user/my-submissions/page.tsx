@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Layers, Clock, CheckCircle2, Search, X } from 'lucide-react';
+import { Layers, CheckCircle2, Search, X } from 'lucide-react';
 import {
   collectorControllerGetSubmissionHistoryOptions,
   workflowControllerGetWorkflowsOptions,
@@ -106,13 +106,9 @@ export default function MySubmissions() {
   ).length;
 
   const submissions = useMemo(() => {
-    const data = (submissionsData as { data?: { submissions?: Submission[] } })
-      ?.data;
-    return Array.isArray(data?.submissions)
-      ? data.submissions
-      : Array.isArray(data)
-        ? data
-        : [];
+    const response = submissionsData as { data?: { data?: Submission[] } };
+    const data = response?.data?.data;
+    return Array.isArray(data) ? data : [];
   }, [submissionsData]);
 
   const stats = useMemo(() => {
@@ -155,24 +151,16 @@ export default function MySubmissions() {
           <h1 className="text-xl font-semibold text-gray-800 sm:text-2xl">
             My Submissions
           </h1>
-          <p className="text-gray-600">Track your workflow submissions</p>
         </div>
 
         {/* Stat Cards */}
-        <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
           <StatCard
             icon={<Layers size={24} />}
             title="Total Workflows"
             value={totalWorkflows}
             bgColor="bg-blue-50"
             iconColor="text-blue-600"
-          />
-          <StatCard
-            icon={<Clock size={24} />}
-            title="Total Pending"
-            value={stats.pending}
-            bgColor="bg-orange-50"
-            iconColor="text-orange-600"
           />
           <StatCard
             icon={<CheckCircle2 size={24} />}

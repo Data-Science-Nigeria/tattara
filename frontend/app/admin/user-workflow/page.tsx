@@ -69,12 +69,11 @@ export default function ManageWorkflows() {
     : (workflowsResponse?.data as { workflows?: Workflow[] })?.workflows || [];
 
   const submissionsResponse = submissionsData as {
-    data?: { submissions?: Submission[] } | Submission[];
+    data?: { data?: Submission[] };
   };
-  const submissions = Array.isArray(submissionsResponse?.data)
-    ? submissionsResponse.data
-    : (submissionsResponse?.data as { submissions?: Submission[] })
-        ?.submissions || [];
+  const submissions = Array.isArray(submissionsResponse?.data?.data)
+    ? submissionsResponse.data.data
+    : [];
 
   // Create workflow assignments from workflows data
   const workflowAssignments: WorkflowAssignment[] = [];
@@ -145,7 +144,7 @@ export default function ManageWorkflows() {
         <div className="mb-4 flex flex-col gap-3 sm:mb-6 sm:gap-4 lg:mb-8">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-lg font-semibold text-gray-800 sm:text-xl md:text-2xl lg:text-4xl">
+              <h1 className="text-xl font-semibold text-gray-800 sm:text-2xl">
                 User Workflow
               </h1>
             </div>

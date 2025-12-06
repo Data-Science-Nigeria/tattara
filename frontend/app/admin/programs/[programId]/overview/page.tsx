@@ -93,11 +93,11 @@ export default function Overview() {
 
   // Calculate completed workflows count from submissions
   const submissions = (
-    submissionsData as { data?: Array<{ workflowId: string }> }
-  )?.data;
+    submissionsData as { data?: { data?: Array<{ workflow: { id: string } }> } }
+  )?.data?.data;
   const workflowIds = workflows.map((w) => w.id);
   const completedWorkflows = Array.isArray(submissions)
-    ? submissions.filter((s) => workflowIds.includes(s.workflowId)).length
+    ? submissions.filter((s) => workflowIds.includes(s.workflow?.id)).length
     : 0;
 
   const stats: Stat[] = [
