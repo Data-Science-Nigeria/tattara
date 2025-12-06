@@ -105,7 +105,7 @@ export class ProgramService {
   async findAllWorkflows(programId: string): Promise<Workflow[]> {
     const program = await this.programRepository.findOne({
       where: { id: programId },
-      relations: ['workflows'],
+      relations: ['workflows', 'workflows.workflowConfigurations'],
     });
 
     if (!program) {
