@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Trash2, GripVertical, Eye } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { integrationControllerFetchSchemasOptions } from '@/client/@tanstack/react-query.gen';
@@ -51,6 +51,7 @@ interface AIField {
   displayOrder: number;
   aiPrompt: string;
   externalDataElement?: string;
+  options?: string[];
 }
 
 interface ExternalConfig {
@@ -75,6 +76,22 @@ export default function AIFieldMappingStep({
   externalConfig,
 }: AIFieldMappingStepProps) {
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [optionsInputs, setOptionsInputs] = useState<Record<string, string>>(
+    {}
+  );
+
+  useEffect(() => {
+    const newInputs: Record<string, string> = {};
+    fields.forEach((field) => {
+      if (
+        (field.fieldType === 'select' || field.fieldType === 'multiselect') &&
+        field.options
+      ) {
+        newInputs[field.id] = field.options.join(', ');
+      }
+    });
+    setOptionsInputs(newInputs);
+  }, [fields.length]);
 
   const { data: schemaData } = useQuery({
     ...integrationControllerFetchSchemasOptions({
@@ -293,8 +310,7 @@ export default function AIFieldMappingStep({
                     onChange={(e) =>
                       updateField(field.id, { fieldType: e.target.value })
                     }
-                    disabled={!!field.externalDataElement}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-green-500 focus:outline-none disabled:bg-gray-50"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-green-500 focus:outline-none"
                   >
                     <option value="text">Text</option>
                     <option value="number">Number</option>
@@ -305,6 +321,8 @@ export default function AIFieldMappingStep({
                     <option value="phone">Phone</option>
                     <option value="url">URL</option>
                     <option value="textarea">Long Text</option>
+                    <option value="select">Select</option>
+                    <option value="multiselect">Multi-Select</option>
                   </select>
                 </div>
 
@@ -328,6 +346,37 @@ export default function AIFieldMappingStep({
                   </button>
                 </div>
               </div>
+
+              {(field.fieldType === 'select' ||
+                field.fieldType === 'multiselect') && (
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">
+                    Options (comma-separated)
+                  </label>
+                  <input
+                    type="text"
+                    value={optionsInputs[field.id] || ''}
+                    onChange={(e) => {
+                      setOptionsInputs((prev) => ({
+                        ...prev,
+                        [field.id]: e.target.value,
+                      }));
+                    }}
+                    onBlur={(e) => {
+                      const value = e.target.value;
+                      const options = value
+                        ? value
+                            .split(',')
+                            .map((o) => o.trim())
+                            .filter((o) => o)
+                        : [];
+                      updateField(field.id, { options });
+                    }}
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-green-500 focus:outline-none"
+                    placeholder="e.g., Option 1, Option 2, Option 3"
+                  />
+                </div>
+              )}
 
               <div>
                 <label className="mb-1 block text-sm font-medium text-gray-700">
