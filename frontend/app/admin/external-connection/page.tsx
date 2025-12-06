@@ -13,6 +13,7 @@ import type { ExternalConnection } from '@/client/types.gen';
 import { client } from '@/client/client.gen';
 import ConnectionsList from './components/connections-list';
 import EditFormModal from './components/edit-form-modal';
+import DeleteConnectionModal from './components/delete-connection-modal';
 import { toast } from 'sonner';
 
 type ApiResponse<T> = {
@@ -28,7 +29,11 @@ export default function ExternalConnections() {
   const [name, setName] = useState('');
   const [baseUrl, setBaseUrl] = useState('');
   const [pat, setPat] = useState('');
-  const [showToken, setShowToken] = useState(false);
+  const [host, setHost] = useState('');
+  const [port, setPort] = useState('5432');
+  const [database, setDatabase] = useState('');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [deleteConnectionId, setDeleteConnectionId] = useState<string | null>(
     null
   );
@@ -54,7 +59,15 @@ export default function ExternalConnections() {
       data: {
         name: string;
         isActive: boolean;
-        configuration: { baseUrl: string; pat: string };
+        configuration:
+          | { baseUrl: string; pat: string }
+          | {
+              host: string;
+              port: number;
+              database: string;
+              username: string;
+              password: string;
+            };
       };
     }) => {
       const response = await client.patch({
@@ -101,7 +114,11 @@ export default function ExternalConnections() {
     setName('');
     setBaseUrl('');
     setPat('');
-    setShowToken(false);
+    setHost('');
+    setPort('5432');
+    setDatabase('');
+    setUsername('');
+    setPassword('');
     setConnectionTested(false);
     setTestError(undefined);
   };
@@ -112,10 +129,15 @@ export default function ExternalConnections() {
     setConnectionTested(false);
 
     try {
+      const config =
+        editingConnection?.type === 'dhis2'
+          ? { baseUrl, pat }
+          : { host, port: parseInt(port), database, username, password };
+
       await testConnectionMutation.mutateAsync({
         body: {
-          type: 'dhis2' as const,
-          config: { baseUrl, pat },
+          type: (editingConnection?.type as 'dhis2' | 'postgres') || 'dhis2',
+          config,
         },
       });
       setConnectionTested(true);
@@ -131,21 +153,42 @@ export default function ExternalConnections() {
     setEditingConnection(connection);
     setName(connection.name);
 
-    const config = connection.configuration as {
-      baseUrl?: string;
-      pat?: string;
-    };
-    setBaseUrl(config.baseUrl || '');
-    setPat(config.pat || '');
+    if (connection.type === 'dhis2') {
+      const config = connection.configuration as {
+        baseUrl?: string;
+        pat?: string;
+      };
+      setBaseUrl(config.baseUrl || '');
+      setPat(config.pat || '');
+    } else {
+      const config = connection.configuration as {
+        host?: string;
+        port?: number;
+        database?: string;
+        username?: string;
+        password?: string;
+      };
+      setHost(config.host || '');
+      setPort(config.port?.toString() || '5432');
+      setDatabase(config.database || '');
+      setUsername(config.username || '');
+      setPassword(config.password || '');
+    }
+
     setConnectionTested(false);
     setTestError(undefined);
   };
 
   const handleSubmit = () => {
+    const configuration =
+      editingConnection?.type === 'dhis2'
+        ? { baseUrl, pat }
+        : { host, port: parseInt(port), database, username, password };
+
     const updatePayload = {
       name,
       isActive: true,
-      configuration: { baseUrl, pat },
+      configuration,
     };
     updateMutation.mutate({
       id: editingConnection!.id,
@@ -159,7 +202,7 @@ export default function ExternalConnections() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-xl font-semibold text-gray-800 sm:text-2xl">
-            DHIS2 Auth
+            External Connections
           </h1>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row sm:gap-3">
@@ -186,12 +229,23 @@ export default function ExternalConnections() {
       {editingConnection && (
         <EditFormModal
           isOpen={true}
+          connectionType={editingConnection.type as 'dhis2' | 'postgres'}
           name={name}
           setName={setName}
+          baseUrl={baseUrl}
+          setBaseUrl={setBaseUrl}
           pat={pat}
           setPat={setPat}
-          showToken={showToken}
-          setShowToken={setShowToken}
+          host={host}
+          setHost={setHost}
+          port={port}
+          setPort={setPort}
+          database={database}
+          setDatabase={setDatabase}
+          username={username}
+          setUsername={setUsername}
+          password={password}
+          setPassword={setPassword}
           onSubmit={handleSubmit}
           onCancel={() => {
             setEditingConnection(null);
@@ -210,37 +264,20 @@ export default function ExternalConnections() {
         />
       )}
 
-      {/* Delete Confirmation Modal */}
-      {deleteConnectionId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-sm rounded-lg bg-white p-4 sm:p-6">
-            <h3 className="mb-2 text-base font-semibold sm:text-lg">
-              Delete Connection
-            </h3>
-            <p className="mb-4 text-sm text-gray-600 sm:text-base">
-              Are you sure you want to delete this connection? This action
-              cannot be undone.
-            </p>
-            <div className="flex flex-col gap-2 sm:flex-row sm:justify-end sm:gap-3">
-              <button
-                onClick={() => setDeleteConnectionId(null)}
-                className="w-full rounded border border-gray-300 px-3 py-2 text-sm text-gray-600 hover:text-gray-800 sm:w-auto sm:border-0 sm:px-4"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => {
-                  deleteMutation.mutate({ path: { id: deleteConnectionId } });
-                  setDeleteConnectionId(null);
-                }}
-                className="w-full rounded bg-red-600 px-3 py-2 text-sm text-white hover:bg-red-700 sm:w-auto sm:px-4"
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <DeleteConnectionModal
+        isOpen={!!deleteConnectionId}
+        onClose={() => setDeleteConnectionId(null)}
+        onConfirm={() => {
+          if (deleteConnectionId) {
+            deleteMutation.mutate({ path: { id: deleteConnectionId } });
+            setDeleteConnectionId(null);
+          }
+        }}
+        connectionName={
+          connectionsArray.find((c) => c.id === deleteConnectionId)?.name
+        }
+        isDeleting={deleteMutation.isPending}
+      />
     </div>
   );
 }

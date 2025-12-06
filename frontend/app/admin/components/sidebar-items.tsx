@@ -1,4 +1,12 @@
-import { Computer, Lock, LogOut, PlusSquare, User, Users } from 'lucide-react';
+import {
+  Computer,
+  Lock,
+  LogOut,
+  PlusSquare,
+  User,
+  UserCog,
+  Users,
+} from 'lucide-react';
 
 // Initial admin sidebar (after signup)
 export const dashboardSidebarItems = [
@@ -7,6 +15,24 @@ export const dashboardSidebarItems = [
     href: '/admin/dashboard',
     icon: Computer,
     alt: 'Dashboard icon',
+  },
+  {
+    name: 'Profile',
+    href: `/admin/profile`,
+    icon: User,
+    alt: 'Program Profile icon',
+  },
+  {
+    name: 'User Workflow',
+    href: `/admin/user-workflow`,
+    icon: UserCog,
+    alt: 'User Workflow icon',
+  },
+  {
+    name: 'Manage Users',
+    href: `/admin/manage-users`,
+    icon: Users,
+    alt: 'User icon',
   },
   {
     name: 'DHIS2 Auth',
@@ -25,22 +51,10 @@ export const getProgramSidebarItems = (programId: string) => [
     alt: 'Overview icon',
   },
   {
-    name: 'Profile',
-    href: `/admin/programs/${programId}/profile`,
-    icon: User,
-    alt: 'Program Profile icon',
-  },
-  {
     name: 'Create Workflow',
     href: `/admin/programs/${programId}/create-workflow`,
     icon: PlusSquare,
     alt: 'Workflow icon',
-  },
-  {
-    name: 'Manage Users',
-    href: `/admin/programs/${programId}/manage-users`,
-    icon: Users,
-    alt: 'User icon',
   },
 ];
 

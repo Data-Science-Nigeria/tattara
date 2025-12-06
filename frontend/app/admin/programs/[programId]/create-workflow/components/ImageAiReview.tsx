@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useAuthStore } from '@/app/store/use-auth-store';
-import AiResponseDisplay from '../../field-mapping/components/AiResponseDisplay';
+import AiResponseDisplay from '../field-mapping/components/AiResponseDisplay';
 
 interface ImageAiReviewProps {
   workflowId: string;

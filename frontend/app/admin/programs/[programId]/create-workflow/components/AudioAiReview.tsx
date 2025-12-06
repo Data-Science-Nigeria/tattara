@@ -3,7 +3,7 @@ import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Mic, Square, X, Upload } from 'lucide-react';
 import { useAuthStore } from '@/app/store/use-auth-store';
-import AiResponseDisplay from '../../field-mapping/components/AiResponseDisplay';
+import AiResponseDisplay from '../field-mapping/components/AiResponseDisplay';
 
 interface AudioAiReviewProps {
   workflowId: string;

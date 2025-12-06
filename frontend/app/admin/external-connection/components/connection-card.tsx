@@ -1,30 +1,68 @@
 'use client';
 
-import { Database, Edit, Trash2 } from 'lucide-react';
+import { Database, Edit, Trash2, MoreHorizontal } from 'lucide-react';
+import Image from 'next/image';
+import { useState, useEffect, useRef } from 'react';
 import type { ExternalConnection } from '@/client/types.gen';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
+import DeleteConnectionModal from './delete-connection-modal';
 
 interface ConnectionCardProps {
   connection: ExternalConnection;
   onEdit: (connection: ExternalConnection) => void;
   onDelete: (id: string) => void;
+  isDeleting?: boolean;
 }
 
 export default function ConnectionCard({
   connection,
   onEdit,
   onDelete,
+  isDeleting = false,
 }: ConnectionCardProps) {
+  const [showMenu, setShowMenu] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setShowMenu(false);
+      }
+    };
+
+    if (showMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showMenu]);
+
   return (
-    <div className="overflow-hidden rounded-lg border border-[#D2DDF5] bg-white p-3 sm:p-4">
+    <div className="rounded-lg border border-[#D2DDF5] bg-white p-3 sm:p-4">
       <div className="space-y-2 sm:flex sm:items-center sm:justify-between sm:gap-3 sm:space-y-0">
         <div className="flex min-w-0 flex-1 items-center gap-3">
           <div className="flex-shrink-0 rounded-lg bg-blue-50 p-1.5">
-            <Database className="h-4 w-4 text-blue-600 sm:h-5 sm:w-5" />
+            {connection.type === 'dhis2' ? (
+              <Image
+                src="/dhis2-logo.svg"
+                alt="DHIS2"
+                width={20}
+                height={20}
+                className="h-4 w-4 text-blue-600 sm:h-5 sm:w-5"
+              />
+            ) : connection.type === 'postgres' ? (
+              <Image
+                src="/postgresql-logo.svg"
+                alt="PostgreSQL"
+                width={20}
+                height={20}
+                className="h-4 w-4 sm:h-5 sm:w-5"
+              />
+            ) : (
+              <Database className="h-4 w-4 text-blue-600 sm:h-5 sm:w-5" />
+            )}
           </div>
           <div className="min-w-0 flex-1">
             <h3 className="truncate text-sm font-semibold text-gray-900 sm:text-base">
@@ -51,32 +89,51 @@ export default function ConnectionCard({
           >
             {connection.isActive ? 'Active' : 'Inactive'}
           </span>
-          <div className="flex items-center gap-1">
-            <Tooltip>
-              <TooltipTrigger asChild>
+          <div className="relative" ref={menuRef}>
+            <button
+              onClick={() => setShowMenu(!showMenu)}
+              className="rounded-lg p-1.5 text-gray-500 transition-colors hover:bg-gray-50 hover:text-gray-700"
+            >
+              <MoreHorizontal className="h-4 w-4" />
+            </button>
+            {showMenu && (
+              <div className="absolute top-8 right-0 z-50 w-32 rounded-md border border-gray-200 bg-white py-1 shadow-lg">
                 <button
-                  onClick={() => onEdit(connection)}
-                  className="rounded-lg p-1.5 text-gray-500 transition-colors hover:bg-blue-50 hover:text-blue-600"
+                  onClick={() => {
+                    onEdit(connection);
+                    setShowMenu(false);
+                  }}
+                  className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
                 >
                   <Edit className="h-4 w-4" />
+                  Edit
                 </button>
-              </TooltipTrigger>
-              <TooltipContent>Edit connection</TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
                 <button
-                  onClick={() => onDelete(connection.id)}
-                  className="rounded-lg p-1.5 text-red-600 transition-colors hover:bg-red-50 hover:text-red-700"
+                  onClick={() => {
+                    setShowDeleteModal(true);
+                    setShowMenu(false);
+                  }}
+                  className="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50"
                 >
                   <Trash2 className="h-4 w-4" />
+                  Delete
                 </button>
-              </TooltipTrigger>
-              <TooltipContent>Delete connection</TooltipContent>
-            </Tooltip>
+              </div>
+            )}
           </div>
         </div>
       </div>
+
+      <DeleteConnectionModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={() => {
+          onDelete(connection.id);
+          setShowDeleteModal(false);
+        }}
+        connectionName={connection.name}
+        isDeleting={isDeleting}
+      />
     </div>
   );
 }
