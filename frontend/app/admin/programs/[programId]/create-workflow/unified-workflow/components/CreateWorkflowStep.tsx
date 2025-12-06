@@ -34,6 +34,7 @@ interface CreateWorkflowStepProps {
   aiFields: AIField[];
   onSubmit: () => void;
   isLoading: boolean;
+  isEditMode?: boolean;
 }
 
 export default function CreateWorkflowStep({
@@ -42,6 +43,7 @@ export default function CreateWorkflowStep({
   aiFields,
   onSubmit,
   isLoading,
+  isEditMode = false,
 }: CreateWorkflowStepProps) {
   const IconComponent = getIconForWorkflow([workflowData.inputType]);
 
@@ -58,11 +60,15 @@ export default function CreateWorkflowStep({
 
       <div className="rounded-lg border border-green-200 bg-green-50 p-6">
         <h3 className="mb-4 text-lg font-medium text-green-900">
-          Ready to Create Your Workflow!
+          {isEditMode
+            ? 'Ready to Update Your Workflow!'
+            : 'Ready to Create Your Workflow!'}
         </h3>
         <p className="text-green-700">
-          Your workflow is configured and ready to be created. Review the
-          details below and click {'Create Workflow'} to proceed.
+          Your workflow is configured and ready to be{' '}
+          {isEditMode ? 'updated' : 'created'}. Review the details below and
+          click {isEditMode ? "'Update Workflow'" : "'Create Workflow'"} to
+          proceed.
         </p>
       </div>
 
@@ -218,7 +224,13 @@ export default function CreateWorkflowStep({
           disabled={isLoading || aiFields.length === 0}
           className="rounded-lg bg-green-600 px-8 py-3 text-lg font-medium text-white hover:bg-green-700 disabled:opacity-50"
         >
-          {isLoading ? 'Creating Workflow...' : 'Create Workflow'}
+          {isLoading
+            ? isEditMode
+              ? 'Updating Workflow...'
+              : 'Creating Workflow...'
+            : isEditMode
+              ? 'Update Workflow'
+              : 'Create Workflow'}
         </button>
       </div>
     </div>

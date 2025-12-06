@@ -410,6 +410,7 @@ export default function EditWorkflowForm({
               aiFields={aiFields}
               onSubmit={handleSubmit}
               isLoading={isLoading}
+              isEditMode={true}
             />
           )}
 
