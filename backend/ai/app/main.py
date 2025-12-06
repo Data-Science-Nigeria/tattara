@@ -3,7 +3,16 @@ import json, re, unicodedata
 from typing import Optional, List, Dict, Any
 import tempfile
 from .config import settings
-from .models import TextRequest, ExtractionResponse, ExtractionMetrics, ModelPreference, LanguagePreference
+from .models import (
+    TextRequest,
+    TextBatchRequest,
+    ExtractionResponse,
+    ExtractionMetrics,
+    ModelPreference,
+    LanguagePreference,
+    MultiRowExtractionResponse,
+    ExtractedRow,
+)
 from .services.whisper_service import WhisperService
 from .services.spitch_service import SpitchService
 from .services.translation_service import TranslationService
@@ -15,8 +24,8 @@ import warnings
 from fastapi.responses import RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 from .utils.schema import ensure_demo_schema, BadFormSchema
-from datetime import datetime 
-from .utils.prompting import build_extraction_header
+from datetime import datetime
+from .utils.prompting import build_extraction_header, build_multi_row_extraction_header
 
 # Suppress pkg_resources deprecation warning emitted by some dependencies (ctranslate2)
 warnings.filterwarnings(
@@ -42,6 +51,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 # Redirect root to Swagger UI
 @app.get("/", include_in_schema=False)
 def index():
@@ -56,10 +66,12 @@ def index():
         "health_url": "/health",
     }
 
+
 @app.get("/health", tags=["Utility"])
 def health():
     """Simple health check."""
     return {"status": "ok"}
+
 
 whisper_service = WhisperService()
 vision_service = VisionService()
@@ -67,11 +79,20 @@ router = ExtractionRouter()
 translator = TranslationService(router)
 
 # provider instances for image forwarding (uses settings values)
-default_openai_provider = OpenAIProvider(api_key=settings.OPENAI_API_KEY, model=settings.OPENAI_MODEL)
+default_openai_provider = OpenAIProvider(
+    api_key=settings.OPENAI_API_KEY, model=settings.OPENAI_MODEL
+)
 
 
-@app.post("/process/text", response_model=ExtractionResponse, response_model_exclude_none=True, tags=["AI"])
-async def process_text(req: TextRequest, model_preference: Optional[ModelPreference] = Query(None)):
+@app.post(
+    "/process/text",
+    response_model=ExtractionResponse,
+    response_model_exclude_none=True,
+    tags=["AI"],
+)
+async def process_text(
+    req: TextRequest, model_preference: Optional[ModelPreference] = Query(None)
+):
     """
     Extract Structured Fields from Raw Text
 
@@ -158,13 +179,15 @@ async def process_text(req: TextRequest, model_preference: Optional[ModelPrefere
         # doesn't accept model_override (dev reloader inconsistencies). Retry without
         # the kwarg to preserve service availability during reloads.
         if "model_override" in str(e):
-            data, confidence, llm_ms, tokens_in, tokens_out, cost, model = router.extract(
-                provider_name=provider_name,
-                form_schema=schema,
-                text_blob=req.text,
-                images=None,
-                ocr_blocks=None,
-                locale=None,
+            data, confidence, llm_ms, tokens_in, tokens_out, cost, model = (
+                router.extract(
+                    provider_name=provider_name,
+                    form_schema=schema,
+                    text_blob=req.text,
+                    images=None,
+                    ocr_blocks=None,
+                    locale=None,
+                )
             )
         else:
             raise HTTPException(status_code=502, detail=f"Extraction error: {e}")
@@ -205,6 +228,149 @@ async def process_text(req: TextRequest, model_preference: Optional[ModelPrefere
 
 
 @app.post(
+    "/process/text/batch",
+    response_model=MultiRowExtractionResponse,
+    response_model_exclude_none=True,
+    tags=["AI"],
+)
+async def process_text_batch(
+    req: TextBatchRequest, model_preference: Optional[ModelPreference] = Query(None)
+):
+    """
+    Extract Multiple Rows/Entries from Raw Text
+
+    Overview:
+    - Parses text containing MULTIPLE entries/rows (e.g., a list of patients, records, etc.)
+    - Returns an array of extracted entries instead of a single object.
+
+    Use this endpoint when your text contains multiple records like:
+    - "Patient 1: John, 29 years old. Patient 2: Jane, 35 years old. Patient 3: Bob, 42 years old."
+    - Tabular data in text form
+    - Multiple form submissions in one text block
+
+    Request:
+    - form_id: Identifier of your form/template.
+    - form_schema: JSON object with "fields" (id, type, required).
+    - text: The raw text containing multiple entries.
+    - model_preference: Optional model hint (e.g., "gpt-4o").
+
+    Returns:
+    - total_rows: Number of entries extracted
+    - rows: Array of extracted entries
+    - confidence: Field confidence scores (applies to all rows)
+    - metrics: Timing/cost/model metadata
+    """
+    need_vision = False
+    preferred = model_preference or req.model_preference
+    _pick = router.pick(preferred, need_vision)
+    if isinstance(_pick, tuple):
+        provider_name, model_override = _pick
+    else:
+        provider_name = _pick
+        model_override = None
+
+    try:
+        schema = ensure_demo_schema(req.form_schema)
+    except BadFormSchema as e:
+        raise HTTPException(status_code=422, detail=str(e))
+
+    # Use multi-row extraction header
+    header = build_multi_row_extraction_header(schema)
+    combined_text = f"{header}\n\n---\nSOURCE TEXT:\n{req.text}"
+
+    try:
+        data, confidence, llm_ms, tokens_in, tokens_out, cost, model = router.extract(
+            provider_name=provider_name,
+            form_schema=schema,
+            text_blob=combined_text,
+            images=None,
+            ocr_blocks=None,
+            locale=req.locale,
+            model_override=model_override,
+        )
+    except TypeError as e:
+        if "model_override" in str(e):
+            data, confidence, llm_ms, tokens_in, tokens_out, cost, model = (
+                router.extract(
+                    provider_name=provider_name,
+                    form_schema=schema,
+                    text_blob=combined_text,
+                    images=None,
+                    ocr_blocks=None,
+                    locale=req.locale,
+                )
+            )
+        else:
+            raise HTTPException(status_code=502, detail=f"Extraction error: {e}")
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Extraction error: {e}")
+
+    # Parse multi-row response
+    rows_data: List[Dict[str, Any]] = []
+    if isinstance(data, dict):
+        if "rows" in data and isinstance(data["rows"], list):
+            rows_data = data["rows"]
+        elif "extracted" in data and isinstance(data["extracted"], list):
+            rows_data = data["extracted"]
+        elif "extracted" in data and isinstance(data["extracted"], dict):
+            rows_data = [data["extracted"]]
+        elif not any(k in data for k in ["rows", "extracted", "total_rows"]):
+            rows_data = [data]
+    elif isinstance(data, list):
+        rows_data = data
+
+    validator = SchemaValidator(schema)
+    extracted_rows: List[ExtractedRow] = []
+    all_field_ids: set = set()
+
+    for idx, row_data in enumerate(rows_data):
+        if not isinstance(row_data, dict):
+            continue
+
+        merged_row: Dict[str, Any] = {}
+        for fdef in schema.get("fields", []):
+            fid = fdef.get("id")
+            if fid in row_data and row_data[fid] not in (None, "", [], {}):
+                merged_row[fid] = row_data[fid]
+                all_field_ids.add(fid)
+            else:
+                merged_row[fid] = row_data.get(fid)
+
+        missing = validator.validate_and_report(merged_row)
+        extracted_rows.append(
+            ExtractedRow(
+                row_index=idx,
+                extracted=merged_row,
+                missing_required=missing,
+            )
+        )
+
+    field_confidence: Dict[str, float] = {fid: 0.8 for fid in all_field_ids}
+
+    metrics = ExtractionMetrics(
+        asr_seconds=0.0,
+        vision_seconds=0.0,
+        llm_seconds=round(llm_ms / 1000, 2) if llm_ms is not None else None,
+        total_seconds=round(llm_ms / 1000, 2) if llm_ms is not None else None,
+        tokens_in=tokens_in,
+        tokens_out=tokens_out,
+        cost_usd=round(cost, 6),
+        provider=provider_name,
+        model=model,
+    )
+
+    return MultiRowExtractionResponse(
+        form_id=req.form_id,
+        form_version=None,
+        total_rows=len(extracted_rows),
+        rows=extracted_rows,
+        confidence=field_confidence if field_confidence else None,
+        metrics=metrics,
+        meta={"text_length": len(req.text)},
+    )
+
+
+@app.post(
     "/process/audio",
     response_model=ExtractionResponse,
     response_model_exclude_none=True,
@@ -213,7 +379,10 @@ async def process_text(req: TextRequest, model_preference: Optional[ModelPrefere
 async def process_audio(
     form_id: str = Form(...),
     form_schema: str = Form(...),  # JSON string
-    language: LanguagePreference = Form(LanguagePreference.English, description="ASR language: English, Igbo, Hausa, Yoruba"),
+    language: LanguagePreference = Form(
+        LanguagePreference.English,
+        description="ASR language: English, Igbo, Hausa, Yoruba",
+    ),
     model_preference: Optional[ModelPreference] = Form(None),
     audio_file: UploadFile = File(...),
 ):
@@ -230,7 +399,7 @@ async def process_audio(
     - language: Optional language code (e.g., "en", "fr").
     - provider_preference: e.g., "openai".
     - audio_file: The audio file to transcribe (WAV/MP3).
-    
+
 
     Demo Form Schema:
 
@@ -284,7 +453,9 @@ async def process_audio(
             lang_map = {"Igbo": "ig", "Hausa": "ha", "Yoruba": "yo"}
             src_code = lang_map.get(language.value)
             if not src_code:
-                raise HTTPException(status_code=400, detail=f"Unsupported language: {language.value}")
+                raise HTTPException(
+                    status_code=400, detail=f"Unsupported language: {language.value}"
+                )
             transcript, asr_ms = SpitchService.transcribe(tmp_path, src_code)
             asr_provider = "spitch"
             lang_used = language.value
@@ -311,12 +482,16 @@ async def process_audio(
         try:
             lang_map = {"Igbo": "ig", "Hausa": "ha", "Yoruba": "yo"}
             src_code = lang_map.get(language.value)
-            translated_text, _tr_ms = SpitchService.translate(transcript, source=src_code, target="en")
+            translated_text, _tr_ms = SpitchService.translate(
+                transcript, source=src_code, target="en"
+            )
             if translated_text:
                 transcript = translated_text
         except Exception as e:
             # No fallback – Spitch must be used for translation for ig/ha/yo
-            raise HTTPException(status_code=502, detail=f"Spitch translation error: {e}")
+            raise HTTPException(
+                status_code=502, detail=f"Spitch translation error: {e}"
+            )
 
     # --- Costing for ASR and Translation ---
     asr_cost = 0.0
@@ -324,11 +499,18 @@ async def process_audio(
     try:
         if asr_provider == "spitch":
             # $0.00042 per second for transcription
-            asr_cost = ((asr_ms or 0) / 1000.0) * getattr(settings, "SPITCH_PRICE_TRANSCRIPTION_PER_SEC", 0.0)
+            asr_cost = ((asr_ms or 0) / 1000.0) * getattr(
+                settings, "SPITCH_PRICE_TRANSCRIPTION_PER_SEC", 0.0
+            )
             # $1 per 10,000 words for translation (count on English transcript)
             word_count = len((transcript or "").split())
-            translation_cost = (word_count / 10000.0) * getattr(settings, "SPITCH_PRICE_TRANSLATION_PER_10K_WORDS", 0.0)
-        elif asr_provider == "whisper" and getattr(settings, "WHISPER_MODE", "api") == "api":
+            translation_cost = (word_count / 10000.0) * getattr(
+                settings, "SPITCH_PRICE_TRANSLATION_PER_10K_WORDS", 0.0
+            )
+        elif (
+            asr_provider == "whisper"
+            and getattr(settings, "WHISPER_MODE", "api") == "api"
+        ):
             # Whisper API: $0.17 per hour
             hours = (asr_ms or 0) / 1000.0 / 3600.0
             asr_cost = hours * getattr(settings, "WHISPER_API_PRICE_PER_HOUR", 0.0)
@@ -349,13 +531,15 @@ async def process_audio(
         )
     except TypeError as e:
         if "model_override" in str(e):
-            data, confidence, llm_ms, tokens_in, tokens_out, cost, model = router.extract(
-                provider_name=provider_name,
-                form_schema=schema,
-                text_blob=transcript,
-                images=None,
-                ocr_blocks=None,
-                locale=None,
+            data, confidence, llm_ms, tokens_in, tokens_out, cost, model = (
+                router.extract(
+                    provider_name=provider_name,
+                    form_schema=schema,
+                    text_blob=transcript,
+                    images=None,
+                    ocr_blocks=None,
+                    locale=None,
+                )
             )
         else:
             raise HTTPException(status_code=502, detail=f"Extraction error: {e}")
@@ -407,7 +591,236 @@ async def process_audio(
     )
 
 
-@app.post("/process/image", response_model=ExtractionResponse, response_model_exclude_none=True, tags=["AI"])
+@app.post(
+    "/process/audio/batch",
+    response_model=MultiRowExtractionResponse,
+    response_model_exclude_none=True,
+    tags=["AI"],
+)
+async def process_audio_batch(
+    form_id: str = Form(...),
+    form_schema: str = Form(...),
+    language: LanguagePreference = Form(
+        LanguagePreference.English,
+        description="ASR language: English, Igbo, Hausa, Yoruba",
+    ),
+    model_preference: Optional[ModelPreference] = Form(None),
+    audio_file: UploadFile = File(...),
+):
+    """
+    Audio Transcription and Multi-Row Form Extraction
+
+    Overview:
+    - Upload an audio file (WAV/MP3) containing MULTIPLE entries/records.
+    - Transcribes and extracts multiple rows of structured data.
+
+    Use this endpoint when your audio contains multiple records like:
+    - "First patient: John Doe, age 29, positive result. Second patient: Jane Smith, age 35, negative result."
+    - Multiple form entries dictated sequentially
+
+    Request (multipart/form-data):
+    - form_id: Your form identifier.
+    - form_schema: JSON string of the fields object.
+    - language: Language code (English, Igbo, Hausa, Yoruba).
+    - model_preference: Optional model hint.
+    - audio_file: The audio file to transcribe (WAV/MP3).
+
+    Returns:
+    - total_rows: Number of entries extracted
+    - rows: Array of extracted entries
+    - confidence: Field confidence scores (applies to all rows)
+    - metrics: ASR/LLM timings and model info
+    """
+    try:
+        schema = ensure_demo_schema(form_schema)
+    except BadFormSchema as e:
+        raise HTTPException(status_code=422, detail=str(e))
+
+    suffix = f"_{audio_file.filename}"
+    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+        content = await audio_file.read()
+        tmp.write(content)
+        tmp_path = tmp.name
+
+    # Transcription
+    try:
+        if language != LanguagePreference.English:
+            lang_map = {"Igbo": "ig", "Hausa": "ha", "Yoruba": "yo"}
+            src_code = lang_map.get(language.value)
+            if not src_code:
+                raise HTTPException(
+                    status_code=400, detail=f"Unsupported language: {language.value}"
+                )
+            transcript, asr_ms = SpitchService.transcribe(tmp_path, src_code)
+            asr_provider = "spitch"
+            lang_used = language.value
+        else:
+            transcript, asr_ms = whisper_service.transcribe(tmp_path, language=None)
+            asr_provider = "whisper"
+            lang_used = "English"
+    except Exception as e:
+        if language != LanguagePreference.English:
+            raise HTTPException(status_code=502, detail=f"Spitch ASR error: {e}")
+        raise HTTPException(status_code=502, detail=f"ASR error: {e}")
+
+    _pick = router.pick(model_preference, need_vision=False)
+    if isinstance(_pick, tuple):
+        provider_name, model_override = _pick
+    else:
+        provider_name = _pick
+        model_override = None
+
+    # Translate to English if needed
+    if language != LanguagePreference.English:
+        try:
+            lang_map = {"Igbo": "ig", "Hausa": "ha", "Yoruba": "yo"}
+            src_code = lang_map.get(language.value)
+            translated_text, _tr_ms = SpitchService.translate(
+                transcript, source=src_code, target="en"
+            )
+            if translated_text:
+                transcript = translated_text
+        except Exception as e:
+            raise HTTPException(
+                status_code=502, detail=f"Spitch translation error: {e}"
+            )
+
+    # ASR and translation costing
+    asr_cost = 0.0
+    translation_cost = 0.0
+    try:
+        if asr_provider == "spitch":
+            asr_cost = ((asr_ms or 0) / 1000.0) * getattr(
+                settings, "SPITCH_PRICE_TRANSCRIPTION_PER_SEC", 0.0
+            )
+            word_count = len((transcript or "").split())
+            translation_cost = (word_count / 10000.0) * getattr(
+                settings, "SPITCH_PRICE_TRANSLATION_PER_10K_WORDS", 0.0
+            )
+        elif (
+            asr_provider == "whisper"
+            and getattr(settings, "WHISPER_MODE", "api") == "api"
+        ):
+            hours = (asr_ms or 0) / 1000.0 / 3600.0
+            asr_cost = hours * getattr(settings, "WHISPER_API_PRICE_PER_HOUR", 0.0)
+    except Exception:
+        asr_cost = asr_cost or 0.0
+        translation_cost = translation_cost or 0.0
+
+    # Use multi-row extraction header
+    header = build_multi_row_extraction_header(schema)
+    combined_text = f"{header}\n\n---\nSOURCE TEXT:\n{transcript}"
+
+    try:
+        data, confidence, llm_ms, tokens_in, tokens_out, cost, model = router.extract(
+            provider_name=provider_name,
+            form_schema=schema,
+            text_blob=combined_text,
+            images=None,
+            ocr_blocks=None,
+            locale=None,
+            model_override=model_override,
+        )
+    except TypeError as e:
+        if "model_override" in str(e):
+            data, confidence, llm_ms, tokens_in, tokens_out, cost, model = (
+                router.extract(
+                    provider_name=provider_name,
+                    form_schema=schema,
+                    text_blob=combined_text,
+                    images=None,
+                    ocr_blocks=None,
+                    locale=None,
+                )
+            )
+        else:
+            raise HTTPException(status_code=502, detail=f"Extraction error: {e}")
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Extraction error: {e}")
+
+    # Parse multi-row response
+    rows_data: List[Dict[str, Any]] = []
+    if isinstance(data, dict):
+        if "rows" in data and isinstance(data["rows"], list):
+            rows_data = data["rows"]
+        elif "extracted" in data and isinstance(data["extracted"], list):
+            rows_data = data["extracted"]
+        elif "extracted" in data and isinstance(data["extracted"], dict):
+            rows_data = [data["extracted"]]
+        elif not any(k in data for k in ["rows", "extracted", "total_rows"]):
+            rows_data = [data]
+    elif isinstance(data, list):
+        rows_data = data
+
+    validator = SchemaValidator(schema)
+    extracted_rows: List[ExtractedRow] = []
+    all_field_ids: set = set()
+
+    for idx, row_data in enumerate(rows_data):
+        if not isinstance(row_data, dict):
+            continue
+
+        merged_row: Dict[str, Any] = {}
+        for fdef in schema.get("fields", []):
+            fid = fdef.get("id")
+            if fid in row_data and row_data[fid] not in (None, "", [], {}):
+                merged_row[fid] = row_data[fid]
+                all_field_ids.add(fid)
+            else:
+                merged_row[fid] = row_data.get(fid)
+
+        missing = validator.validate_and_report(merged_row)
+        extracted_rows.append(
+            ExtractedRow(
+                row_index=idx,
+                extracted=merged_row,
+                missing_required=missing,
+            )
+        )
+
+    field_confidence: Dict[str, float] = {fid: 0.8 for fid in all_field_ids}
+
+    total_ms = (asr_ms or 0) + (llm_ms or 0)
+    total_cost = (cost or 0.0) + asr_cost + translation_cost
+
+    metrics = ExtractionMetrics(
+        asr_seconds=round((asr_ms or 0) / 1000, 2),
+        vision_seconds=0.0,
+        llm_seconds=round((llm_ms or 0) / 1000, 2),
+        total_seconds=round(total_ms / 1000, 2),
+        tokens_in=tokens_in,
+        tokens_out=tokens_out,
+        cost_usd=round(total_cost, 6),
+        provider=provider_name,
+        model=model,
+    )
+
+    return MultiRowExtractionResponse(
+        form_id=form_id,
+        form_version=None,
+        total_rows=len(extracted_rows),
+        rows=extracted_rows,
+        confidence=field_confidence if field_confidence else None,
+        metrics=metrics,
+        meta={
+            "asr_provider": asr_provider,
+            "language": lang_used,
+            "transcript_length": len(transcript or ""),
+            "cost_breakdown": {
+                "asr_cost_usd": round(asr_cost, 6),
+                "translation_cost_usd": round(translation_cost, 6),
+                "llm_cost_usd": round(cost or 0.0, 6),
+            },
+        },
+    )
+
+
+@app.post(
+    "/process/image",
+    response_model=ExtractionResponse,
+    response_model_exclude_none=True,
+    tags=["AI"],
+)
 async def process_image(
     form_id: str = Form(...),
     form_schema: str = Form(...),
@@ -442,7 +855,9 @@ async def process_image(
     all_blocks: List[dict] = []
     vision_ms_total = 0
     for p in tmp_paths:
-        ocr_text, blocks, vision_ms = vision_service.ocr(p, provider_client=default_openai_provider)
+        ocr_text, blocks, vision_ms = vision_service.ocr(
+            p, provider_client=default_openai_provider
+        )
         ocr_texts.append(ocr_text)
         all_blocks.extend(blocks)
         vision_ms_total += vision_ms
@@ -470,13 +885,15 @@ async def process_image(
         )
     except TypeError as e:
         if "model_override" in str(e):
-            data, confidence, llm_ms, tokens_in, tokens_out, cost, model = router.extract(
-                provider_name=provider_name,
-                form_schema=schema,
-                text_blob=combined_text,
-                images=None,
-                ocr_blocks=all_blocks,
-                locale=None,
+            data, confidence, llm_ms, tokens_in, tokens_out, cost, model = (
+                router.extract(
+                    provider_name=provider_name,
+                    form_schema=schema,
+                    text_blob=combined_text,
+                    images=None,
+                    ocr_blocks=all_blocks,
+                    locale=None,
+                )
             )
         else:
             raise HTTPException(status_code=502, detail=f"Extraction error: {e}")
@@ -542,22 +959,200 @@ async def process_image(
 
     ocr_results = []
     for p in temp_paths:
-        ocr_text, blocks, vision_ms = vision_service.ocr(p, provider_client=default_openai_provider)
-        ocr_results.append({
-            "path": p,
-            "ocr_text": ocr_text,
-            "blocks_count": len(blocks),
-            "vision_ms": vision_ms
-        })
+        ocr_text, blocks, vision_ms = vision_service.ocr(
+            p, provider_client=default_openai_provider
+        )
+        ocr_results.append(
+            {
+                "path": p,
+                "ocr_text": ocr_text,
+                "blocks_count": len(blocks),
+                "vision_ms": vision_ms,
+            }
+        )
 
     return {"ocr_results": ocr_results}
 
 
+@app.post(
+    "/process/image/batch",
+    response_model=MultiRowExtractionResponse,
+    response_model_exclude_none=True,
+    tags=["AI"],
+)
+async def process_image_batch(
+    form_id: str = Form(...),
+    form_schema: str = Form(...),
+    use_vision: bool = Form(True),
+    model_preference: Optional[ModelPreference] = Form(None),
+    images: List[UploadFile] = File(...),
+):
+    """OCR + Multi-Row Extraction for documents with multiple entries/rows.
+
+    Use this endpoint when the image contains a TABLE, LOG, or REGISTER with
+    multiple entries/records that should be extracted as an array.
+
+    Flow:
+      1. OCR each uploaded image (vision provider).
+      2. Build a multi-row instruction header + OCR text and call LLM.
+      3. Parse the LLM response to extract an array of rows.
+      4. Validate each row against the schema.
+
+    Returns:
+      - total_rows: Number of rows/entries extracted
+      - rows: Array of extracted entries, each with its own fields and missing_required
+      - metrics: Timing/cost/model metadata
+    """
+    # Normalize/validate schema
+    try:
+        schema = ensure_demo_schema(form_schema)
+    except BadFormSchema as e:
+        raise HTTPException(status_code=422, detail=str(e))
+
+    # Persist temp files for OCR
+    tmp_paths: List[str] = []
+    for img in images:
+        suffix = f"_{img.filename}"
+        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+            content = await img.read()
+            tmp.write(content)
+            tmp_paths.append(tmp.name)
+
+    ocr_texts: List[str] = []
+    all_blocks: List[dict] = []
+    vision_ms_total = 0
+    for p in tmp_paths:
+        ocr_text, blocks, vision_ms = vision_service.ocr(
+            p, provider_client=default_openai_provider
+        )
+        ocr_texts.append(ocr_text)
+        all_blocks.extend(blocks)
+        vision_ms_total += vision_ms
+
+    raw_ocr_text = "\n".join(ocr_texts)
+
+    # Use the multi-row extraction header
+    header = build_multi_row_extraction_header(schema)
+    combined_text = f"{header}\n\n---\nSOURCE TEXT:\n{raw_ocr_text}"
+
+    _pick = router.pick(model_preference, need_vision=use_vision)
+    if isinstance(_pick, tuple):
+        provider_name, model_override = _pick
+    else:
+        provider_name = _pick
+        model_override = None
+
+    try:
+        data, confidence, llm_ms, tokens_in, tokens_out, cost, model = router.extract(
+            provider_name=provider_name,
+            form_schema=schema,
+            text_blob=combined_text,
+            images=None,
+            ocr_blocks=all_blocks,
+            locale=None,
+            model_override=model_override,
+        )
+    except TypeError as e:
+        if "model_override" in str(e):
+            data, confidence, llm_ms, tokens_in, tokens_out, cost, model = (
+                router.extract(
+                    provider_name=provider_name,
+                    form_schema=schema,
+                    text_blob=combined_text,
+                    images=None,
+                    ocr_blocks=all_blocks,
+                    locale=None,
+                )
+            )
+        else:
+            raise HTTPException(status_code=502, detail=f"Extraction error: {e}")
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Extraction error: {e}")
+
+    # Parse the LLM response for multi-row format
+    rows_data: List[Dict[str, Any]] = []
+
+    if isinstance(data, dict):
+        # Check for "rows" key (expected format)
+        if "rows" in data and isinstance(data["rows"], list):
+            rows_data = data["rows"]
+        # Check for "extracted" that might be a list
+        elif "extracted" in data and isinstance(data["extracted"], list):
+            rows_data = data["extracted"]
+        # If it's a single extraction (no rows detected), wrap it as a single-row response
+        elif "extracted" in data and isinstance(data["extracted"], dict):
+            rows_data = [data["extracted"]]
+        # If data itself looks like a single row dict (not wrapped)
+        elif not any(k in data for k in ["rows", "extracted", "total_rows"]):
+            rows_data = [data]
+    elif isinstance(data, list):
+        rows_data = data
+
+    # Validate each row and build ExtractedRow objects
+    validator = SchemaValidator(schema)
+    extracted_rows: List[ExtractedRow] = []
+
+    # Collect all field IDs for top-level confidence
+    all_field_ids: set = set()
+
+    for idx, row_data in enumerate(rows_data):
+        if not isinstance(row_data, dict):
+            continue
+
+        # Merge with heuristics for each row (optional enhancement)
+        merged_row: Dict[str, Any] = {}
+        for fdef in schema.get("fields", []):
+            fid = fdef.get("id")
+            if fid in row_data and row_data[fid] not in (None, "", [], {}):
+                merged_row[fid] = row_data[fid]
+                all_field_ids.add(fid)
+            else:
+                merged_row[fid] = row_data.get(fid)
+
+        missing = validator.validate_and_report(merged_row)
+
+        extracted_rows.append(
+            ExtractedRow(
+                row_index=idx,
+                extracted=merged_row,
+                missing_required=missing,
+            )
+        )
+
+    # Build top-level confidence (same for all fields)
+    field_confidence: Dict[str, float] = {fid: 0.8 for fid in all_field_ids}
+
+    total_ms = (vision_ms_total or 0) + (llm_ms or 0)
+    metrics = ExtractionMetrics(
+        asr_seconds=0.0,
+        vision_seconds=round((vision_ms_total or 0) / 1000, 2),
+        llm_seconds=round((llm_ms or 0) / 1000, 2),
+        total_seconds=round(total_ms / 1000, 2),
+        tokens_in=tokens_in,
+        tokens_out=tokens_out,
+        cost_usd=round(cost, 6),
+        provider=provider_name,
+        model=model,
+    )
+
+    return MultiRowExtractionResponse(
+        form_id=form_id,
+        form_version=None,
+        total_rows=len(extracted_rows),
+        rows=extracted_rows,
+        confidence=field_confidence if field_confidence else None,
+        metrics=metrics,
+        meta={"raw_ocr_length": len(raw_ocr_text), "images_processed": len(tmp_paths)},
+    )
+
+
 # --- Heuristic helpers for the medical schema ---
+
 
 def _norm_line(s: str) -> str:
     s = unicodedata.normalize("NFKC", s or "")
     return s.strip("•·-—–*☒☐✓✔✗[]() \t\r\n")
+
 
 def _parse_bool(v: Optional[str]) -> Optional[bool]:
     if not v:
@@ -568,6 +1163,7 @@ def _parse_bool(v: Optional[str]) -> Optional[bool]:
     if x in {"no", "n", "false", "f", "0"}:
         return False
     return None
+
 
 def _parse_date_any(s: str) -> Optional[str]:
     s = s or ""
@@ -603,11 +1199,25 @@ def _parse_date_any(s: str) -> Optional[str]:
                 continue
     return None
 
+
 _SYMPTOM_VOCAB = {
-    "fever", "headache", "chills", "cough", "nausea", "vomiting", "diarrhea",
-    "fatigue", "body pain", "muscle pain", "sore throat", "loss of appetite",
-    "sweats", "weakness", "dizziness"
+    "fever",
+    "headache",
+    "chills",
+    "cough",
+    "nausea",
+    "vomiting",
+    "diarrhea",
+    "fatigue",
+    "body pain",
+    "muscle pain",
+    "sore throat",
+    "loss of appetite",
+    "sweats",
+    "weakness",
+    "dizziness",
 }
+
 
 def _split_symptoms(s: str) -> List[str]:
     s = (s or "").lower()
@@ -624,6 +1234,7 @@ def _split_symptoms(s: str) -> List[str]:
                 if vocab in p and vocab not in out:
                     out.append(vocab)
     return out
+
 
 def heuristic_extract_from_text(text: str, form_schema: dict) -> dict:
     # Initialize defaults based on schema
@@ -666,7 +1277,12 @@ def heuristic_extract_from_text(text: str, form_schema: dict) -> dict:
                     fields["patientGender"] = "Female"
                 elif "male" in v or v.strip() in {"m"}:
                     fields["patientGender"] = "Male"
-        elif "symptoms date" in key or "date of symptoms" in key or key == "date" or "onset date" in key:
+        elif (
+            "symptoms date" in key
+            or "date of symptoms" in key
+            or key == "date"
+            or "onset date" in key
+        ):
             if "symptomsDate" in fields:
                 d = _parse_date_any(value or line)
                 if d:
@@ -687,10 +1303,20 @@ def heuristic_extract_from_text(text: str, form_schema: dict) -> dict:
                     fields["testResult"] = "Inconclusive"
                 else:
                     fields["testResult"] = value
-        elif "treatment provided" in key or key == "treatment" or "therapy" in key or "medication" in key:
+        elif (
+            "treatment provided" in key
+            or key == "treatment"
+            or "therapy" in key
+            or "medication" in key
+        ):
             if "treatmentProvided" in fields:
                 fields["treatmentProvided"] = value or fields["treatmentProvided"]
-        elif "health worker id" in key or "hw id" in key or "staff id" in key or "worker id" in key:
+        elif (
+            "health worker id" in key
+            or "hw id" in key
+            or "staff id" in key
+            or "worker id" in key
+        ):
             if "healthWorkerId" in fields:
                 v = re.sub(r"[^A-Za-z0-9\-_]", "", value or "")
                 fields["healthWorkerId"] = v
@@ -702,13 +1328,22 @@ def heuristic_extract_from_text(text: str, form_schema: dict) -> dict:
                 b = _parse_bool(value or line)
                 if b is not None:
                     fields["followUpRequired"] = b
-        elif "notes" in key or "remarks" in key or "comments" in key or "observation" in key:
+        elif (
+            "notes" in key
+            or "remarks" in key
+            or "comments" in key
+            or "observation" in key
+        ):
             if "notes" in fields:
                 fields["notes"] = value or fields["notes"]
 
     # Pass 2: fallbacks from free text
     if "patientName" in fields and not fields["patientName"]:
-        m = re.search(r"\b(Patient\s+Name|Name)\s*:\s*([A-Za-z][A-Za-z.'-]+\s+[A-Za-z][A-Za-z.'-]+)", text, re.IGNORECASE)
+        m = re.search(
+            r"\b(Patient\s+Name|Name)\s*:\s*([A-Za-z][A-Za-z.'-]+\s+[A-Za-z][A-Za-z.'-]+)",
+            text,
+            re.IGNORECASE,
+        )
         if m:
             fields["patientName"] = m.group(2).strip()
 
@@ -738,7 +1373,9 @@ def heuristic_extract_from_text(text: str, form_schema: dict) -> dict:
 
     return fields
 
+
 # ---------------- Generic (schema-agnostic) heuristic extraction utilities -----------------
+
 
 def _generate_field_aliases(field_id: str) -> List[str]:
     """Generate alias candidates for fuzzy key matching of arbitrary schema field IDs."""
@@ -767,7 +1404,10 @@ def _generate_field_aliases(field_id: str) -> List[str]:
         aliases.add("id")
     return list(aliases)
 
-def _best_field_match(key_norm: str, field_alias_map: Dict[str, List[str]]) -> Optional[str]:
+
+def _best_field_match(
+    key_norm: str, field_alias_map: Dict[str, List[str]]
+) -> Optional[str]:
     best_id = None
     best_score = 0
     for fid, aliases in field_alias_map.items():
@@ -790,6 +1430,7 @@ def _best_field_match(key_norm: str, field_alias_map: Dict[str, List[str]]) -> O
                 best_id = fid
     return best_id if best_score >= 40 else None
 
+
 def generic_heuristic_extract(text: str, form_schema: dict) -> Dict[str, Any]:
     """Schema-agnostic extraction using fuzzy key:value line parsing."""
     fields_def = form_schema.get("fields", [])
@@ -806,7 +1447,11 @@ def generic_heuristic_extract(text: str, form_schema: dict) -> Dict[str, Any]:
         else:
             out[fid] = ""
 
-    alias_map: Dict[str, List[str]] = {f.get("id"): _generate_field_aliases(f.get("id")) for f in fields_def if f.get("id")}
+    alias_map: Dict[str, List[str]] = {
+        f.get("id"): _generate_field_aliases(f.get("id"))
+        for f in fields_def
+        if f.get("id")
+    }
     options_map: Dict[str, List[str]] = {}
     for f in fields_def:
         fid = f.get("id")
@@ -833,7 +1478,11 @@ def generic_heuristic_extract(text: str, form_schema: dict) -> Dict[str, Any]:
             mnum = re.search(r"\b\d+(?:\.\d+)?\b", val_raw)
             if mnum:
                 try:
-                    out[fid] = float(mnum.group(0)) if "." in mnum.group(0) else int(mnum.group(0))
+                    out[fid] = (
+                        float(mnum.group(0))
+                        if "." in mnum.group(0)
+                        else int(mnum.group(0))
+                    )
                 except Exception:
                     pass
         elif ftype == "boolean":
@@ -871,17 +1520,20 @@ def generic_heuristic_extract(text: str, form_schema: dict) -> Dict[str, Any]:
                 chosen = None
                 for o in opts:
                     if o.lower() == vl:
-                        chosen = o; break
+                        chosen = o
+                        break
                 if not chosen:
                     for o in opts:
                         if o.lower() in vl or vl in o.lower():
-                            chosen = o; break
+                            chosen = o
+                            break
                 out[fid] = chosen if chosen else val_raw
             else:
                 out[fid] = val_raw
         else:
             out[fid] = val_raw
     return out
+
 
 # keep only one clean version of this helper
 def resolve_form_schema_from_locals(ns: dict) -> dict:
@@ -894,5 +1546,9 @@ def resolve_form_schema_from_locals(ns: dict) -> dict:
         try:
             return json.loads(cand)
         except Exception as e:
-            raise HTTPException(status_code=400, detail=f"Invalid form_schema JSON: {e}")
-    raise HTTPException(status_code=400, detail="form_schema is required (JSON object or string).")
+            raise HTTPException(
+                status_code=400, detail=f"Invalid form_schema JSON: {e}"
+            )
+    raise HTTPException(
+        status_code=400, detail="form_schema is required (JSON object or string)."
+    )
