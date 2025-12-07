@@ -404,7 +404,14 @@ export default function AIFieldMappingStep({
                             .map((o) => o.trim())
                             .filter((o) => o)
                         : [];
-                      updateField(field.id, { options });
+                      updateField(field.id, {
+                        options,
+                        aiPrompt: getDefaultPrompt(
+                          field.fieldName,
+                          inputType,
+                          options
+                        ),
+                      });
                     }}
                     className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-green-500 focus:outline-none"
                     placeholder="e.g., Option 1, Option 2, Option 3"
