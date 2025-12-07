@@ -194,18 +194,32 @@ export default function AIFieldMappingStep({
     }
   };
 
-  const getDefaultPrompt = (fieldName: string, inputType: string): string => {
+  const getDefaultPrompt = (
+    fieldName: string,
+    inputType: string,
+    options?: string[]
+  ): string => {
     const fieldLower = fieldName.toLowerCase();
+    let basePrompt = '';
     switch (inputType) {
       case 'text':
-        return `Extract ${fieldLower} from the provided text input`;
+        basePrompt = `Extract ${fieldLower} from the provided text input`;
+        break;
       case 'audio':
-        return `Extract ${fieldLower} from the audio recording transcription`;
+        basePrompt = `Extract ${fieldLower} from the audio recording transcription`;
+        break;
       case 'image':
-        return `Extract ${fieldLower} from the uploaded image using OCR`;
+        basePrompt = `Extract ${fieldLower} from the uploaded image using OCR`;
+        break;
       default:
-        return `Extract ${fieldLower} from the input`;
+        basePrompt = `Extract ${fieldLower} from the input`;
     }
+
+    if (options && options.length > 0) {
+      basePrompt += `. Only extract values that match these options: ${options.join(', ')}`;
+    }
+
+    return basePrompt;
   };
 
   const updateField = (id: string, updates: Partial<AIField>) => {
@@ -407,9 +421,29 @@ export default function AIFieldMappingStep({
                   onChange={(e) =>
                     updateField(field.id, { aiPrompt: e.target.value })
                   }
+                  onBlur={(e) => {
+                    if (
+                      !e.target.value &&
+                      (field.fieldType === 'select' ||
+                        field.fieldType === 'multiselect') &&
+                      field.options
+                    ) {
+                      updateField(field.id, {
+                        aiPrompt: getDefaultPrompt(
+                          field.fieldName,
+                          inputType,
+                          field.options
+                        ),
+                      });
+                    }
+                  }}
                   className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-green-500 focus:outline-none"
                   rows={3}
-                  placeholder={`e.g., Extract ${field.label.toLowerCase()} from the ${inputType} input`}
+                  placeholder={getDefaultPrompt(
+                    field.fieldName,
+                    inputType,
+                    field.options
+                  )}
                 />
               </div>
 

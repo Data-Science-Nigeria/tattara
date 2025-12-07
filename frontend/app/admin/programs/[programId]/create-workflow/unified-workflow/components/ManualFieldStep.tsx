@@ -55,16 +55,30 @@ export default function ManualFieldStep({
 
   const getAiPromptPlaceholder = () => {
     const labelLower = newField.label.toLowerCase() || 'field';
+    let basePrompt = '';
     switch (inputType) {
       case 'text':
-        return `Extract ${labelLower} from the provided text input`;
+        basePrompt = `Extract ${labelLower} from the provided text input`;
+        break;
       case 'audio':
-        return `Extract ${labelLower} from the audio recording transcription`;
+        basePrompt = `Extract ${labelLower} from the audio recording transcription`;
+        break;
       case 'image':
-        return `Extract ${labelLower} from the uploaded image`;
+        basePrompt = `Extract ${labelLower} from the uploaded image`;
+        break;
       default:
-        return `Extract ${labelLower} from the input`;
+        basePrompt = `Extract ${labelLower} from the input`;
     }
+
+    if (
+      (newField.type === 'select' || newField.type === 'multiselect') &&
+      newField.options &&
+      newField.options.length > 0
+    ) {
+      basePrompt += `. Only extract values that match these options: ${newField.options.join(', ')}`;
+    }
+
+    return basePrompt;
   };
 
   const addField = () => {

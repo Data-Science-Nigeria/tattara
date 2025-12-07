@@ -171,14 +171,16 @@ export default function FormRenderer({
 
         if (Array.isArray(value)) {
           const optionsLower = field.options.map((o) => o.toLowerCase());
-          normalized[field.fieldName] = value.map((v) => {
-            const idx = optionsLower.indexOf(String(v).toLowerCase());
-            return idx >= 0 ? field.options![idx] : v;
-          });
+          normalized[field.fieldName] = value
+            .map((v) => {
+              const idx = optionsLower.indexOf(String(v).toLowerCase());
+              return idx >= 0 ? field.options![idx] : null;
+            })
+            .filter((v) => v !== null);
         } else if (value) {
           const optionsLower = field.options.map((o) => o.toLowerCase());
           const idx = optionsLower.indexOf(String(value).toLowerCase());
-          if (idx >= 0) normalized[field.fieldName] = field.options[idx];
+          normalized[field.fieldName] = idx >= 0 ? field.options[idx] : '';
         }
       }
     });
