@@ -38,7 +38,7 @@ const page = () => {
   return (
     <div className="flex min-h-screen flex-col bg-white">
       <Header />
-      <section className="mx-6 rounded-3xl bg-gradient-to-b from-[#F5F5FF] to-[#BAC7DF] py-16 shadow-sm">
+      <section className="mx-6 rounded-3xl border border-[#D2DDF5] bg-gradient-to-b from-[#F5F5FF] to-[#BAC7DF] py-16 shadow-sm">
         <div className="mx-auto max-w-7xl px-4 text-center sm:px-6 lg:px-8">
           <h1 className="mb-4 text-3xl font-bold text-[#494A58] md:text-5xl">
             Tattara Data Collection and Entry App
@@ -66,10 +66,13 @@ const page = () => {
             How Tattara works:
           </h2>
         </div>
-        <div className="mx-auto max-w-7xl px-4">
-          <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+        <div className="mx-auto max-w-6xl px-4">
+          <div className="mt-10 grid grid-cols-1 gap-16 lg:grid-cols-3">
             {features.map((feature, index) => (
-              <Card key={index} className="border-0 bg-[#F8FAFC] shadow-sm">
+              <Card
+                key={index}
+                className={`border border-[#D2DDF5] bg-[#F8FAFC] shadow-sm ${index % 2 === 0 ? 'animate-[tilt-left_4s_ease-in-out_infinite]' : 'animate-[tilt-right_4s_ease-in-out_infinite]'}`}
+              >
                 <CardHeader>
                   <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-lg bg-green-100">
                     <feature.icon className="h-8 w-8 text-[#008647]" />

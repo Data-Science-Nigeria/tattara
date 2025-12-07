@@ -1,21 +1,28 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Plus, Edit, Link2 } from 'lucide-react';
+import {
+  Plus,
+  Edit,
+  Link2,
+  ArrowLeft,
+  MoreHorizontal,
+  TestTube,
+  Archive,
+} from 'lucide-react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { getIconForWorkflow } from '@/app/admin/components/getIconForWorkflow';
 import { useQuery } from '@tanstack/react-query';
+import { programControllerFindWorkflowsByProgramOptions } from '@/client/@tanstack/react-query.gen';
+import SearchInput from '@/app/admin/components/search-input';
 import {
-  workflowControllerGetWorkflowsOptions,
-  programControllerFindWorkflowsByProgramOptions,
-} from '@/client/@tanstack/react-query.gen';
-import SearchWorkflows from './components/search-workflows';
-import {
-  Tooltip,
-  TooltipTrigger,
-  TooltipContent,
-} from '@/components/ui/tooltip';
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import ArchiveWorkflowModal from './components/archive-workflow-modal';
 
 interface Workflow {
   id: string;
@@ -27,66 +34,69 @@ interface Workflow {
     id: string;
     target: string | Record<string, unknown>;
   }>;
-}
-
-interface WorkflowsResponse {
-  data?: {
-    workflows?: Workflow[];
-    total?: number;
-    pages?: number;
-    page?: number;
-  };
+  workflowConfigurations?: Array<{
+    id: string;
+    type: string;
+  }>;
 }
 
 export default function CreateWorkflow() {
   const params = useParams();
   const router = useRouter();
   const programId = params.programId as string;
-  const [searchResults, setSearchResults] = useState<Workflow[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 12;
+  const [viewMode, setViewMode] = useState<'active' | 'archived'>('active');
+  const [showArchiveModal, setShowArchiveModal] = useState(false);
+  const [archiveWorkflowData, setArchiveWorkflowData] = useState<{
+    workflowId: string;
+    workflowName: string;
+  } | null>(null);
+  const itemsPerPage = 10;
 
-  // Use program-specific query if programId is present
-  const { data: programWorkflowsData, isLoading: programLoading } = useQuery({
+  // Get workflows for this specific program
+  const { data: workflowsData, isLoading } = useQuery({
     ...programControllerFindWorkflowsByProgramOptions({
-      path: { id: programId || '' },
+      path: { id: programId },
     }),
     enabled: !!programId,
   });
 
-  const { data: allWorkflowsData, isLoading: allLoading } = useQuery({
-    ...workflowControllerGetWorkflowsOptions({
-      query: { page: currentPage, limit: itemsPerPage },
-    }),
-    enabled: !programId,
+  // Extract workflows from the response structure
+  const responseData = workflowsData as {
+    data?: Workflow[];
+    total?: number;
+    pages?: number;
+    page?: number;
+  };
+  const allWorkflows = Array.isArray(responseData?.data)
+    ? responseData.data
+    : [];
+
+  // Filter workflows based on search term and view mode
+  const filteredWorkflows = allWorkflows.filter((workflow: Workflow) => {
+    const matchesSearch =
+      workflow.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      workflow.description?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesViewMode =
+      viewMode === 'active'
+        ? workflow.status === 'active'
+        : workflow.status === 'archived';
+    return matchesSearch && matchesViewMode;
   });
 
-  const workflowsData = programId ? programWorkflowsData : allWorkflowsData;
-  const isLoading = programId ? programLoading : allLoading;
+  // Client-side pagination
+  const totalWorkflows = filteredWorkflows.length;
+  const totalPages = Math.ceil(totalWorkflows / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const workflows = filteredWorkflows.slice(startIndex, endIndex);
 
-  // Extract workflows from the nested structure
-  const responseData = (workflowsData as WorkflowsResponse)?.data;
-  const allWorkflows = Array.isArray(responseData?.workflows)
-    ? responseData.workflows
-    : [];
   const pagination = {
-    total: responseData?.total || 0,
-    pages: responseData?.pages || 1,
-    currentPage: responseData?.page || 1,
+    total: totalWorkflows,
+    pages: totalPages,
+    currentPage: currentPage,
   };
-
-  const workflows = isSearching ? searchResults : allWorkflows;
-
-  const handleSearchResults = React.useCallback((results: Workflow[]) => {
-    setSearchResults(results);
-    setIsSearching(true);
-  }, []);
-
-  const handleClearSearch = React.useCallback(() => {
-    setSearchResults([]);
-    setIsSearching(false);
-  }, []);
 
   return (
     <div className="relative min-h-screen p-3 sm:p-6">
@@ -94,12 +104,19 @@ export default function CreateWorkflow() {
         <div className="mb-4 flex flex-col gap-3 sm:mb-6 sm:gap-4 lg:mb-8">
           <div className="flex items-center justify-between">
             <div>
+              <Link
+                href={`/admin/dashboard`}
+                className="mb-3 flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 sm:mb-4 sm:text-base"
+              >
+                <ArrowLeft size={16} className="sm:h-5 sm:w-5" />
+                Back to Dashboard
+              </Link>
               <h1 className="text-lg font-semibold text-gray-800 sm:text-xl md:text-2xl lg:text-4xl">
                 Workflows
               </h1>
             </div>
             <Link
-              href={`/admin/programs/${programId}/create-workflow/workflow-details`}
+              href={`/admin/programs/${programId}/create-workflow/unified-workflow`}
             >
               <button className="flex items-center gap-2 rounded-lg bg-green-600 px-2.5 py-2.5 font-medium text-white transition-colors duration-200 hover:bg-green-700 lg:px-4 lg:py-3">
                 <Plus className="h-4 w-4 lg:h-5 lg:w-5" />
@@ -108,23 +125,56 @@ export default function CreateWorkflow() {
             </Link>
           </div>
 
-          <div className="max-w-full sm:max-w-md">
-            <SearchWorkflows
-              onResults={handleSearchResults}
-              onClear={handleClearSearch}
-            />
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="max-w-full sm:max-w-md">
+              <SearchInput
+                placeholder="Search workflows..."
+                value={searchTerm}
+                onChange={setSearchTerm}
+              />
+            </div>
+
+            {/* Toggle Buttons */}
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  setViewMode('active');
+                  setCurrentPage(1);
+                }}
+                className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+                  viewMode === 'active'
+                    ? 'bg-green-600 text-white'
+                    : 'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                Active
+              </button>
+              <button
+                onClick={() => {
+                  setViewMode('archived');
+                  setCurrentPage(1);
+                }}
+                className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+                  viewMode === 'archived'
+                    ? 'bg-green-600 text-white'
+                    : 'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                Archived
+              </button>
+            </div>
           </div>
 
-          {isSearching && (
+          {searchTerm && (
             <p className="text-xs text-gray-600 sm:text-sm">
-              Found {searchResults.length} workflow
-              {searchResults.length !== 1 ? 's' : ''}
+              Found {filteredWorkflows.length} workflow
+              {filteredWorkflows.length !== 1 ? 's' : ''}
             </p>
           )}
         </div>
 
         {/* Workflows Table */}
-        <div className="overflow-hidden rounded-lg bg-white shadow">
+        <div className="custom-scrollbar overflow-hidden rounded-lg bg-white shadow">
           <div className="overflow-x-auto">
             <table className="w-full min-w-[800px]">
               <thead className="bg-gray-50">
@@ -168,7 +218,7 @@ export default function CreateWorkflow() {
                     </td>
                   </tr>
                 ) : (
-                  workflows.map((workflow) => {
+                  workflows.map((workflow: Workflow) => {
                     const IconComponent = getIconForWorkflow(
                       workflow.enabledModes
                     );
@@ -202,60 +252,117 @@ export default function CreateWorkflow() {
                             >
                               {workflow.status}
                             </span>
-                            <span
-                              className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${
-                                workflow.fieldMappings &&
-                                workflow.fieldMappings.length > 0
-                                  ? 'bg-blue-100 text-blue-800'
-                                  : 'bg-red-100 text-red-800'
-                              }`}
-                            >
-                              {workflow.fieldMappings &&
-                              workflow.fieldMappings.length > 0
-                                ? 'mapped'
-                                : 'not mapped'}
-                            </span>
+                            {workflow.workflowConfigurations &&
+                              workflow.workflowConfigurations.length > 0 && (
+                                <span
+                                  className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${
+                                    workflow.fieldMappings &&
+                                    workflow.fieldMappings.length > 0
+                                      ? 'bg-blue-100 text-blue-800'
+                                      : 'bg-red-100 text-red-800'
+                                  }`}
+                                >
+                                  {workflow.fieldMappings &&
+                                  workflow.fieldMappings.length > 0
+                                    ? 'mapped'
+                                    : 'not mapped'}
+                                </span>
+                              )}
                           </div>
                         </td>
                         <td className="px-6 py-4 text-sm whitespace-nowrap text-gray-500">
                           {workflow.enabledModes?.join(', ') || 'N/A'}
                         </td>
                         <td className="sticky right-0 bg-white px-6 py-4 text-sm font-medium whitespace-nowrap">
-                          {workflow.status === 'active' && (
-                            <div className="flex gap-2">
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <button
-                                    onClick={() =>
-                                      router.push(
-                                        `/admin/programs/${programId}/create-workflow/field-mapping?workflowId=${workflow.id}`
-                                      )
-                                    }
-                                    className="text-blue-600 hover:text-blue-900"
-                                  >
-                                    <Link2 className="h-4 w-4" />
-                                  </button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  Map fields to DHIS2
-                                </TooltipContent>
-                              </Tooltip>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <button
-                                    onClick={() =>
-                                      router.push(
-                                        `/admin/programs/${programId}/create-workflow/workflow-details?workflowId=${workflow.id}`
-                                      )
-                                    }
-                                    className="text-gray-600 hover:text-gray-900"
-                                  >
-                                    <Edit className="h-4 w-4" />
-                                  </button>
-                                </TooltipTrigger>
-                                <TooltipContent>Edit workflow</TooltipContent>
-                              </Tooltip>
-                            </div>
+                          {workflow.status === 'active' ? (
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <button className="flex h-6 w-6 items-center justify-center rounded-md hover:bg-gray-100">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                {workflow.workflowConfigurations &&
+                                workflow.workflowConfigurations.length > 0 ? (
+                                  <>
+                                    <DropdownMenuItem
+                                      onClick={() =>
+                                        router.push(
+                                          `/admin/programs/${programId}/create-workflow/field-mapping?workflowId=${workflow.id}`
+                                        )
+                                      }
+                                    >
+                                      <Link2 className="mr-2 h-4 w-4" />
+                                      Map
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      onClick={() =>
+                                        router.push(
+                                          `/admin/programs/${programId}/create-workflow/unified-workflow?workflowId=${workflow.id}`
+                                        )
+                                      }
+                                    >
+                                      <Edit className="mr-2 h-4 w-4" />
+                                      Edit
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      onClick={() => {
+                                        setArchiveWorkflowData({
+                                          workflowId: workflow.id,
+                                          workflowName: workflow.name,
+                                        });
+                                        setShowArchiveModal(true);
+                                      }}
+                                    >
+                                      <Archive className="mr-2 h-4 w-4" />
+                                      Archive
+                                    </DropdownMenuItem>
+                                  </>
+                                ) : (
+                                  <>
+                                    <DropdownMenuItem
+                                      onClick={() =>
+                                        router.push(
+                                          `/admin/programs/${programId}/create-workflow/manual-test?workflowId=${workflow.id}&inputType=${workflow.enabledModes?.[0] || 'text'}`
+                                        )
+                                      }
+                                    >
+                                      <TestTube className="mr-2 h-4 w-4" />
+                                      Test
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      onClick={() =>
+                                        router.push(
+                                          `/admin/programs/${programId}/create-workflow/unified-workflow?workflowId=${workflow.id}`
+                                        )
+                                      }
+                                    >
+                                      <Edit className="mr-2 h-4 w-4" />
+                                      Edit
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      onClick={() => {
+                                        setArchiveWorkflowData({
+                                          workflowId: workflow.id,
+                                          workflowName: workflow.name,
+                                        });
+                                        setShowArchiveModal(true);
+                                      }}
+                                    >
+                                      <Archive className="mr-2 h-4 w-4" />
+                                      Archive
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          ) : (
+                            <button
+                              disabled
+                              className="flex h-6 w-6 cursor-not-allowed items-center justify-center rounded-md opacity-50"
+                            >
+                              <MoreHorizontal className="h-4 w-4" />
+                            </button>
                           )}
                         </td>
                       </tr>
@@ -268,7 +375,7 @@ export default function CreateWorkflow() {
         </div>
 
         {/* Pagination */}
-        {!isSearching && workflows.length > 0 && pagination.pages > 1 && (
+        {!searchTerm && workflows.length > 0 && pagination.pages > 1 && (
           <div className="mt-8 flex items-center justify-center gap-2">
             <button
               onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
@@ -304,6 +411,20 @@ export default function CreateWorkflow() {
               Next &gt;
             </button>
           </div>
+        )}
+
+        {/* Archive Modal */}
+        {showArchiveModal && archiveWorkflowData && (
+          <ArchiveWorkflowModal
+            isOpen={showArchiveModal}
+            workflowId={archiveWorkflowData.workflowId}
+            workflowName={archiveWorkflowData.workflowName}
+            programId={programId}
+            onClose={() => {
+              setShowArchiveModal(false);
+              setArchiveWorkflowData(null);
+            }}
+          />
         )}
       </div>
     </div>

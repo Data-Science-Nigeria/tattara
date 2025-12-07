@@ -2,21 +2,36 @@ import React, { useState, useRef } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useAuthStore } from '@/app/store/use-auth-store';
-import AiResponseDisplay from '../../field-mapping/components/AiResponseDisplay';
+import AiResponseDisplay from '../field-mapping/components/AiResponseDisplay';
 
 interface ImageAiReviewProps {
   workflowId: string;
   onReviewComplete?: (reviewData: unknown, logId: string) => void;
   onAiTestStatusChange?: (hasCompleted: boolean) => void;
+  supportedLanguages?: string[];
 }
 
 export default function ImageAiReview({
   workflowId,
   onReviewComplete,
   onAiTestStatusChange,
+  supportedLanguages = ['en'],
 }: ImageAiReviewProps) {
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
+  const [selectedLanguage, setSelectedLanguage] = useState<string>(
+    supportedLanguages[0] || 'en'
+  );
+
+  const getLanguageName = (code: string) => {
+    const names: Record<string, string> = {
+      en: 'English',
+      yo: 'Yoruba',
+      ig: 'Igbo',
+      ha: 'Hausa',
+    };
+    return names[code] || code;
+  };
   const [isProcessing, setIsProcessing] = useState(false);
   const [aiReviewData, setAiReviewData] = useState<{
     success: boolean;
@@ -70,10 +85,21 @@ export default function ImageAiReview({
     },
   });
 
-  const handleFileSelect = (file: File) => {
-    setSelectedFile(file);
-    const url = URL.createObjectURL(file);
-    setPreviewUrl(url);
+  const handleFileSelect = (files: FileList | File[]) => {
+    const fileArray = Array.from(files);
+    const MAX_SIZE = 80 * 1024 * 1024; // 80MB
+    const totalSize = fileArray.reduce((sum, file) => sum + file.size, 0);
+
+    if (totalSize > MAX_SIZE) {
+      toast.error(
+        `Total file size exceeds 80MB. Current: ${(totalSize / (1024 * 1024)).toFixed(2)}MB`
+      );
+      return;
+    }
+
+    setSelectedFiles(fileArray);
+    const urls = fileArray.map((file) => URL.createObjectURL(file));
+    setPreviewUrls(urls);
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -84,30 +110,33 @@ export default function ImageAiReview({
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    const files = e.dataTransfer.files;
-    if (files?.[0] && files[0].type.startsWith('image/')) {
-      handleFileSelect(files[0]);
+    const files = Array.from(e.dataTransfer.files).filter((f) =>
+      f.type.startsWith('image/')
+    );
+    if (files.length > 0) {
+      handleFileSelect(files);
     }
   };
 
   const handleProcess = async () => {
-    if (!selectedFile) return;
+    if (selectedFiles.length === 0) return;
 
     setIsProcessing(true);
     try {
       const formData = new FormData();
       formData.append('workflowId', workflowId);
       formData.append('processingType', 'image');
-      formData.append('files', selectedFile);
+      formData.append('language', selectedLanguage);
+      selectedFiles.forEach((file) => formData.append('files', file));
 
       const aiResponse = await aiProcessMutation.mutateAsync({ formData });
 
       setAiReviewData(aiResponse);
-      toast.success('Image processed successfully!');
+      toast.success(`${selectedFiles.length} image(s) processed successfully!`);
       onReviewComplete?.(aiResponse, aiResponse?.data?.aiProcessingLogId || '');
       onAiTestStatusChange?.(true);
     } catch {
-      toast.error('Failed to process image');
+      toast.error('Failed to process images');
     } finally {
       setIsProcessing(false);
     }
@@ -115,12 +144,38 @@ export default function ImageAiReview({
 
   return (
     <div className="space-y-4">
+      <div className="mb-4 flex items-center justify-between">
+        <h3 className="text-lg font-semibold text-gray-900">
+          Test Image Processing
+        </h3>
+        {supportedLanguages.length === 1 ? (
+          <div className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-medium text-green-600 sm:px-4 sm:text-sm">
+            {getLanguageName(supportedLanguages[0])}
+          </div>
+        ) : (
+          <select
+            value={selectedLanguage}
+            onChange={(e) => setSelectedLanguage(e.target.value)}
+            className="cursor-pointer rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-medium text-green-600 hover:bg-gray-50 focus:ring-2 focus:ring-green-500 sm:px-4 sm:text-sm"
+          >
+            {supportedLanguages.map((lang) => (
+              <option
+                key={lang}
+                value={lang}
+                className="bg-white text-gray-900"
+              >
+                {getLanguageName(lang)}
+              </option>
+            ))}
+          </select>
+        )}
+      </div>
       <div
         className="rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 p-8 text-center transition-colors hover:border-green-500 hover:bg-green-50"
         onDragOver={handleDragOver}
         onDrop={handleDrop}
       >
-        {!selectedFile ? (
+        {selectedFiles.length === 0 ? (
           <div
             className="cursor-pointer space-y-4"
             onClick={() => fileInputRef.current?.click()}
@@ -132,57 +187,61 @@ export default function ImageAiReview({
             />
             <div>
               <p className="text-gray-600">
-                Drop your file here, or click to upload.
+                Drop your files here, or click to upload.
               </p>
               <p className="mt-1 text-sm text-gray-500">
-                Accepted formats: PDF, JPG, PNG.
+                Accepted formats: PDF, JPG, PNG. Multiple files supported.
               </p>
             </div>
             <input
               ref={fileInputRef}
               type="file"
               accept="image/*"
+              multiple
               className="hidden"
               onChange={(e) =>
-                e.target.files?.[0] && handleFileSelect(e.target.files[0])
+                e.target.files && handleFileSelect(e.target.files)
               }
             />
           </div>
         ) : (
           <div className="space-y-4">
-            {previewUrl && (
-              <div className="flex justify-center">
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+              {previewUrls.map((url, idx) => (
                 <img
-                  src={previewUrl}
-                  alt="Preview"
-                  className="max-h-48 rounded-lg object-contain"
+                  key={idx}
+                  src={url}
+                  alt={`Preview ${idx + 1}`}
+                  className="h-32 w-full rounded-lg object-cover"
                 />
-              </div>
-            )}
+              ))}
+            </div>
             <div className="text-green-600">
-              ✓ Image selected: {selectedFile.name}
+              ✓ {selectedFiles.length} image(s) selected
             </div>
             <button
               onClick={() => {
-                setSelectedFile(null);
-                setPreviewUrl(null);
+                setSelectedFiles([]);
+                setPreviewUrls([]);
                 setAiReviewData(null);
               }}
               className="text-sm text-gray-600 hover:text-gray-800"
             >
-              Upload different image
+              Upload different images
             </button>
           </div>
         )}
       </div>
 
-      {selectedFile && !aiReviewData && (
+      {selectedFiles.length > 0 && !aiReviewData && (
         <button
           onClick={handleProcess}
           disabled={isProcessing}
           className="w-full rounded-lg bg-green-600 px-4 py-2 text-white hover:bg-green-700 disabled:opacity-50"
         >
-          {isProcessing ? 'Processing Image...' : 'Process with AI'}
+          {isProcessing
+            ? `Processing ${selectedFiles.length} Image(s)...`
+            : `Process ${selectedFiles.length} Image(s) with AI`}
         </button>
       )}
 
@@ -191,8 +250,8 @@ export default function ImageAiReview({
           responseData={aiReviewData}
           onReset={() => {
             setAiReviewData(null);
-            setSelectedFile(null);
-            setPreviewUrl(null);
+            setSelectedFiles([]);
+            setPreviewUrls([]);
           }}
         />
       )}

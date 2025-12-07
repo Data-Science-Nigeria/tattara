@@ -2,20 +2,35 @@ import React, { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useAuthStore } from '@/app/store/use-auth-store';
-import AiResponseDisplay from '../../field-mapping/components/AiResponseDisplay';
+import AiResponseDisplay from '../field-mapping/components/AiResponseDisplay';
 
 interface TextAiReviewProps {
   workflowId: string;
   onReviewComplete?: (reviewData: unknown, logId: string) => void;
   onAiTestStatusChange?: (hasCompleted: boolean) => void;
+  supportedLanguages?: string[];
 }
 
 export default function TextAiReview({
   workflowId,
   onReviewComplete,
   onAiTestStatusChange,
+  supportedLanguages = ['en'],
 }: TextAiReviewProps) {
   const [textInput, setTextInput] = useState('');
+  const [selectedLanguage, setSelectedLanguage] = useState<string>(
+    supportedLanguages[0] || 'en'
+  );
+
+  const getLanguageName = (code: string) => {
+    const names: Record<string, string> = {
+      en: 'English',
+      yo: 'Yoruba',
+      ig: 'Igbo',
+      ha: 'Hausa',
+    };
+    return names[code] || code;
+  };
   const [isProcessing, setIsProcessing] = useState(false);
   const [aiReviewData, setAiReviewData] = useState<{
     success: boolean;
@@ -78,6 +93,7 @@ export default function TextAiReview({
           workflowId,
           processingType: 'text',
           text: textInput,
+          language: selectedLanguage,
         },
       });
 
@@ -94,6 +110,32 @@ export default function TextAiReview({
 
   return (
     <div className="space-y-4">
+      <div className="mb-4 flex items-center justify-between">
+        <h3 className="text-lg font-semibold text-gray-900">
+          Test Text Processing
+        </h3>
+        {supportedLanguages.length === 1 ? (
+          <div className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-medium text-green-600 sm:px-4 sm:text-sm">
+            {getLanguageName(supportedLanguages[0])}
+          </div>
+        ) : (
+          <select
+            value={selectedLanguage}
+            onChange={(e) => setSelectedLanguage(e.target.value)}
+            className="cursor-pointer rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-medium text-green-600 hover:bg-gray-50 focus:ring-2 focus:ring-green-500 sm:px-4 sm:text-sm"
+          >
+            {supportedLanguages.map((lang) => (
+              <option
+                key={lang}
+                value={lang}
+                className="bg-white text-gray-900"
+              >
+                {getLanguageName(lang)}
+              </option>
+            ))}
+          </select>
+        )}
+      </div>
       <div className="space-y-4">
         <label className="text-md block font-medium text-gray-700">
           Write Text:

@@ -10,10 +10,10 @@ import {
   fieldMappingControllerUpsertFieldMappingsMutation,
   externalConnectionsControllerFindAllOptions,
 } from '@/client/@tanstack/react-query.gen';
-import FieldMappingStep from '../builder/components/field-mapping-step';
-import AudioAiReview from '../builder/components/AudioAiReview';
-import ImageAiReview from '../builder/components/ImageAiReview';
-import TextAiReview from '../builder/components/TextAiReview';
+import FieldMappingStep from '../components/field-mapping-step';
+import AudioAiReview from '../components/AudioAiReview';
+import ImageAiReview from '../components/ImageAiReview';
+import TextAiReview from '../components/TextAiReview';
 
 interface WorkflowField {
   id: string;
@@ -38,6 +38,10 @@ interface WorkflowConfiguration {
   configuration?: {
     externalConnectionId?: string;
     programId?: string;
+    program?: string;
+    dataSet?: string;
+    orgUnit?: string;
+    programStage?: string;
   };
 }
 
@@ -133,8 +137,18 @@ export default function FieldMapping() {
           setSelectedConnection(connectionId);
         }
 
-        const programId = dhis2Config.configuration?.programId || '';
-        setSelectedProgram(programId);
+        const programOrDatasetId =
+          dhis2Config.configuration?.program ||
+          dhis2Config.configuration?.dataSet ||
+          '';
+        setSelectedProgram(programOrDatasetId);
+
+        // Set type based on what's in configuration
+        if (dhis2Config.configuration?.program) {
+          setSelectedType('program');
+        } else if (dhis2Config.configuration?.dataSet) {
+          setSelectedType('dataSet');
+        }
       }
     }
 

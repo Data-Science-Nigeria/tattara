@@ -1,9 +1,18 @@
 'use client';
 
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import React, {
+  useState,
+  useRef,
+  useCallback,
+  useEffect,
+  useMemo,
+} from 'react';
 import { X, Eye, Save } from 'lucide-react';
 import { useSaveDraft } from '../hooks/useSaveDraft';
 import FormRenderer from './FormSaver';
+import { toast } from 'sonner';
+import { useQuery } from '@tanstack/react-query';
+import { workflowControllerFindWorkflowByIdOptions } from '@/client/@tanstack/react-query.gen';
 
 interface ImageRendererProps {
   workflow: {
@@ -24,14 +33,44 @@ export default function ImageRenderer({
   onDataChange,
   hideButtons = false,
 }: ImageRendererProps) {
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const [dragActive, setDragActive] = useState(false);
 
   const [showForm, setShowForm] = useState(false);
-  const [imageData, setImageData] = useState<string>('');
+  const [imageData, setImageData] = useState<string[]>([]);
+  const [selectedLanguage, setSelectedLanguage] = useState<string>('');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const { data: workflowData } = useQuery({
+    ...workflowControllerFindWorkflowByIdOptions({
+      path: { workflowId: workflow.id },
+    }),
+  });
+
+  const supportedLanguages = useMemo(
+    () =>
+      (workflowData as { data?: { supportedLanguages?: string[] } })?.data
+        ?.supportedLanguages || [],
+    [workflowData]
+  );
+
+  useEffect(() => {
+    if (supportedLanguages.length > 0 && !selectedLanguage) {
+      setSelectedLanguage(supportedLanguages[0]);
+    }
+  }, [supportedLanguages, selectedLanguage]);
+
+  const getLanguageName = (code: string) => {
+    const names: Record<string, string> = {
+      en: 'English',
+      yo: 'Yoruba',
+      ig: 'Igbo',
+      ha: 'Hausa',
+    };
+    return names[code] || code;
+  };
 
   const { saveDraft, loadDraft, clearDraft, isSaving } = useSaveDraft({
     workflowId: workflow.id,
@@ -40,30 +79,51 @@ export default function ImageRenderer({
 
   useEffect(() => {
     const draft = loadDraft();
-    if (draft?.fileName && draft?.imageData) {
-      fetch(draft.imageData)
-        .then((res) => res.blob())
-        .then((blob) => {
-          const file = new File([blob], draft.fileName, { type: 'image/jpeg' });
-          setSelectedFile(file);
-          setPreviewUrl(draft.imageData);
+    if (draft?.fileNames && draft?.imageData) {
+      Promise.all(
+        draft.imageData.map((data: string, idx: number) =>
+          fetch(data)
+            .then((res) => res.blob())
+            .then(
+              (blob) =>
+                new File([blob], draft.fileNames[idx], { type: 'image/jpeg' })
+            )
+        )
+      )
+        .then((files) => {
+          setSelectedFiles(files);
+          setPreviewUrls(draft.imageData);
           setImageData(draft.imageData);
         })
         .catch(() => {});
     }
   }, [loadDraft]);
 
-  const handleFileSelect = useCallback((file: File) => {
-    setSelectedFile(file);
-    const url = URL.createObjectURL(file);
-    setPreviewUrl(url);
+  const handleFileSelect = useCallback((files: FileList | File[]) => {
+    const fileArray = Array.from(files);
+    const MAX_SIZE = 80 * 1024 * 1024; // 80MB
+    const totalSize = fileArray.reduce((sum, file) => sum + file.size, 0);
 
-    // Convert to base64 for AI processing
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setImageData(reader.result as string);
-    };
-    reader.readAsDataURL(file);
+    if (totalSize > MAX_SIZE) {
+      toast.error(
+        `Total file size exceeds 80MB. Current: ${(totalSize / (1024 * 1024)).toFixed(2)}MB`
+      );
+      return;
+    }
+
+    setSelectedFiles(fileArray);
+    const urls = fileArray.map((file) => URL.createObjectURL(file));
+    setPreviewUrls(urls);
+
+    Promise.all(
+      fileArray.map((file) => {
+        return new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.readAsDataURL(file);
+        });
+      })
+    ).then(setImageData);
   }, []);
 
   const handleDrag = (e: React.DragEvent) => {
@@ -81,24 +141,27 @@ export default function ImageRenderer({
     e.stopPropagation();
     setDragActive(false);
 
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      handleFileSelect(e.dataTransfer.files[0]);
+    const files = Array.from(e.dataTransfer.files).filter((f) =>
+      f.type.startsWith('image/')
+    );
+    if (files.length > 0) {
+      handleFileSelect(files);
     }
   };
 
   const handleSave = async () => {
-    if (!selectedFile || !imageData) return;
+    if (selectedFiles.length === 0 || imageData.length === 0) return;
     saveDraft({
-      fileName: selectedFile.name,
+      fileNames: selectedFiles.map((f) => f.name),
       imageData: imageData,
     });
   };
 
   const handleReset = () => {
-    setSelectedFile(null);
-    setPreviewUrl(null);
+    setSelectedFiles([]);
+    setPreviewUrls([]);
     setShowForm(false);
-    setImageData('');
+    setImageData([]);
     clearDraft();
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
@@ -108,8 +171,8 @@ export default function ImageRenderer({
   };
 
   useEffect(() => {
-    if (onDataChange && imageData) {
-      onDataChange(imageData);
+    if (onDataChange && imageData.length > 0) {
+      onDataChange(JSON.stringify(imageData));
     }
   }, [imageData, onDataChange]);
 
@@ -120,6 +183,7 @@ export default function ImageRenderer({
         workflowType="image"
         inputData={imageData}
         onProcessingComplete={handleProcessingComplete}
+        language={selectedLanguage}
       />
     );
   }
@@ -127,7 +191,7 @@ export default function ImageRenderer({
   return (
     <div className="rounded-lg border border-[#D2DDF5] bg-white p-6">
       <div className="mb-4 flex justify-end gap-2">
-        {selectedFile && (
+        {selectedFiles.length > 0 && (
           <button
             type="button"
             onClick={handleSave}
@@ -145,9 +209,30 @@ export default function ImageRenderer({
         >
           Reset
         </button>
+        {supportedLanguages.length === 1 ? (
+          <div className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-medium text-green-600 sm:px-4 sm:text-sm">
+            {getLanguageName(supportedLanguages[0])}
+          </div>
+        ) : supportedLanguages.length > 1 ? (
+          <select
+            value={selectedLanguage}
+            onChange={(e) => setSelectedLanguage(e.target.value)}
+            className="cursor-pointer rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-medium text-green-600 hover:bg-gray-50 focus:ring-2 focus:ring-green-500 sm:px-4 sm:text-sm"
+          >
+            {supportedLanguages.map((lang) => (
+              <option
+                key={lang}
+                value={lang}
+                className="bg-white text-gray-900"
+              >
+                {getLanguageName(lang)}
+              </option>
+            ))}
+          </select>
+        ) : null}
       </div>
       <div className="space-y-6">
-        {!selectedFile ? (
+        {selectedFiles.length === 0 ? (
           <div
             className={`relative cursor-pointer rounded-lg border-4 border-dashed border-[#DBDCEA] p-8 text-center transition-colors ${
               dragActive ? 'border-green-500 bg-green-50' : ''
@@ -167,10 +252,10 @@ export default function ImageRenderer({
 
               <div>
                 <p className="text-gray-600">
-                  Drop your file here, or click to upload.
+                  Drop your files here, or click to upload.
                 </p>
                 <p className="mt-1 text-sm text-gray-500">
-                  Accepted formats: PDF, JPG, PNG.
+                  Accepted formats: PDF, JPG, PNG. Multiple files supported.
                 </p>
               </div>
             </div>
@@ -179,8 +264,9 @@ export default function ImageRenderer({
               ref={fileInputRef}
               type="file"
               accept="image/*"
+              multiple
               onChange={(e) =>
-                e.target.files?.[0] && handleFileSelect(e.target.files[0])
+                e.target.files && handleFileSelect(e.target.files)
               }
               className="hidden"
             />
@@ -195,34 +281,26 @@ export default function ImageRenderer({
                 <X className="h-4 w-4" />
               </button>
 
-              <div className="flex items-start gap-4">
-                {previewUrl && (
-                  <div className="flex-shrink-0">
-                    <img
-                      src={previewUrl}
-                      alt="Preview"
-                      className="h-24 w-24 rounded-lg object-cover"
-                    />
-                  </div>
-                )}
-
-                <div className="flex-1">
-                  <h3 className="font-medium text-gray-900">
-                    {selectedFile.name}
-                  </h3>
-                  <p className="text-sm text-gray-500">
-                    {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB
-                  </p>
-
-                  <button
-                    onClick={() =>
-                      previewUrl && window.open(previewUrl, '_blank')
-                    }
-                    className="mt-2 flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 sm:text-sm"
-                  >
-                    <Eye size={14} className="sm:h-4 sm:w-4" />
-                    View Full Size
-                  </button>
+              <div className="space-y-4">
+                <div className="font-medium text-green-600">
+                  ✓ {selectedFiles.length} image(s) selected
+                </div>
+                <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+                  {previewUrls.map((url, idx) => (
+                    <div key={idx} className="relative">
+                      <img
+                        src={url}
+                        alt={`Preview ${idx + 1}`}
+                        className="h-32 w-full rounded-lg object-cover"
+                      />
+                      <button
+                        onClick={() => window.open(url, '_blank')}
+                        className="absolute right-2 bottom-2 rounded bg-blue-600 p-1 text-white hover:bg-blue-700"
+                      >
+                        <Eye size={14} />
+                      </button>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
@@ -235,6 +313,7 @@ export default function ImageRenderer({
             workflowType="image"
             inputData={imageData}
             onProcessingComplete={handleProcessingComplete}
+            language={selectedLanguage}
           />
         )}
       </div>

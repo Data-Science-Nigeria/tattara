@@ -63,7 +63,7 @@ export default function WorkflowExecution() {
   }
 
   const handleNext = async () => {
-    if (currentStep === 'input') {
+    if (currentStep === 'input' || currentStep === 'form') {
       if (!inputData.trim()) return;
       setIsProcessing(true);
       // Simulate AI processing delay

@@ -87,11 +87,8 @@ export default function ManageUsers() {
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h1 className="text-xl font-semibold text-gray-800 sm:text-2xl">
-            Manage User
+            Manage Users
           </h1>
-          <p className="text-sm text-gray-600 sm:text-base">
-            View, Edit, Suspend and Delete Users
-          </p>
         </div>
         <div className="flex flex-col gap-2 lg:flex-row lg:gap-3">
           <button

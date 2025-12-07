@@ -5,7 +5,7 @@ import { AlertCircle, AlertTriangle, Loader2 } from 'lucide-react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import {
   collectorControllerSubmitDataMutation,
-  fieldControllerGetWorkflowFieldsOptions,
+  workflowControllerFindWorkflowByIdOptions,
 } from '@/client/@tanstack/react-query.gen';
 import { toast } from 'sonner';
 import { validateFieldValue } from '@/lib/field-validation';
@@ -13,8 +13,9 @@ import { useAuthStore } from '@/app/store/use-auth-store';
 
 interface AiReviewData {
   form_id: string;
-  extracted: Record<string, unknown>;
+  extracted: Record<string, unknown> | Array<Record<string, unknown>>;
   missing_required: string[];
+  isMultipleEntries?: boolean;
 }
 
 interface FormField {
@@ -44,6 +45,7 @@ interface FormRendererProps {
   inputData: unknown;
   onProcessingComplete?: () => void;
   hideButtons?: boolean;
+  language?: string;
 }
 
 export default function FormRenderer({
@@ -52,33 +54,48 @@ export default function FormRenderer({
   inputData,
   onProcessingComplete,
   hideButtons = false,
+  language,
 }: FormRendererProps) {
   const [formData, setFormData] = useState<Record<string, unknown>>({});
+  const [bulkFormData, setBulkFormData] = useState<
+    Array<Record<string, unknown>>
+  >([]);
+  const [currentEntryIndex, setCurrentEntryIndex] = useState(0);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [aiReviewData, setAiReviewData] = useState<AiReviewData | null>(null);
   const [aiProcessingLogId, setAiProcessingLogId] = useState<string>('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isBulkMode, setIsBulkMode] = useState(false);
+  const hasProcessedRef = React.useRef(false);
   const { auth } = useAuthStore();
 
   // Auto-process when component mounts with input data
   useEffect(() => {
-    if (inputData && !aiReviewData && !isProcessing) {
+    if (
+      inputData &&
+      !aiReviewData &&
+      !isProcessing &&
+      !hasProcessedRef.current
+    ) {
+      hasProcessedRef.current = true;
       handleProcess();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [inputData, aiReviewData, isProcessing]);
+  }, [inputData, aiReviewData]);
 
-  const { data: fieldsData } = useQuery({
-    ...fieldControllerGetWorkflowFieldsOptions({
+  const { data: workflowData } = useQuery({
+    ...workflowControllerFindWorkflowByIdOptions({
       path: { workflowId },
     }),
   });
 
   const sortedFields = React.useMemo(() => {
-    const fields = (fieldsData as { data?: FormField[] })?.data || [];
+    const fields =
+      (workflowData as { data?: { workflowFields?: FormField[] } })?.data
+        ?.workflowFields || [];
     return fields.sort((a, b) => a.displayOrder - b.displayOrder);
-  }, [fieldsData]);
+  }, [workflowData]);
 
   const aiProcessMutation = useMutation({
     mutationFn: async ({
@@ -117,6 +134,13 @@ export default function FormRenderer({
     // Update form data first
     setFormData((prev) => ({ ...prev, [fieldName]: value }));
 
+    // Update bulk data if in bulk mode
+    if (isBulkMode) {
+      const updatedBulkData = [...bulkFormData];
+      updatedBulkData[currentEntryIndex] = { ...formData, [fieldName]: value };
+      setBulkFormData(updatedBulkData);
+    }
+
     // Then validate
     const field = sortedFields.find((f) => f.fieldName === fieldName);
     if (field) {
@@ -132,41 +156,92 @@ export default function FormRenderer({
     }
   };
 
+  const normalizeFormData = (
+    data: Record<string, unknown>,
+    fields: FormField[]
+  ) => {
+    const normalized = { ...data };
+
+    fields.forEach((field) => {
+      if (
+        (field.fieldType === 'multiselect' || field.fieldType === 'select') &&
+        field.options
+      ) {
+        const value = normalized[field.fieldName];
+
+        if (Array.isArray(value)) {
+          const optionsLower = field.options.map((o) => o.toLowerCase());
+          normalized[field.fieldName] = value
+            .map((v) => {
+              const idx = optionsLower.indexOf(String(v).toLowerCase());
+              return idx >= 0 ? field.options![idx] : null;
+            })
+            .filter((v) => v !== null);
+        } else if (value) {
+          const optionsLower = field.options.map((o) => o.toLowerCase());
+          const idx = optionsLower.indexOf(String(value).toLowerCase());
+          normalized[field.fieldName] = idx >= 0 ? field.options[idx] : '';
+        }
+      }
+    });
+
+    return normalized;
+  };
+
   const handleProcess = async () => {
     setIsProcessing(true);
     try {
       let aiResponse;
 
       if (workflowType === 'image') {
-        // For images, convert base64 back to File and use FormData
-        const base64Data = inputData as string;
-        const response = await fetch(base64Data);
-        const blob = await response.blob();
-        const file = new File([blob], 'image.jpg', { type: 'image/jpeg' });
-
         const formData = new FormData();
         formData.append('workflowId', workflowId);
         formData.append('processingType', 'image');
-        formData.append('files', file);
+        if (language) formData.append('language', language);
+
+        const base64Array =
+          typeof inputData === 'string' ? JSON.parse(inputData) : inputData;
+        const dataArray = Array.isArray(base64Array)
+          ? base64Array
+          : [base64Array];
+
+        for (let i = 0; i < dataArray.length; i++) {
+          const response = await fetch(dataArray[i]);
+          const blob = await response.blob();
+          const file = new File([blob], `image-${i}.jpg`, {
+            type: 'image/jpeg',
+          });
+          formData.append('files', file);
+        }
+
+        aiResponse = await aiProcessMutation.mutateAsync({ formData });
+      } else if (workflowType === 'audio') {
+        const formData = new FormData();
+        formData.append('workflowId', workflowId);
+        formData.append('processingType', 'audio');
+        if (language) formData.append('language', language);
+
+        const audioArray =
+          typeof inputData === 'string' ? JSON.parse(inputData) : inputData;
+        const dataArray = Array.isArray(audioArray) ? audioArray : [audioArray];
+
+        for (let i = 0; i < dataArray.length; i++) {
+          const response = await fetch(dataArray[i]);
+          const blob = await response.blob();
+          const file = new File([blob], `audio-${i}.wav`, {
+            type: 'audio/wav',
+          });
+          formData.append('files', file);
+        }
 
         aiResponse = await aiProcessMutation.mutateAsync({ formData });
       } else {
-        // For text and audio, use JSON body
-        const body: {
-          workflowId: string;
-          processingType: 'text' | 'audio';
-          text?: string;
-          audio?: string;
-        } = {
+        const body = {
           workflowId,
-          processingType: workflowType as 'text' | 'audio',
+          processingType: 'text' as const,
+          text: inputData as string,
+          ...(language && { language }),
         };
-
-        if (workflowType === 'text') {
-          body.text = inputData as string;
-        } else if (workflowType === 'audio') {
-          body.audio = inputData as string;
-        }
 
         aiResponse = await aiProcessMutation.mutateAsync({ body });
       }
@@ -180,7 +255,18 @@ export default function FormRenderer({
       setAiProcessingLogId(responseData?.data?.aiProcessingLogId || '');
 
       if (aiData?.extracted) {
-        setFormData(aiData.extracted);
+        if (Array.isArray(aiData.extracted)) {
+          const normalized = aiData.extracted.map((entry) =>
+            normalizeFormData(entry, sortedFields)
+          );
+          setBulkFormData(normalized);
+          setFormData(normalized[0] || {});
+          setIsBulkMode(true);
+        } else {
+          const normalized = normalizeFormData(aiData.extracted, sortedFields);
+          setFormData(normalized);
+          setIsBulkMode(false);
+        }
       }
 
       onProcessingComplete?.();
@@ -197,9 +283,18 @@ export default function FormRenderer({
       (error) => error !== ''
     );
 
-    // Check for empty fields (ALL fields must be completed)
-    const hasEmptyFields = sortedFields.some((field) => {
+    // Check for empty REQUIRED fields only
+    const hasEmptyRequiredFields = sortedFields.some((field) => {
+      if (!field.isRequired) return false;
+
       const value = formData[field.fieldName];
+
+      // For multiselect, check if array is empty
+      if (field.fieldType === 'multiselect') {
+        return !Array.isArray(value) || value.length === 0;
+      }
+
+      // For other fields, check if empty
       return (
         value === undefined ||
         value === null ||
@@ -208,7 +303,7 @@ export default function FormRenderer({
       );
     });
 
-    return hasFieldErrors || hasEmptyFields;
+    return hasFieldErrors || hasEmptyRequiredFields;
   };
 
   const handleSubmit = async () => {
@@ -220,20 +315,23 @@ export default function FormRenderer({
     setIsSubmitting(true);
 
     try {
-      await submitMutation.mutateAsync({
-        body: {
-          workflowId,
-          data: formData,
-          metadata: {
-            type: workflowType,
-          },
-          aiProcessingLogId,
-        },
-      });
+      const submitData = isBulkMode
+        ? {
+            workflowId,
+            dataEntries: bulkFormData,
+            metadata: { type: workflowType },
+            aiProcessingLogId,
+          }
+        : {
+            workflowId,
+            data: formData,
+            metadata: { type: workflowType },
+            aiProcessingLogId,
+          };
+
+      await submitMutation.mutateAsync({ body: submitData });
 
       toast.success('Data submitted successfully!');
-
-      // Only redirect on successful submission
       setTimeout(() => {
         window.location.href = '/user/overview';
       }, 1000);
@@ -242,6 +340,24 @@ export default function FormRenderer({
       toast.error('Failed to submit data. Please try again.');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handlePrevEntry = () => {
+    if (currentEntryIndex > 0) {
+      bulkFormData[currentEntryIndex] = formData;
+      setBulkFormData([...bulkFormData]);
+      setCurrentEntryIndex(currentEntryIndex - 1);
+      setFormData(bulkFormData[currentEntryIndex - 1]);
+    }
+  };
+
+  const handleNextEntry = () => {
+    if (currentEntryIndex < bulkFormData.length - 1) {
+      bulkFormData[currentEntryIndex] = formData;
+      setBulkFormData([...bulkFormData]);
+      setCurrentEntryIndex(currentEntryIndex + 1);
+      setFormData(bulkFormData[currentEntryIndex + 1]);
     }
   };
 
@@ -339,22 +455,60 @@ export default function FormRenderer({
             ))}
           </select>
         );
-      case 'boolean':
+      case 'multiselect':
+        const selectedValues = Array.isArray(formData[field.fieldName])
+          ? (formData[field.fieldName] as string[])
+          : [];
         return (
-          <div className="flex items-center">
-            <input
-              type="checkbox"
-              checked={
-                typeof formData[field.fieldName] === 'boolean'
-                  ? (formData[field.fieldName] as boolean)
-                  : false
-              }
-              onChange={(e) =>
-                handleInputChange(field.fieldName, e.target.checked)
-              }
-              className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500"
-            />
-            <span className="ml-2 text-sm text-gray-700">Yes</span>
+          <div
+            className={`w-full rounded-lg border bg-white p-2 transition-colors focus-within:ring-2 focus-within:outline-none ${
+              fieldErrors[field.fieldName]
+                ? 'border-red-300 focus-within:border-red-500 focus-within:ring-red-100'
+                : 'border-gray-300 focus-within:border-blue-500 focus-within:ring-blue-100 hover:border-gray-400'
+            }`}
+          >
+            {field.options?.map((option) => (
+              <label key={option} className="flex items-center gap-2 py-1">
+                <input
+                  type="checkbox"
+                  checked={selectedValues.includes(option)}
+                  onChange={(e) => {
+                    const newValues = e.target.checked
+                      ? [...selectedValues, option]
+                      : selectedValues.filter((v) => v !== option);
+                    handleInputChange(field.fieldName, newValues);
+                  }}
+                  className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500"
+                />
+                <span className="text-sm text-gray-700">{option}</span>
+              </label>
+            ))}
+          </div>
+        );
+      case 'boolean':
+        const boolValue = formData[field.fieldName] as boolean | undefined;
+        return (
+          <div className="flex gap-6">
+            <label className="flex items-center gap-2">
+              <input
+                type="radio"
+                name={field.fieldName}
+                checked={boolValue === true}
+                onChange={() => handleInputChange(field.fieldName, true)}
+                className="h-4 w-4 border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500"
+              />
+              <span className="text-sm text-gray-700">Yes</span>
+            </label>
+            <label className="flex items-center gap-2">
+              <input
+                type="radio"
+                name={field.fieldName}
+                checked={boolValue === false}
+                onChange={() => handleInputChange(field.fieldName, false)}
+                className="h-4 w-4 border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500"
+              />
+              <span className="text-sm text-gray-700">No</span>
+            </label>
           </div>
         );
       default:
@@ -371,13 +525,37 @@ export default function FormRenderer({
       <div className="rounded-xl border border-gray-200 bg-white">
         {/* Header */}
         <div className="rounded-t-xl border-b border-gray-200 bg-gradient-to-r from-blue-50 to-green-50 px-8 py-6">
-          <h2 className="text-2xl font-bold text-gray-900">
-            Review & Confirm Data
-          </h2>
-          <p className="mt-2 text-gray-600">
-            AI has extracted the following information. Please review and make
-            any necessary corrections:
-          </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900">
+                Review & Confirm Data{' '}
+                {isBulkMode &&
+                  `(${currentEntryIndex + 1}/${bulkFormData.length})`}
+              </h2>
+              <p className="mt-2 text-gray-600">
+                The following information has been extracted. Please review and
+                make any necessary corrections:
+              </p>
+            </div>
+            {isBulkMode && bulkFormData.length > 1 && (
+              <div className="flex gap-2">
+                <button
+                  onClick={handlePrevEntry}
+                  disabled={currentEntryIndex === 0}
+                  className="rounded-lg bg-gray-600 px-4 py-2 text-white disabled:opacity-50"
+                >
+                  Previous
+                </button>
+                <button
+                  onClick={handleNextEntry}
+                  disabled={currentEntryIndex === bulkFormData.length - 1}
+                  className="rounded-lg bg-blue-600 px-4 py-2 text-white disabled:opacity-50"
+                >
+                  Next
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Form Content */}
@@ -387,7 +565,11 @@ export default function FormRenderer({
               <div
                 key={field.id}
                 className={`space-y-2 ${
-                  field.fieldType === 'textarea' ? 'md:col-span-2' : ''
+                  ['textarea', 'select', 'multiselect', 'boolean'].includes(
+                    field.fieldType
+                  )
+                    ? 'md:col-span-2'
+                    : ''
                 }`}
               >
                 <label className="block text-sm font-medium text-gray-700">
@@ -398,7 +580,8 @@ export default function FormRenderer({
                 </label>
                 <div className="relative">
                   {renderField(field)}
-                  {aiReviewData?.extracted?.[field.fieldName] !== undefined &&
+                  {!Array.isArray(aiReviewData?.extracted) &&
+                    aiReviewData?.extracted?.[field.fieldName] !== undefined &&
                     aiReviewData?.extracted?.[field.fieldName] !== null &&
                     formData[field.fieldName] !== undefined &&
                     formData[field.fieldName] !== null &&
@@ -454,6 +637,8 @@ export default function FormRenderer({
                     <Loader2 className="h-4 w-4 animate-spin" />
                     Submitting...
                   </>
+                ) : isBulkMode ? (
+                  `Submit ${bulkFormData.length} Entries`
                 ) : (
                   'Submit Data to DHIS2'
                 )}

@@ -489,10 +489,19 @@ export type ProcessAiDto = {
 
 export type SubmitDto = {
   workflowId: string;
-  data: {
+  /**
+   * Single data entry - use this OR `dataEntries`, not both
+   */
+  data?: {
     [key: string]: unknown;
   };
-  metadata: {
+  /**
+   * Multiple data entries for bulk submission
+   */
+  dataEntries?: Array<{
+    [key: string]: unknown;
+  }>;
+  metadata?: {
     [key: string]: unknown;
   };
   localId?: string;
