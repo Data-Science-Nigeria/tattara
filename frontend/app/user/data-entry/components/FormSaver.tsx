@@ -497,7 +497,7 @@ export default function FormRenderer({
                   `(${currentEntryIndex + 1}/${bulkFormData.length})`}
               </h2>
               <p className="mt-2 text-gray-600">
-                AI has extracted the following information. Please review and
+                The following information has been extracted. Please review and
                 make any necessary corrections:
               </p>
             </div>
