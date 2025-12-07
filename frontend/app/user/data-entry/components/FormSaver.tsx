@@ -10,6 +10,7 @@ import {
 import { toast } from 'sonner';
 import { validateFieldValue } from '@/lib/field-validation';
 import { useAuthStore } from '@/app/store/use-auth-store';
+import { getLanguageForBackend } from '@/lib/language-utils';
 
 interface AiReviewData {
   form_id: string;
@@ -197,7 +198,8 @@ export default function FormRenderer({
         const formData = new FormData();
         formData.append('workflowId', workflowId);
         formData.append('processingType', 'image');
-        if (language) formData.append('language', language);
+        if (language)
+          formData.append('language', getLanguageForBackend(language));
 
         const base64Array =
           typeof inputData === 'string' ? JSON.parse(inputData) : inputData;
@@ -219,7 +221,8 @@ export default function FormRenderer({
         const formData = new FormData();
         formData.append('workflowId', workflowId);
         formData.append('processingType', 'audio');
-        if (language) formData.append('language', language);
+        if (language)
+          formData.append('language', getLanguageForBackend(language));
 
         const audioArray =
           typeof inputData === 'string' ? JSON.parse(inputData) : inputData;
@@ -240,7 +243,7 @@ export default function FormRenderer({
           workflowId,
           processingType: 'text' as const,
           text: inputData as string,
-          ...(language && { language }),
+          ...(language && { language: getLanguageForBackend(language) }),
         };
 
         aiResponse = await aiProcessMutation.mutateAsync({ body });

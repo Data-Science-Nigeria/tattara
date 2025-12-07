@@ -3,6 +3,7 @@ import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useAuthStore } from '@/app/store/use-auth-store';
 import AiResponseDisplay from '../field-mapping/components/AiResponseDisplay';
+import { getLanguageForBackend, getLanguageName } from '@/lib/language-utils';
 
 interface TextAiReviewProps {
   workflowId: string;
@@ -22,15 +23,6 @@ export default function TextAiReview({
     supportedLanguages[0] || 'en'
   );
 
-  const getLanguageName = (code: string) => {
-    const names: Record<string, string> = {
-      en: 'English',
-      yo: 'Yoruba',
-      ig: 'Igbo',
-      ha: 'Hausa',
-    };
-    return names[code] || code;
-  };
   const [isProcessing, setIsProcessing] = useState(false);
   const [aiReviewData, setAiReviewData] = useState<{
     success: boolean;
@@ -93,7 +85,7 @@ export default function TextAiReview({
           workflowId,
           processingType: 'text',
           text: textInput,
-          language: selectedLanguage,
+          language: getLanguageForBackend(selectedLanguage),
         },
       });
 
