@@ -14,9 +14,15 @@ import { getLanguageForBackend } from '@/lib/language-utils';
 
 interface AiReviewData {
   form_id: string;
-  extracted: Record<string, unknown> | Array<Record<string, unknown>>;
-  missing_required: string[];
-  isMultipleEntries?: boolean;
+  total_rows: number;
+  rows: Array<{
+    row_index: number;
+    extracted: Record<string, unknown>;
+    missing_required: string[];
+  }>;
+  confidence?: Record<string, number>;
+  meta?: Record<string, unknown>;
+  metrics?: Record<string, unknown>;
 }
 
 interface FormField {
@@ -257,16 +263,19 @@ export default function FormRenderer({
       setAiReviewData(aiData || null);
       setAiProcessingLogId(responseData?.data?.aiProcessingLogId || '');
 
-      if (aiData?.extracted) {
-        if (Array.isArray(aiData.extracted)) {
-          const normalized = aiData.extracted.map((entry) =>
-            normalizeFormData(entry, sortedFields)
+      if (aiData?.rows && aiData.rows.length > 0) {
+        if (aiData.rows.length > 1) {
+          const normalized = aiData.rows.map((row) =>
+            normalizeFormData(row.extracted, sortedFields)
           );
           setBulkFormData(normalized);
           setFormData(normalized[0] || {});
           setIsBulkMode(true);
         } else {
-          const normalized = normalizeFormData(aiData.extracted, sortedFields);
+          const normalized = normalizeFormData(
+            aiData.rows[0].extracted,
+            sortedFields
+          );
           setFormData(normalized);
           setIsBulkMode(false);
         }
@@ -583,9 +592,10 @@ export default function FormRenderer({
                 </label>
                 <div className="relative">
                   {renderField(field)}
-                  {!Array.isArray(aiReviewData?.extracted) &&
-                    aiReviewData?.extracted?.[field.fieldName] !== undefined &&
-                    aiReviewData?.extracted?.[field.fieldName] !== null &&
+                  {aiReviewData?.rows?.[isBulkMode ? currentEntryIndex : 0]
+                    ?.extracted?.[field.fieldName] !== undefined &&
+                    aiReviewData?.rows?.[isBulkMode ? currentEntryIndex : 0]
+                      ?.extracted?.[field.fieldName] !== null &&
                     formData[field.fieldName] !== undefined &&
                     formData[field.fieldName] !== null &&
                     formData[field.fieldName] !== '' && (
@@ -607,8 +617,10 @@ export default function FormRenderer({
           </div>
 
           {/* Missing Fields Alert */}
-          {aiReviewData?.missing_required &&
-            aiReviewData.missing_required.length > 0 && (
+          {aiReviewData?.rows?.[isBulkMode ? currentEntryIndex : 0]
+            ?.missing_required &&
+            aiReviewData.rows[isBulkMode ? currentEntryIndex : 0]
+              .missing_required.length > 0 && (
               <div className="mt-6 rounded-lg border border-yellow-200 bg-yellow-50 p-4">
                 <div className="flex items-start">
                   <AlertTriangle className="mt-0.5 h-5 w-5 text-yellow-400" />
@@ -617,7 +629,10 @@ export default function FormRenderer({
                       Missing Required Fields
                     </h3>
                     <p className="mt-1 text-sm text-yellow-700">
-                      Please fill in: {aiReviewData.missing_required.join(', ')}
+                      Please fill in:{' '}
+                      {aiReviewData.rows[
+                        isBulkMode ? currentEntryIndex : 0
+                      ].missing_required.join(', ')}
                     </p>
                   </div>
                 </div>
