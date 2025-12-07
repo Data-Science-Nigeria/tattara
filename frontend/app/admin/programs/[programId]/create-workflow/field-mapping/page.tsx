@@ -38,6 +38,10 @@ interface WorkflowConfiguration {
   configuration?: {
     externalConnectionId?: string;
     programId?: string;
+    program?: string;
+    dataSet?: string;
+    orgUnit?: string;
+    programStage?: string;
   };
 }
 
@@ -133,8 +137,18 @@ export default function FieldMapping() {
           setSelectedConnection(connectionId);
         }
 
-        const programId = dhis2Config.configuration?.programId || '';
-        setSelectedProgram(programId);
+        const programOrDatasetId =
+          dhis2Config.configuration?.program ||
+          dhis2Config.configuration?.dataSet ||
+          '';
+        setSelectedProgram(programOrDatasetId);
+
+        // Set type based on what's in configuration
+        if (dhis2Config.configuration?.program) {
+          setSelectedType('program');
+        } else if (dhis2Config.configuration?.dataSet) {
+          setSelectedType('dataSet');
+        }
       }
     }
 
