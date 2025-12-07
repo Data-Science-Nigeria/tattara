@@ -13,8 +13,9 @@ interface ExternalConfig {
   connectionId: string;
   type: string;
   programId: string;
-  orgUnits: string[];
-  language: string;
+  programStageId?: string;
+  datasetId?: string;
+  orgUnit: string;
 }
 
 interface AIField {
@@ -51,7 +52,7 @@ export default function CreateWorkflowStep({
     <div className="space-y-6">
       <div>
         <h2 className="mb-2 text-xl font-semibold text-gray-900">
-          Review & Create Workflow
+          Review Workflow
         </h2>
         <p className="text-gray-600">
           Review your workflow configuration before creating
@@ -149,23 +150,17 @@ export default function CreateWorkflowStep({
                 {externalConfig.type === 'dataset' ? 'Dataset:' : 'Program:'}
               </span>
               <p className="text-gray-900">
-                {externalConfig.programId || 'Not selected'}
+                {(externalConfig.type === 'dataset'
+                  ? externalConfig.datasetId
+                  : externalConfig.programId) || 'Not selected'}
               </p>
             </div>
             <div>
               <span className="text-sm font-medium text-gray-500">
-                Organization Units:
+                Organization Unit:
               </span>
               <p className="text-gray-900">
-                {externalConfig.orgUnits.length} selected
-              </p>
-            </div>
-            <div>
-              <span className="text-sm font-medium text-gray-500">
-                Language:
-              </span>
-              <p className="text-gray-900 capitalize">
-                {externalConfig.language}
+                {externalConfig.orgUnit || 'Not selected'}
               </p>
             </div>
           </div>

@@ -31,8 +31,9 @@ interface ExternalConfig {
   connectionId: string;
   type: string;
   programId: string;
-  orgUnits: string[];
-  language: string;
+  programStageId?: string;
+  datasetId?: string;
+  orgUnit: string;
 }
 
 interface AIField {
@@ -84,8 +85,9 @@ export default function EditWorkflowForm({
     connectionId: '',
     type: '',
     programId: '',
-    orgUnits: [],
-    language: 'en',
+    programStageId: '',
+    datasetId: '',
+    orgUnit: '',
   });
 
   const [aiFields, setAiFields] = useState<AIField[]>([]);
@@ -153,11 +155,14 @@ export default function EditWorkflowForm({
         setExternalConfig({
           connectionId: (externalConnection?.id as string) || '',
           type: (config?.type as string) || 'program',
-          programId: (config?.programId as string) || '',
-          orgUnits: Array.isArray(config?.orgUnits)
-            ? (config.orgUnits as string[])
-            : [],
-          language: (config?.language as string) || 'en',
+          programId: ((config?.program || config?.programId) as string) || '',
+          programStageId: (config?.programStage as string) || '',
+          datasetId: (config?.dataSet as string) || '',
+          orgUnit:
+            ((config?.orgUnit ||
+              (Array.isArray(config?.orgUnits)
+                ? config.orgUnits[0]
+                : '')) as string) || '',
         });
         setAiFields(
           Array.isArray(workflow.workflowFields)
@@ -189,7 +194,8 @@ export default function EditWorkflowForm({
     if (
       newConfig.connectionId !== undefined ||
       newConfig.type !== undefined ||
-      newConfig.programId !== undefined
+      newConfig.programId !== undefined ||
+      newConfig.datasetId !== undefined
     ) {
       setAiFields([]);
     }
@@ -228,7 +234,10 @@ export default function EditWorkflowForm({
         return (
           isExternalMode === true &&
           !!externalConfig.connectionId &&
-          !!externalConfig.programId
+          (externalConfig.type === 'program'
+            ? !!externalConfig.programId && !!externalConfig.programStageId
+            : !!externalConfig.datasetId) &&
+          !!externalConfig.orgUnit
         );
       case 4:
         return isExternalMode === true && aiFields.length > 0;
@@ -295,11 +304,17 @@ export default function EditWorkflowForm({
               {
                 type: 'dhis2',
                 externalConnectionId: externalConfig.connectionId,
-                configuration: {
-                  programId: externalConfig.programId,
-                  orgUnits: externalConfig.orgUnits,
-                  language: externalConfig.language,
-                },
+                configuration:
+                  externalConfig.type === 'program'
+                    ? {
+                        program: externalConfig.programId,
+                        programStage: externalConfig.programStageId,
+                        orgUnit: externalConfig.orgUnit,
+                      }
+                    : {
+                        dataSet: externalConfig.datasetId,
+                        orgUnit: externalConfig.orgUnit,
+                      },
                 isActive: true,
               },
             ],

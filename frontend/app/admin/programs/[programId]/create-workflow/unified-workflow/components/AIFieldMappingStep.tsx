@@ -58,8 +58,9 @@ interface ExternalConfig {
   connectionId: string;
   type: string;
   programId: string;
-  orgUnits: string[];
-  language: string;
+  programStageId?: string;
+  datasetId?: string;
+  orgUnit: string;
 }
 
 interface AIFieldMappingStepProps {
@@ -98,12 +99,17 @@ export default function AIFieldMappingStep({
       path: { connectionId: externalConfig.connectionId },
       query: {
         type: externalConfig.type as unknown as _Object,
-        id: externalConfig.programId,
+        id:
+          (externalConfig.type === 'dataset'
+            ? externalConfig.datasetId
+            : externalConfig.programId) || '',
       },
     }),
     enabled:
       !!externalConfig.connectionId &&
-      !!externalConfig.programId &&
+      !!(externalConfig.type === 'dataset'
+        ? externalConfig.datasetId
+        : externalConfig.programId) &&
       !!externalConfig.type,
   });
 

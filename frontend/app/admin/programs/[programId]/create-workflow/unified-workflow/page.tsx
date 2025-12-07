@@ -29,8 +29,9 @@ interface ExternalConfig {
   connectionId: string;
   type: string;
   programId: string;
-  orgUnits: string[];
-  language: string;
+  programStageId?: string;
+  datasetId?: string;
+  orgUnit: string;
 }
 
 interface AIField {
@@ -117,8 +118,9 @@ function CreateWorkflowContent({ programId }: { programId: string }) {
     connectionId: '',
     type: '',
     programId: '',
-    orgUnits: [],
-    language: 'en',
+    programStageId: '',
+    datasetId: '',
+    orgUnit: '',
   });
 
   const [aiFields, setAiFields] = useState<AIField[]>([]);
@@ -155,8 +157,9 @@ function CreateWorkflowContent({ programId }: { programId: string }) {
           connectionId: '',
           type: '',
           programId: '',
-          orgUnits: [],
-          language: 'en',
+          programStageId: '',
+          datasetId: '',
+          orgUnit: '',
         });
         setAiFields([]);
       }
@@ -166,11 +169,12 @@ function CreateWorkflowContent({ programId }: { programId: string }) {
   const handleExternalConfigChange = (newConfig: Partial<ExternalConfig>) => {
     const updatedConfig = { ...externalConfig, ...newConfig };
 
-    // Clear AI fields if connection, type, or program changes
+    // Clear AI fields if connection, type, program, or dataset changes
     if (
       newConfig.connectionId !== undefined ||
       newConfig.type !== undefined ||
-      newConfig.programId !== undefined
+      newConfig.programId !== undefined ||
+      newConfig.datasetId !== undefined
     ) {
       setAiFields([]);
     }
@@ -209,7 +213,10 @@ function CreateWorkflowContent({ programId }: { programId: string }) {
         return (
           isExternalMode === true &&
           !!externalConfig.connectionId &&
-          !!externalConfig.programId
+          (externalConfig.type === 'program'
+            ? !!externalConfig.programId && !!externalConfig.programStageId
+            : !!externalConfig.datasetId) &&
+          !!externalConfig.orgUnit
         );
       case 4:
         return isExternalMode === true && aiFields.length > 0;
@@ -252,11 +259,17 @@ function CreateWorkflowContent({ programId }: { programId: string }) {
             {
               type: 'dhis2' as const,
               externalConnectionId: externalConfig.connectionId,
-              configuration: {
-                programId: externalConfig.programId,
-                orgUnits: externalConfig.orgUnits,
-                language: externalConfig.language,
-              },
+              configuration:
+                externalConfig.type === 'program'
+                  ? {
+                      program: externalConfig.programId,
+                      programStage: externalConfig.programStageId,
+                      orgUnit: externalConfig.orgUnit,
+                    }
+                  : {
+                      dataSet: externalConfig.datasetId,
+                      orgUnit: externalConfig.orgUnit,
+                    },
               isActive: true as boolean,
             },
           ],
