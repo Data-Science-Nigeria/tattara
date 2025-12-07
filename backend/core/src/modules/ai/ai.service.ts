@@ -29,7 +29,7 @@ export class AiService {
   }
 
   async processText(payload: ProcessTextPayload): Promise<ExtractionResponse> {
-    const endpoint = `${this.baseUrl}/process/text`;
+    const endpoint = `${this.baseUrl}/process/text/batch`;
 
     const response$ = this.httpService
       .post<ExtractionResponse>(endpoint, payload, {
@@ -57,7 +57,7 @@ export class AiService {
   async processAudio(
     payload: ProcessAudioPayload,
   ): Promise<ExtractionResponse> {
-    const endpoint = `${this.baseUrl}/process/audio`;
+    const endpoint = `${this.baseUrl}/process/audio/batch`;
 
     const formData = new FormData();
     formData.append('form_id', payload.form_id);
@@ -97,7 +97,7 @@ export class AiService {
   async processImage(
     payload: ProcessImagePayload,
   ): Promise<ExtractionResponse> {
-    const endpoint = `${this.baseUrl}/process/image`;
+    const endpoint = `${this.baseUrl}/process/image/batch`;
 
     console.log('AI Service - processImage called with payload:', payload);
 

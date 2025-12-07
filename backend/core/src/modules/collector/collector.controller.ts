@@ -10,21 +10,74 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiConsumes,
+  ApiBody,
+  ApiResponse,
+} from '@nestjs/swagger';
 import { CurrentUser } from '@/common/decorators';
 import { User } from '@/database/entities';
 import { CollectorService } from './collector.service';
-import { ProcessAiDto, GetSubmissionHistoryDto } from './dto';
+import {
+  ProcessAiDto,
+  GetSubmissionHistoryDto,
+  ProcessAiResponseDto,
+} from './dto';
 import { SubmitDto } from './dto/submit.dto';
 
+@ApiTags('Collector')
 @Controller('collector')
 export class CollectorController {
   constructor(private readonly collectorService: CollectorService) {}
 
-  /** Process AI data (text, audio, image)
-   *  Accepts multiple files for processing AI data including text, audio, and images.
-   * Accept language parameter for audio processing.
-   */
   @Post('/process-ai')
+  @ApiOperation({
+    summary: 'Process AI data',
+    description:
+      'Accepts multiple files for processing AI data including text, audio, and images. Accepts language parameter for audio processing.',
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        files: {
+          type: 'array',
+          items: { type: 'string', format: 'binary' },
+          description: 'Files to process (images, audio, documents)',
+        },
+        workflowId: {
+          type: 'string',
+          format: 'uuid',
+          description: 'The workflow ID to process',
+        },
+        processingType: {
+          type: 'string',
+          description: 'Type of processing to perform',
+        },
+        aiProvider: {
+          type: 'string',
+          description: 'AI provider to use (optional)',
+        },
+        text: {
+          type: 'string',
+          description: 'Text content to process (optional)',
+        },
+        language: {
+          type: 'string',
+          description: 'Language for audio processing (optional)',
+        },
+      },
+      required: ['workflowId', 'processingType'],
+    },
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'AI processing completed successfully',
+    type: ProcessAiResponseDto,
+  })
   @UseInterceptors(FilesInterceptor('files'))
   async processAi(
     @Body() processAiDto: ProcessAiDto,
