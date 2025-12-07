@@ -45,6 +45,7 @@ interface FormRendererProps {
   inputData: unknown;
   onProcessingComplete?: () => void;
   hideButtons?: boolean;
+  language?: string;
 }
 
 export default function FormRenderer({
@@ -53,6 +54,7 @@ export default function FormRenderer({
   inputData,
   onProcessingComplete,
   hideButtons = false,
+  language,
 }: FormRendererProps) {
   const [formData, setFormData] = useState<Record<string, unknown>>({});
   const [bulkFormData, setBulkFormData] = useState<
@@ -160,37 +162,53 @@ export default function FormRenderer({
       let aiResponse;
 
       if (workflowType === 'image') {
-        // For images, convert base64 back to File and use FormData
-        const base64Data = inputData as string;
-        const response = await fetch(base64Data);
-        const blob = await response.blob();
-        const file = new File([blob], 'image.jpg', { type: 'image/jpeg' });
-
         const formData = new FormData();
         formData.append('workflowId', workflowId);
         formData.append('processingType', 'image');
-        formData.append('files', file);
+        if (language) formData.append('language', language);
+
+        const base64Array =
+          typeof inputData === 'string' ? JSON.parse(inputData) : inputData;
+        const dataArray = Array.isArray(base64Array)
+          ? base64Array
+          : [base64Array];
+
+        for (let i = 0; i < dataArray.length; i++) {
+          const response = await fetch(dataArray[i]);
+          const blob = await response.blob();
+          const file = new File([blob], `image-${i}.jpg`, {
+            type: 'image/jpeg',
+          });
+          formData.append('files', file);
+        }
 
         aiResponse = await aiProcessMutation.mutateAsync({ formData });
       } else if (workflowType === 'audio') {
-        // For audio, use FormData with blob
-        const audioBlob = inputData as Blob;
-        const file = new File([audioBlob], 'audio.wav', {
-          type: audioBlob.type || 'audio/wav',
-        });
-
         const formData = new FormData();
         formData.append('workflowId', workflowId);
         formData.append('processingType', 'audio');
-        formData.append('files', file);
+        if (language) formData.append('language', language);
+
+        const audioArray =
+          typeof inputData === 'string' ? JSON.parse(inputData) : inputData;
+        const dataArray = Array.isArray(audioArray) ? audioArray : [audioArray];
+
+        for (let i = 0; i < dataArray.length; i++) {
+          const response = await fetch(dataArray[i]);
+          const blob = await response.blob();
+          const file = new File([blob], `audio-${i}.wav`, {
+            type: 'audio/wav',
+          });
+          formData.append('files', file);
+        }
 
         aiResponse = await aiProcessMutation.mutateAsync({ formData });
       } else {
-        // For text, use JSON body
         const body = {
           workflowId,
           processingType: 'text' as const,
           text: inputData as string,
+          ...(language && { language }),
         };
 
         aiResponse = await aiProcessMutation.mutateAsync({ body });

@@ -1,9 +1,11 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Save } from 'lucide-react';
 import { useSaveDraft } from '../hooks/useSaveDraft';
 import FormRenderer from './FormSaver';
+import { useQuery } from '@tanstack/react-query';
+import { workflowControllerFindWorkflowByIdOptions } from '@/client/@tanstack/react-query.gen';
 
 interface TextRendererProps {
   workflow: {
@@ -26,11 +28,41 @@ export default function TextRenderer({
 }: TextRendererProps) {
   const [textInput, setTextInput] = useState('');
   const [showForm, setShowForm] = useState(false);
+  const [selectedLanguage, setSelectedLanguage] = useState<string>('');
 
   const { saveDraft, loadDraft, clearDraft, isSaving } = useSaveDraft({
     workflowId: workflow.id,
     type: 'text',
   });
+
+  const { data: workflowData } = useQuery({
+    ...workflowControllerFindWorkflowByIdOptions({
+      path: { workflowId: workflow.id },
+    }),
+  });
+
+  const supportedLanguages = useMemo(
+    () =>
+      (workflowData as { data?: { supportedLanguages?: string[] } })?.data
+        ?.supportedLanguages || [],
+    [workflowData]
+  );
+
+  useEffect(() => {
+    if (supportedLanguages.length > 0 && !selectedLanguage) {
+      setSelectedLanguage(supportedLanguages[0]);
+    }
+  }, [supportedLanguages, selectedLanguage]);
+
+  const getLanguageName = (code: string) => {
+    const names: Record<string, string> = {
+      en: 'English',
+      yo: 'Yoruba',
+      ig: 'Igbo',
+      ha: 'Hausa',
+    };
+    return names[code] || code;
+  };
 
   useEffect(() => {
     const draft = loadDraft();
@@ -67,6 +99,7 @@ export default function TextRenderer({
         workflowType="text"
         inputData={textInput}
         onProcessingComplete={handleProcessingComplete}
+        language={selectedLanguage}
       />
     );
   }
@@ -92,6 +125,27 @@ export default function TextRenderer({
         >
           Reset
         </button>
+        {supportedLanguages.length === 1 ? (
+          <div className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-medium text-green-600 sm:px-4 sm:text-sm">
+            {getLanguageName(supportedLanguages[0])}
+          </div>
+        ) : supportedLanguages.length > 1 ? (
+          <select
+            value={selectedLanguage}
+            onChange={(e) => setSelectedLanguage(e.target.value)}
+            className="cursor-pointer rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-medium text-green-600 hover:bg-gray-50 focus:ring-2 focus:ring-green-500 sm:px-4 sm:text-sm"
+          >
+            {supportedLanguages.map((lang) => (
+              <option
+                key={lang}
+                value={lang}
+                className="bg-white text-gray-900"
+              >
+                {getLanguageName(lang)}
+              </option>
+            ))}
+          </select>
+        ) : null}
       </div>
       <div className="space-y-6">
         <div>

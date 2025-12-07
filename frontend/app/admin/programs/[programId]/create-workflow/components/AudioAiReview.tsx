@@ -9,16 +9,31 @@ interface AudioAiReviewProps {
   workflowId: string;
   onReviewComplete?: (reviewData: unknown, logId: string) => void;
   onAiTestStatusChange?: (hasCompleted: boolean) => void;
+  supportedLanguages?: string[];
 }
 
 export default function AudioAiReview({
   workflowId,
   onReviewComplete,
   onAiTestStatusChange,
+  supportedLanguages = ['en'],
 }: AudioAiReviewProps) {
   const [isRecording, setIsRecording] = useState(false);
-  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
-  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [audioBlobs, setAudioBlobs] = useState<Blob[]>([]);
+  const [audioUrls, setAudioUrls] = useState<string[]>([]);
+  const [selectedLanguage, setSelectedLanguage] = useState<string>(
+    supportedLanguages[0] || 'en'
+  );
+
+  const getLanguageName = (code: string) => {
+    const names: Record<string, string> = {
+      en: 'English',
+      yo: 'Yoruba',
+      ig: 'Igbo',
+      ha: 'Hausa',
+    };
+    return names[code] || code;
+  };
   const [recordingTime, setRecordingTime] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
   const [aiReviewData, setAiReviewData] = useState<{
@@ -48,7 +63,6 @@ export default function AudioAiReview({
     error?: string;
   } | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const { auth } = useAuthStore();
@@ -88,9 +102,9 @@ export default function AudioAiReview({
 
       mediaRecorder.onstop = () => {
         const blob = new Blob(chunks, { type: 'audio/wav' });
-        setAudioBlob(blob);
+        setAudioBlobs((prev) => [...prev, blob]);
         const url = URL.createObjectURL(blob);
-        setAudioUrl(url);
+        setAudioUrls((prev) => [...prev, url]);
         stream.getTracks().forEach((track) => track.stop());
       };
 
@@ -117,19 +131,24 @@ export default function AudioAiReview({
   };
 
   const handleProcess = async () => {
-    if (!audioBlob) return;
+    if (audioBlobs.length === 0) return;
 
     setIsProcessing(true);
     try {
       const formData = new FormData();
       formData.append('workflowId', workflowId);
       formData.append('processingType', 'audio');
-      formData.append('files', audioBlob, 'audio.wav');
+      formData.append('language', selectedLanguage);
+      audioBlobs.forEach((blob, idx) =>
+        formData.append('files', blob, `audio-${idx}.wav`)
+      );
 
       const aiResponse = await aiProcessMutation.mutateAsync({ formData });
 
       setAiReviewData(aiResponse);
-      toast.success('Audio processed successfully!');
+      toast.success(
+        `${audioBlobs.length} audio file(s) processed successfully!`
+      );
       onReviewComplete?.(aiResponse, aiResponse?.data?.aiProcessingLogId || '');
       onAiTestStatusChange?.(true);
     } catch {
@@ -146,25 +165,47 @@ export default function AudioAiReview({
   };
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file && file.type.startsWith('audio/')) {
-      setAudioBlob(file);
-      const url = URL.createObjectURL(file);
-      setAudioUrl(url);
+    const files = event.target.files;
+    if (!files) return;
 
-      // Get actual audio duration
-      const audio = new Audio(url);
-      audio.onloadedmetadata = () => {
-        setRecordingTime(Math.floor(audio.duration));
-      };
-    } else {
-      toast.error('Please select a valid audio file');
+    const audioFiles = Array.from(files).filter((f) =>
+      f.type.startsWith('audio/')
+    );
+    if (audioFiles.length === 0) {
+      toast.error('Please select valid audio files');
+      return;
     }
+
+    const MAX_SIZE = 80 * 1024 * 1024; // 80MB
+    const totalSize = audioFiles.reduce((sum, file) => sum + file.size, 0);
+
+    if (totalSize > MAX_SIZE) {
+      toast.error(
+        `Total file size exceeds 80MB. Current: ${(totalSize / (1024 * 1024)).toFixed(2)}MB`
+      );
+      return;
+    }
+
+    setAudioBlobs(audioFiles);
+    const urls = audioFiles.map((file) => URL.createObjectURL(file));
+    setAudioUrls(urls);
+
+    // Get total duration
+    let totalDuration = 0;
+    audioFiles.forEach((file, idx) => {
+      const audio = new Audio(urls[idx]);
+      audio.onloadedmetadata = () => {
+        totalDuration += audio.duration;
+        if (idx === audioFiles.length - 1) {
+          setRecordingTime(Math.floor(totalDuration));
+        }
+      };
+    });
   };
 
   const clearRecording = () => {
-    setAudioBlob(null);
-    setAudioUrl(null);
+    setAudioBlobs([]);
+    setAudioUrls([]);
     setRecordingTime(0);
     setAiReviewData(null);
     if (fileInputRef.current) {
@@ -179,6 +220,32 @@ export default function AudioAiReview({
 
   return (
     <div className="space-y-6">
+      <div className="mb-4 flex items-center justify-between">
+        <h3 className="text-lg font-semibold text-gray-900">
+          Test Audio Processing
+        </h3>
+        {supportedLanguages.length === 1 ? (
+          <div className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-medium text-green-600 sm:px-4 sm:text-sm">
+            {getLanguageName(supportedLanguages[0])}
+          </div>
+        ) : (
+          <select
+            value={selectedLanguage}
+            onChange={(e) => setSelectedLanguage(e.target.value)}
+            className="cursor-pointer rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-medium text-green-600 hover:bg-gray-50 focus:ring-2 focus:ring-green-500 sm:px-4 sm:text-sm"
+          >
+            {supportedLanguages.map((lang) => (
+              <option
+                key={lang}
+                value={lang}
+                className="bg-white text-gray-900"
+              >
+                {getLanguageName(lang)}
+              </option>
+            ))}
+          </select>
+        )}
+      </div>
       <div className="rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 p-8 text-center">
         <div className="flex flex-col items-center">
           <div className="mb-4">
@@ -192,7 +259,7 @@ export default function AudioAiReview({
             </div>
           </div>
           <div className="flex justify-center gap-4">
-            {!isRecording && !audioBlob && (
+            {!isRecording && audioBlobs.length === 0 && (
               <>
                 <button
                   onClick={startRecording}
@@ -212,6 +279,7 @@ export default function AudioAiReview({
                   ref={fileInputRef}
                   type="file"
                   accept="audio/*"
+                  multiple
                   onChange={handleFileUpload}
                   className="hidden"
                 />
@@ -229,33 +297,31 @@ export default function AudioAiReview({
             )}
           </div>
 
-          {audioBlob && (
+          {audioBlobs.length > 0 && (
             <div className="space-y-2">
               <div className="text-green-600">
-                ✓ Audio recorded ({recordingTime}s)
+                ✓ {audioBlobs.length} audio file(s) ({recordingTime}s total)
               </div>
-              {audioUrl && (
-                <audio
-                  ref={audioRef}
-                  src={audioUrl}
-                  controls
-                  className="w-full"
-                />
-              )}
+              <div className="space-y-2">
+                {audioUrls.map((url, idx) => (
+                  <audio key={idx} src={url} controls className="w-full" />
+                ))}
+              </div>
               <div className="mt-3 flex justify-center gap-2">
                 <button
                   onClick={startRecording}
-                  className="rounded-lg bg-blue-600 px-3 py-1 text-sm text-white hover:bg-blue-700"
+                  disabled={isRecording}
+                  className="rounded-lg bg-blue-600 px-3 py-1 text-sm text-white hover:bg-blue-700 disabled:opacity-50"
                 >
                   <Mic className="mr-1 inline h-3 w-3" />
-                  Re-record
+                  Add Recording
                 </button>
                 <button
                   onClick={clearRecording}
                   className="rounded-lg bg-gray-600 px-3 py-1 text-sm text-white hover:bg-gray-700"
                 >
                   <X className="mr-1 inline h-3 w-3" />
-                  Clear
+                  Clear All
                 </button>
               </div>
             </div>
@@ -263,13 +329,15 @@ export default function AudioAiReview({
         </div>
       </div>
 
-      {audioBlob && !aiReviewData && (
+      {audioBlobs.length > 0 && !aiReviewData && (
         <button
           onClick={handleProcess}
           disabled={isProcessing}
           className="w-full rounded-lg bg-green-600 px-4 py-2 text-white hover:bg-green-700 disabled:opacity-50"
         >
-          {isProcessing ? 'Processing Audio...' : 'Process with AI'}
+          {isProcessing
+            ? `Processing ${audioBlobs.length} Audio File(s)...`
+            : `Process ${audioBlobs.length} Audio File(s) with AI`}
         </button>
       )}
 

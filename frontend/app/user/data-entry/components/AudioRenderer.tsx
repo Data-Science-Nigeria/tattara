@@ -1,10 +1,12 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
-import { Mic, Square, Play, Pause, Save, Upload } from 'lucide-react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { Mic, Square, Save, Upload } from 'lucide-react';
 import { useSaveDraft } from '../hooks/useSaveDraft';
 import { toast } from 'sonner';
 import FormRenderer from './FormSaver';
+import { useQuery } from '@tanstack/react-query';
+import { workflowControllerFindWorkflowByIdOptions } from '@/client/@tanstack/react-query.gen';
 
 interface AudioRendererProps {
   workflow: {
@@ -26,17 +28,46 @@ export default function AudioRenderer({
   hideButtons = false,
 }: AudioRendererProps) {
   const [isRecording, setIsRecording] = useState(false);
-  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
-  const [audioUrl, setAudioUrl] = useState<string | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
+  const [audioBlobs, setAudioBlobs] = useState<Blob[]>([]);
+  const [audioUrls, setAudioUrls] = useState<string[]>([]);
+
   const [recordingTime, setRecordingTime] = useState(0);
   const [showForm, setShowForm] = useState(false);
-  const [audioData, setAudioData] = useState<string>('');
+  const [audioData, setAudioData] = useState<string[]>([]);
+  const [selectedLanguage, setSelectedLanguage] = useState<string>('');
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const { data: workflowData } = useQuery({
+    ...workflowControllerFindWorkflowByIdOptions({
+      path: { workflowId: workflow.id },
+    }),
+  });
+
+  const supportedLanguages = useMemo(
+    () =>
+      (workflowData as { data?: { supportedLanguages?: string[] } })?.data
+        ?.supportedLanguages || [],
+    [workflowData]
+  );
+
+  useEffect(() => {
+    if (supportedLanguages.length > 0 && !selectedLanguage) {
+      setSelectedLanguage(supportedLanguages[0]);
+    }
+  }, [supportedLanguages, selectedLanguage]);
+
+  const getLanguageName = (code: string) => {
+    const names: Record<string, string> = {
+      en: 'English',
+      yo: 'Yoruba',
+      ig: 'Igbo',
+      ha: 'Hausa',
+    };
+    return names[code] || code;
+  };
 
   const { saveDraft, loadDraft, clearDraft, isSaving } = useSaveDraft({
     workflowId: workflow.id,
@@ -46,11 +77,14 @@ export default function AudioRenderer({
   useEffect(() => {
     const draft = loadDraft();
     if (draft?.audioData && draft?.duration) {
-      fetch(draft.audioData)
-        .then((res) => res.blob())
-        .then((blob) => {
-          setAudioBlob(blob);
-          setAudioUrl(draft.audioData);
+      Promise.all(
+        draft.audioData.map((data: string) =>
+          fetch(data).then((res) => res.blob())
+        )
+      )
+        .then((blobs) => {
+          setAudioBlobs(blobs);
+          setAudioUrls(draft.audioData);
           setRecordingTime(draft.duration);
           setAudioData(draft.audioData);
         })
@@ -71,14 +105,13 @@ export default function AudioRenderer({
 
       mediaRecorder.onstop = () => {
         const blob = new Blob(chunks, { type: 'audio/wav' });
-        setAudioBlob(blob);
+        setAudioBlobs((prev) => [...prev, blob]);
         const url = URL.createObjectURL(blob);
-        setAudioUrl(url);
+        setAudioUrls((prev) => [...prev, url]);
 
-        // Convert to base64 for AI processing
         const reader = new FileReader();
         reader.onloadend = () => {
-          setAudioData(reader.result as string);
+          setAudioData((prev) => [...prev, reader.result as string]);
         };
         reader.readAsDataURL(blob);
 
@@ -108,22 +141,8 @@ export default function AudioRenderer({
     }
   };
 
-  const playAudio = () => {
-    if (audioRef.current) {
-      audioRef.current.play();
-      setIsPlaying(true);
-    }
-  };
-
-  const pauseAudio = () => {
-    if (audioRef.current) {
-      audioRef.current.pause();
-      setIsPlaying(false);
-    }
-  };
-
   const handleSave = async () => {
-    if (!audioBlob || !audioData) return;
+    if (audioBlobs.length === 0 || audioData.length === 0) return;
     saveDraft({
       audioData: audioData,
       duration: recordingTime,
@@ -131,35 +150,56 @@ export default function AudioRenderer({
   };
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file && file.type.startsWith('audio/')) {
-      setAudioBlob(file);
-      const url = URL.createObjectURL(file);
-      setAudioUrl(url);
+    const files = event.target.files;
+    if (!files) return;
 
-      // Get actual audio duration
-      const audio = new Audio(url);
-      audio.onloadedmetadata = () => {
-        setRecordingTime(Math.floor(audio.duration));
-      };
-
-      // Convert to base64 for AI processing
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setAudioData(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    } else {
-      toast.error('Please select a valid audio file');
+    const audioFiles = Array.from(files).filter((f) =>
+      f.type.startsWith('audio/')
+    );
+    if (audioFiles.length === 0) {
+      toast.error('Please select valid audio files');
+      return;
     }
+
+    const MAX_SIZE = 80 * 1024 * 1024; // 80MB
+    const totalSize = audioFiles.reduce((sum, file) => sum + file.size, 0);
+
+    if (totalSize > MAX_SIZE) {
+      toast.error(
+        `Total file size exceeds 80MB. Current: ${(totalSize / (1024 * 1024)).toFixed(2)}MB`
+      );
+      return;
+    }
+
+    setAudioBlobs(audioFiles);
+    const urls = audioFiles.map((file) => URL.createObjectURL(file));
+    setAudioUrls(urls);
+
+    let totalDuration = 0;
+    Promise.all(
+      audioFiles.map((file, idx) => {
+        return new Promise<string>((resolve) => {
+          const audio = new Audio(urls[idx]);
+          audio.onloadedmetadata = () => {
+            totalDuration += audio.duration;
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.readAsDataURL(file);
+          };
+        });
+      })
+    ).then((data) => {
+      setAudioData(data);
+      setRecordingTime(Math.floor(totalDuration));
+    });
   };
 
   const handleReset = () => {
-    setAudioBlob(null);
-    setAudioUrl(null);
+    setAudioBlobs([]);
+    setAudioUrls([]);
     setRecordingTime(0);
     setShowForm(false);
-    setAudioData('');
+    setAudioData([]);
     clearDraft();
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
@@ -171,8 +211,8 @@ export default function AudioRenderer({
   };
 
   useEffect(() => {
-    if (onDataChange && audioData) {
-      onDataChange(audioData);
+    if (onDataChange && audioData.length > 0) {
+      onDataChange(JSON.stringify(audioData));
     }
   }, [audioData, onDataChange]);
 
@@ -187,8 +227,9 @@ export default function AudioRenderer({
       <FormRenderer
         workflowId={workflow.id}
         workflowType="audio"
-        inputData={audioBlob}
+        inputData={audioData}
         onProcessingComplete={handleProcessingComplete}
+        language={selectedLanguage}
       />
     );
   }
@@ -196,7 +237,7 @@ export default function AudioRenderer({
   return (
     <div className="rounded-2xl border border-[#D2DDF5] bg-white p-6">
       <div className="mb-4 flex justify-end gap-2">
-        {audioBlob && (
+        {audioBlobs.length > 0 && (
           <button
             type="button"
             onClick={handleSave}
@@ -214,6 +255,27 @@ export default function AudioRenderer({
         >
           Reset
         </button>
+        {supportedLanguages.length === 1 ? (
+          <div className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-medium text-green-600 sm:px-4 sm:text-sm">
+            {getLanguageName(supportedLanguages[0])}
+          </div>
+        ) : supportedLanguages.length > 1 ? (
+          <select
+            value={selectedLanguage}
+            onChange={(e) => setSelectedLanguage(e.target.value)}
+            className="cursor-pointer rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-medium text-green-600 hover:bg-gray-50 focus:ring-2 focus:ring-green-500 sm:px-4 sm:text-sm"
+          >
+            {supportedLanguages.map((lang) => (
+              <option
+                key={lang}
+                value={lang}
+                className="bg-white text-gray-900"
+              >
+                {getLanguageName(lang)}
+              </option>
+            ))}
+          </select>
+        ) : null}
       </div>
       <div className="space-y-6">
         <div className="text-center">
@@ -230,7 +292,7 @@ export default function AudioRenderer({
           </div>
 
           <div className="flex justify-center gap-4">
-            {!isRecording && !audioBlob && (
+            {!isRecording && audioBlobs.length === 0 && (
               <>
                 <button
                   onClick={startRecording}
@@ -250,6 +312,7 @@ export default function AudioRenderer({
                   ref={fileInputRef}
                   type="file"
                   accept="audio/*"
+                  multiple
                   onChange={handleFileUpload}
                   className="hidden"
                 />
@@ -268,42 +331,39 @@ export default function AudioRenderer({
           </div>
         </div>
 
-        {audioUrl && (
+        {audioUrls.length > 0 && (
           <div className="rounded-lg bg-gray-50 p-4">
             <div className="mb-4 flex items-center justify-between">
-              <h3 className="font-medium text-gray-900">Recording Preview</h3>
+              <h3 className="font-medium text-gray-900">
+                {audioUrls.length} Audio File(s)
+              </h3>
               <div className="flex gap-2">
                 <button
-                  onClick={isPlaying ? pauseAudio : playAudio}
-                  className="flex items-center justify-center gap-2 rounded bg-blue-600 px-2 py-1 text-xs text-white hover:bg-blue-700 sm:px-3 sm:text-sm"
+                  onClick={startRecording}
+                  disabled={isRecording}
+                  className="flex items-center justify-center gap-2 rounded bg-blue-600 px-2 py-1 text-xs text-white hover:bg-blue-700 disabled:opacity-50 sm:px-3 sm:text-sm"
                 >
-                  {isPlaying ? (
-                    <Pause size={14} className="sm:h-4 sm:w-4" />
-                  ) : (
-                    <Play size={14} className="sm:h-4 sm:w-4" />
-                  )}
-                  {isPlaying ? 'Pause' : 'Play'}
+                  <Mic size={14} className="sm:h-4 sm:w-4" />
+                  Add Recording
                 </button>
                 <button
                   onClick={() => {
-                    setAudioBlob(null);
-                    setAudioUrl(null);
+                    setAudioBlobs([]);
+                    setAudioUrls([]);
                     setRecordingTime(0);
-                    setAudioData('');
+                    setAudioData([]);
                   }}
                   className="rounded bg-gray-600 px-2 py-1 text-xs text-white hover:bg-gray-700 sm:px-3 sm:text-sm"
                 >
-                  Re-record
+                  Clear All
                 </button>
               </div>
             </div>
-            <audio
-              ref={audioRef}
-              src={audioUrl}
-              onEnded={() => setIsPlaying(false)}
-              className="w-full"
-              controls
-            />
+            <div className="space-y-2">
+              {audioUrls.map((url, idx) => (
+                <audio key={idx} src={url} className="w-full" controls />
+              ))}
+            </div>
           </div>
         )}
 
@@ -313,6 +373,7 @@ export default function AudioRenderer({
             workflowType="audio"
             inputData={audioData}
             onProcessingComplete={handleProcessingComplete}
+            language={selectedLanguage}
           />
         )}
       </div>
