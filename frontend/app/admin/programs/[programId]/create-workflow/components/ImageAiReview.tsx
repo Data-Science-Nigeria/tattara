@@ -3,6 +3,7 @@ import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useAuthStore } from '@/app/store/use-auth-store';
 import AiResponseDisplay from '../field-mapping/components/AiResponseDisplay';
+import { getLanguageForBackend, getLanguageName } from '@/lib/language-utils';
 
 interface ImageAiReviewProps {
   workflowId: string;
@@ -23,15 +24,6 @@ export default function ImageAiReview({
     supportedLanguages[0] || 'en'
   );
 
-  const getLanguageName = (code: string) => {
-    const names: Record<string, string> = {
-      en: 'English',
-      yo: 'Yoruba',
-      ig: 'Igbo',
-      ha: 'Hausa',
-    };
-    return names[code] || code;
-  };
   const [isProcessing, setIsProcessing] = useState(false);
   const [aiReviewData, setAiReviewData] = useState<{
     success: boolean;
@@ -126,7 +118,7 @@ export default function ImageAiReview({
       const formData = new FormData();
       formData.append('workflowId', workflowId);
       formData.append('processingType', 'image');
-      formData.append('language', selectedLanguage);
+      formData.append('language', getLanguageForBackend(selectedLanguage));
       selectedFiles.forEach((file) => formData.append('files', file));
 
       const aiResponse = await aiProcessMutation.mutateAsync({ formData });

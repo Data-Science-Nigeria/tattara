@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import FormRenderer from './FormSaver';
 import { useQuery } from '@tanstack/react-query';
 import { workflowControllerFindWorkflowByIdOptions } from '@/client/@tanstack/react-query.gen';
+import { getLanguageName } from '@/lib/language-utils';
 
 interface AudioRendererProps {
   workflow: {
@@ -58,16 +59,6 @@ export default function AudioRenderer({
       setSelectedLanguage(supportedLanguages[0]);
     }
   }, [supportedLanguages, selectedLanguage]);
-
-  const getLanguageName = (code: string) => {
-    const names: Record<string, string> = {
-      en: 'English',
-      yo: 'Yoruba',
-      ig: 'Igbo',
-      ha: 'Hausa',
-    };
-    return names[code] || code;
-  };
 
   const { saveDraft, loadDraft, clearDraft, isSaving } = useSaveDraft({
     workflowId: workflow.id,

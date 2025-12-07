@@ -450,41 +450,22 @@ export type UpsertFieldMappingsDto = {
   fieldMappings: Array<CreateFieldMappingDto>;
 };
 
-export type ProcessAiDto = {
-  workflowId: string;
-  processingType: 'audio' | 'text' | 'image';
-  aiProvider?:
-    | 'gpt-4o'
-    | 'gpt-4o-mini'
-    | 'gpt-4.1'
-    | 'gpt-4.1-mini'
-    | 'gpt-4-turbo'
-    | 'gpt-3.5-turbo'
-    | 'gpt-5'
-    | 'claude-opus-4.5'
-    | 'claude-3.5-sonnet'
-    | 'claude-3.5-haiku'
-    | 'gemini-2.0-flash'
-    | 'gemini-2.0-pro'
-    | 'gemini-1.5-flash'
-    | 'gemini-1.5-pro'
-    | 'llama-3.1'
-    | 'llama-3.1-70b'
-    | 'llama-3.1-405b'
-    | 'mistral-large'
-    | 'mistral-nemo'
-    | 'mistral-small'
-    | 'mistral-tiny'
-    | 'groq-5-turbo'
-    | 'groq-llama-maverick'
-    | 'groq-llama-scout'
-    | 'groq-qwen3-32b'
-    | 'grok-2'
-    | 'grok-2-mini'
-    | 'custom'
-    | 'experimental';
-  text?: string;
-  language?: string;
+export type ProcessAiResponseDto = {
+  form_id: string;
+  form_version?: string;
+  total_rows: number;
+  rows: Array<{
+    [key: string]: unknown;
+  }>;
+  confidence?: {
+    [key: string]: unknown;
+  };
+  metrics?: {
+    [key: string]: unknown;
+  };
+  meta?: {
+    [key: string]: unknown;
+  };
 };
 
 export type SubmitDto = {
@@ -711,15 +692,43 @@ export type UserControllerRegisterSingleUserResponses = {
 };
 
 export type UserControllerBulkCreateData = {
-  body?: never;
+  body: {
+    /**
+     * CSV file with columns: email, password, firstName, lastName
+     */
+    file: Blob | File;
+  };
   path?: never;
   query?: never;
   url: '/api/v1/users/bulk/create';
 };
 
-export type UserControllerBulkCreateResponses = {
-  201: unknown;
+export type UserControllerBulkCreateErrors = {
+  /**
+   * Invalid CSV format or validation errors
+   */
+  400: unknown;
+  /**
+   * Unauthorized
+   */
+  401: unknown;
+  /**
+   * Forbidden - requires admin role and user:write permission
+   */
+  403: unknown;
 };
+
+export type UserControllerBulkCreateResponses = {
+  /**
+   * Users successfully created
+   */
+  201: {
+    message?: string;
+  };
+};
+
+export type UserControllerBulkCreateResponse =
+  UserControllerBulkCreateResponses[keyof UserControllerBulkCreateResponses];
 
 export type UserControllerGetAllPermissionsData = {
   body?: never;
@@ -1124,16 +1133,42 @@ export type FieldMappingControllerUpsertFieldMappingsResponses = {
 };
 
 export type CollectorControllerProcessAiData = {
-  body: ProcessAiDto;
+  body: {
+    /**
+     * Files to process (images, audio, documents)
+     */
+    files?: Array<Blob | File>;
+    /**
+     * The workflow ID to process
+     */
+    workflowId: string;
+    /**
+     * Type of processing to perform
+     */
+    processingType: string;
+    /**
+     * AI provider to use (optional)
+     */
+    aiProvider?: string;
+    /**
+     * Text content to process (optional)
+     */
+    text?: string;
+    /**
+     * Language for audio processing (optional)
+     */
+    language?: string;
+  };
   path?: never;
   query?: never;
   url: '/api/v1/collector/process-ai';
 };
 
 export type CollectorControllerProcessAiResponses = {
-  201: {
-    [key: string]: unknown;
-  };
+  /**
+   * AI processing completed successfully
+   */
+  201: ProcessAiResponseDto;
 };
 
 export type CollectorControllerProcessAiResponse =

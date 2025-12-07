@@ -87,6 +87,7 @@ import type {
   UserControllerGetAllRolesData,
   UserControllerRegisterSingleUserData,
   UserControllerBulkCreateData,
+  UserControllerBulkCreateResponse,
   UserControllerGetAllPermissionsData,
   ProgramControllerGetProgramsData,
   ProgramControllerCreateData,
@@ -693,15 +694,23 @@ export const userControllerRegisterSingleUserMutation = (
   return mutationOptions;
 };
 
+/**
+ * Bulk create users from CSV
+ * Upload a CSV file to create multiple users at once.
+ *
+ * **CSV Format:**
+ * - Headers: email, password, firstName, lastName
+ * - Password requirements: Min 8 chars, 1 uppercase, 1 lowercase, 1 number, 1 special character (@$!%*?&)
+ */
 export const userControllerBulkCreateMutation = (
   options?: Partial<Options<UserControllerBulkCreateData>>
 ): UseMutationOptions<
-  unknown,
+  UserControllerBulkCreateResponse,
   DefaultError,
   Options<UserControllerBulkCreateData>
 > => {
   const mutationOptions: UseMutationOptions<
-    unknown,
+    UserControllerBulkCreateResponse,
     DefaultError,
     Options<UserControllerBulkCreateData>
   > = {
@@ -1515,9 +1524,8 @@ export const fieldMappingControllerUpsertFieldMappingsMutation = (
 };
 
 /**
- * Process AI data (text, audio, image)
- * Accepts multiple files for processing AI data including text, audio, and images.
- * Accept language parameter for audio processing.
+ * Process AI data
+ * Accepts multiple files for processing AI data including text, audio, and images. Accepts language parameter for audio processing.
  */
 export const collectorControllerProcessAiMutation = (
   options?: Partial<Options<CollectorControllerProcessAiData>>
