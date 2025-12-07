@@ -180,7 +180,7 @@ export default function ManageWorkflows() {
         </div>
 
         {/* Assignments Table */}
-        <div className="overflow-hidden rounded-lg bg-white shadow">
+        <div className="custom-scrollbar overflow-hidden rounded-lg bg-white shadow">
           <div className="overflow-x-auto">
             <table className="w-full min-w-[800px]">
               <thead className="bg-gray-50">

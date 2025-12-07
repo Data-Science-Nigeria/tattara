@@ -8,6 +8,7 @@ import {
   ArrowLeft,
   MoreHorizontal,
   TestTube,
+  Archive,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
@@ -21,6 +22,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import ArchiveWorkflowModal from './components/archive-workflow-modal';
 
 interface Workflow {
   id: string;
@@ -44,6 +46,12 @@ export default function CreateWorkflow() {
   const programId = params.programId as string;
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [viewMode, setViewMode] = useState<'active' | 'archived'>('active');
+  const [showArchiveModal, setShowArchiveModal] = useState(false);
+  const [archiveWorkflowData, setArchiveWorkflowData] = useState<{
+    workflowId: string;
+    workflowName: string;
+  } | null>(null);
   const itemsPerPage = 10;
 
   // Get workflows for this specific program
@@ -65,12 +73,17 @@ export default function CreateWorkflow() {
     ? responseData.data
     : [];
 
-  // Filter workflows based on search term
-  const filteredWorkflows = allWorkflows.filter(
-    (workflow: Workflow) =>
+  // Filter workflows based on search term and view mode
+  const filteredWorkflows = allWorkflows.filter((workflow: Workflow) => {
+    const matchesSearch =
       workflow.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      workflow.description?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+      workflow.description?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesViewMode =
+      viewMode === 'active'
+        ? workflow.status === 'active'
+        : workflow.status === 'archived';
+    return matchesSearch && matchesViewMode;
+  });
 
   // Client-side pagination
   const totalWorkflows = filteredWorkflows.length;
@@ -112,12 +125,44 @@ export default function CreateWorkflow() {
             </Link>
           </div>
 
-          <div className="max-w-full sm:max-w-md">
-            <SearchInput
-              placeholder="Search workflows..."
-              value={searchTerm}
-              onChange={setSearchTerm}
-            />
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="max-w-full sm:max-w-md">
+              <SearchInput
+                placeholder="Search workflows..."
+                value={searchTerm}
+                onChange={setSearchTerm}
+              />
+            </div>
+
+            {/* Toggle Buttons */}
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  setViewMode('active');
+                  setCurrentPage(1);
+                }}
+                className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+                  viewMode === 'active'
+                    ? 'bg-green-600 text-white'
+                    : 'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                Active
+              </button>
+              <button
+                onClick={() => {
+                  setViewMode('archived');
+                  setCurrentPage(1);
+                }}
+                className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+                  viewMode === 'archived'
+                    ? 'bg-green-600 text-white'
+                    : 'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                Archived
+              </button>
+            </div>
           </div>
 
           {searchTerm && (
@@ -129,7 +174,7 @@ export default function CreateWorkflow() {
         </div>
 
         {/* Workflows Table */}
-        <div className="overflow-hidden rounded-lg bg-white shadow">
+        <div className="custom-scrollbar overflow-hidden rounded-lg bg-white shadow">
           <div className="overflow-x-auto">
             <table className="w-full min-w-[800px]">
               <thead className="bg-gray-50">
@@ -229,7 +274,7 @@ export default function CreateWorkflow() {
                           {workflow.enabledModes?.join(', ') || 'N/A'}
                         </td>
                         <td className="sticky right-0 bg-white px-6 py-4 text-sm font-medium whitespace-nowrap">
-                          {workflow.status === 'active' && (
+                          {workflow.status === 'active' ? (
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <button className="flex h-6 w-6 items-center justify-center rounded-md hover:bg-gray-100">
@@ -260,6 +305,18 @@ export default function CreateWorkflow() {
                                       <Edit className="mr-2 h-4 w-4" />
                                       Edit
                                     </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      onClick={() => {
+                                        setArchiveWorkflowData({
+                                          workflowId: workflow.id,
+                                          workflowName: workflow.name,
+                                        });
+                                        setShowArchiveModal(true);
+                                      }}
+                                    >
+                                      <Archive className="mr-2 h-4 w-4" />
+                                      Archive
+                                    </DropdownMenuItem>
                                   </>
                                 ) : (
                                   <>
@@ -283,10 +340,29 @@ export default function CreateWorkflow() {
                                       <Edit className="mr-2 h-4 w-4" />
                                       Edit
                                     </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      onClick={() => {
+                                        setArchiveWorkflowData({
+                                          workflowId: workflow.id,
+                                          workflowName: workflow.name,
+                                        });
+                                        setShowArchiveModal(true);
+                                      }}
+                                    >
+                                      <Archive className="mr-2 h-4 w-4" />
+                                      Archive
+                                    </DropdownMenuItem>
                                   </>
                                 )}
                               </DropdownMenuContent>
                             </DropdownMenu>
+                          ) : (
+                            <button
+                              disabled
+                              className="flex h-6 w-6 cursor-not-allowed items-center justify-center rounded-md opacity-50"
+                            >
+                              <MoreHorizontal className="h-4 w-4" />
+                            </button>
                           )}
                         </td>
                       </tr>
@@ -335,6 +411,20 @@ export default function CreateWorkflow() {
               Next &gt;
             </button>
           </div>
+        )}
+
+        {/* Archive Modal */}
+        {showArchiveModal && archiveWorkflowData && (
+          <ArchiveWorkflowModal
+            isOpen={showArchiveModal}
+            workflowId={archiveWorkflowData.workflowId}
+            workflowName={archiveWorkflowData.workflowName}
+            programId={programId}
+            onClose={() => {
+              setShowArchiveModal(false);
+              setArchiveWorkflowData(null);
+            }}
+          />
         )}
       </div>
     </div>
