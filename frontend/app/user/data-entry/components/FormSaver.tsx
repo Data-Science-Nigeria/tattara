@@ -156,6 +156,36 @@ export default function FormRenderer({
     }
   };
 
+  const normalizeFormData = (
+    data: Record<string, unknown>,
+    fields: FormField[]
+  ) => {
+    const normalized = { ...data };
+
+    fields.forEach((field) => {
+      if (
+        (field.fieldType === 'multiselect' || field.fieldType === 'select') &&
+        field.options
+      ) {
+        const value = normalized[field.fieldName];
+
+        if (Array.isArray(value)) {
+          const optionsLower = field.options.map((o) => o.toLowerCase());
+          normalized[field.fieldName] = value.map((v) => {
+            const idx = optionsLower.indexOf(String(v).toLowerCase());
+            return idx >= 0 ? field.options![idx] : v;
+          });
+        } else if (value) {
+          const optionsLower = field.options.map((o) => o.toLowerCase());
+          const idx = optionsLower.indexOf(String(value).toLowerCase());
+          if (idx >= 0) normalized[field.fieldName] = field.options[idx];
+        }
+      }
+    });
+
+    return normalized;
+  };
+
   const handleProcess = async () => {
     setIsProcessing(true);
     try {
@@ -224,11 +254,15 @@ export default function FormRenderer({
 
       if (aiData?.extracted) {
         if (Array.isArray(aiData.extracted)) {
-          setBulkFormData(aiData.extracted);
-          setFormData(aiData.extracted[0] || {});
+          const normalized = aiData.extracted.map((entry) =>
+            normalizeFormData(entry, sortedFields)
+          );
+          setBulkFormData(normalized);
+          setFormData(normalized[0] || {});
           setIsBulkMode(true);
         } else {
-          setFormData(aiData.extracted);
+          const normalized = normalizeFormData(aiData.extracted, sortedFields);
+          setFormData(normalized);
           setIsBulkMode(false);
         }
       }
