@@ -17,6 +17,12 @@ import { CsvUsersValidationPipe } from '@/common/pipes';
 import { User } from '@/database/entities';
 import { RegisterDto } from '../auth/dto';
 import { UserService } from './user.service';
+import {
+  ApiOperation,
+  ApiConsumes,
+  ApiBody,
+  ApiResponse,
+} from '@nestjs/swagger';
 
 @Controller('users')
 export class UserController {
@@ -155,6 +161,48 @@ export class UserController {
   }
 
   @Post('bulk/create')
+  @ApiOperation({
+    summary: 'Bulk create users from CSV',
+    description: `Upload a CSV file to create multiple users at once.
+    
+**CSV Format:**
+- Headers: email, password, firstName, lastName
+- Password requirements: Min 8 chars, 1 uppercase, 1 lowercase, 1 number, 1 special character (@$!%*?&)`,
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['file'],
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+          description:
+            'CSV file with columns: email, password, firstName, lastName',
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Users successfully created',
+    schema: {
+      type: 'object',
+      properties: {
+        message: { type: 'string', example: 'Users successfully created' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid CSV format or validation errors',
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - requires admin role and user:write permission',
+  })
   @UseInterceptors(FileInterceptor('file'))
   @Roles('admin')
   @RequirePermissions('user:write')

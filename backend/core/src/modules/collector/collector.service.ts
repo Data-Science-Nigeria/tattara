@@ -121,13 +121,13 @@ export class CollectorService {
       }
 
       return await this.dataSource.transaction(async manager => {
-        const { extracted, ...rest } = response;
+        const { rows, ...rest } = response;
 
         const aiProcessingLog = manager.create(AiProcessingLog, {
           aiProvider: payload.aiProvider,
           confidenceScore: rest.confidence?.score ?? undefined,
           user,
-          mappedOutput: extracted,
+          mappedOutput: rows,
           workflow,
           processingType: payload.processingType,
           formSchema: formSchema,
