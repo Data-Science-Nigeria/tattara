@@ -1,12 +1,13 @@
 'use client';
 import React from 'react';
-import { sidebarItems } from './sidebar-items';
+import { getSidebarItems } from './sidebar-items';
 import { SidebarItem } from './sidebar-item';
 import { LogOut, PanelLeft, PanelRight } from 'lucide-react';
 import Logo from '../../components/logo';
 import Avatar from '../../components/avatar';
 import { useAuthStore } from '../../store/use-auth-store';
 import { useLogout } from '../../hooks/use-logout';
+import { usePathname } from 'next/navigation';
 
 interface SidebarProps {
   isOpen?: boolean;
@@ -16,8 +17,10 @@ interface SidebarProps {
 const Sidebar = ({ isOpen = false, onToggle = () => {} }: SidebarProps) => {
   const { handleLogout } = useLogout();
   const { auth } = useAuthStore();
+  const pathname = usePathname();
 
   const surname = auth.lastName || 'Admin';
+  const sidebarItems = getSidebarItems(pathname);
 
   const handleItemSelect = () => {
     // Auto-close sidebar on md screens and below (1024px)
@@ -38,7 +41,7 @@ const Sidebar = ({ isOpen = false, onToggle = () => {} }: SidebarProps) => {
 
       {/* Sidebar */}
       <aside
-        className={`scrollbar-hide fixed top-0 left-0 z-40 flex h-screen flex-col overflow-y-auto border-r border-gray-100 bg-white transition-all duration-300 ease-in-out ${
+        className={`scrollbar-hide fixed top-0 left-0 z-40 flex h-screen flex-col border-r border-gray-100 bg-white transition-all duration-300 ease-in-out ${
           isOpen
             ? 'xs:w-64 w-full sm:w-72 md:w-[280px] lg:w-[280px]'
             : 'w-16 lg:w-[280px]'
@@ -82,7 +85,7 @@ const Sidebar = ({ isOpen = false, onToggle = () => {} }: SidebarProps) => {
 
         {/* Menu Items */}
         <div
-          className={`custom-scrollbar mt-6 flex-1 space-y-3 overflow-y-auto md:mt-6 ${
+          className={`mt-6 flex-1 space-y-3 md:mt-6 ${
             isOpen
               ? 'px-4 md:px-0'
               : 'flex flex-col items-center px-2 lg:block lg:space-y-3 lg:px-4'

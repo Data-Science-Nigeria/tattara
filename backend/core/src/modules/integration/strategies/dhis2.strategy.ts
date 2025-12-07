@@ -173,26 +173,33 @@ export class Dhis2Strategy extends ConnectorStrategy {
     }
   }
 
-  // TODO: Handle case for multiple orgUnits
+  // Always expects array of events or a dataset payload
   async pushData(
     config: Dhis2ConnectionConfig,
-    payload: EventPayload | DatasetPayload,
+    payload: EventPayload[] | DatasetPayload,
   ): Promise<Dhis2ImportSummary> {
     try {
       let url: string;
+      let requestPayload: unknown;
 
-      if ('program' in payload) {
-        url = `${config.baseUrl}/api/events`;
+      // Handle array of events
+      if (Array.isArray(payload)) {
+        url = `${config.baseUrl}/api/tracker?async=false`;
+        requestPayload = {
+          events: payload.map(event => this.transformToTrackerEvent(event)),
+        };
       } else if ('dataSet' in payload) {
+        // Dataset - use dataValueSets endpoint
         url = `${config.baseUrl}/api/dataValueSets`;
+        requestPayload = payload;
       } else {
         throw new Error(
-          'Unknown DHIS2 payload type: expected program or dataSet',
+          'Unknown DHIS2 payload type: expected EventPayload[] or DatasetPayload',
         );
       }
 
       const response = await firstValueFrom(
-        this.httpService.post<Dhis2ImportSummary>(url, payload, {
+        this.httpService.post<Dhis2ImportSummary>(url, requestPayload, {
           headers: {
             Authorization: `ApiToken ${config.pat}`,
             'Content-Type': 'application/json',
@@ -221,6 +228,42 @@ export class Dhis2Strategy extends ConnectorStrategy {
     }
   }
 
+  private transformToTrackerEvent(
+    event: EventPayload,
+  ): Record<string, unknown> {
+    return {
+      orgUnit: event.orgUnit,
+      program: event.program,
+      programStage: event.programStage,
+      occurredAt: event.eventDate,
+      status: event.status || 'ACTIVE',
+      dataValues: event.dataValues.map(dv => ({
+        dataElement: dv.dataElement,
+        value: this.normalizeValue(dv.value),
+      })),
+    };
+  }
+
+  private normalizeValue(value: unknown): string {
+    if (Array.isArray(value)) {
+      return value.join(', ');
+    }
+    if (typeof value === 'boolean') {
+      return value ? 'true' : 'false';
+    }
+    if (typeof value === 'number') {
+      return value.toString();
+    }
+    if (typeof value === 'string') {
+      return value;
+    }
+    if (value === null || value === undefined) {
+      return '';
+    }
+    // For objects, use JSON.stringify
+    return JSON.stringify(value);
+  }
+
   async getPrograms(
     config: Dhis2ConnectionConfig,
     { page, pageSize }: Pagination,
@@ -236,6 +279,7 @@ export class Dhis2Strategy extends ConnectorStrategy {
 
       return response.data;
     } catch (error: unknown) {
+      console.log(error);
       if (isAxiosError<Dhis2ErrorResponse>(error)) {
         const status = error.response?.status ?? 500;
         const dhis2Error = error.response?.data;

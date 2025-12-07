@@ -28,22 +28,67 @@ export interface ProcessImagePayload {
   language?: string;
 }
 
-export interface ExtractionResponse {
-  form_id: string;
-  form_version?: string;
+// {
+//   "form_id": "string",
+//   "form_version": "string",
+//   "total_rows": 0,
+//   "rows": [
+//     {
+//       "row_index": 0,
+//       "extracted": {
+//         "additionalProp1": {}
+//       },
+//       "missing_required": [
+//         "string"
+//       ]
+//     }
+//   ],
+//   "confidence": {
+//     "additionalProp1": 0,
+//     "additionalProp2": 0,
+//     "additionalProp3": 0
+//   },
+//   "metrics": {
+//     "asr_seconds": 0,
+//     "vision_seconds": 0,
+//     "llm_seconds": 0,
+//     "total_seconds": 0,
+//     "tokens_in": 0,
+//     "tokens_out": 0,
+//     "cost_usd": 0,
+//     "provider": "string",
+//     "model": "string"
+//   },
+//   "meta": {
+//     "additionalProp1": {}
+//   }
+// }
+
+export interface ExtractionRow {
+  row_index: number;
   extracted: Record<string, any>;
   spans: Record<string, any>;
   missing_required: string[];
+}
+
+export interface Metrics {
+  total_seconds?: number;
+  tokens_in?: number;
+  tokens_out?: number;
+  cost_usd?: number;
+  provider?: string;
+  model?: string;
+  asr_seconds?: number;
+  vision_seconds?: number;
+  llm_seconds?: number;
+}
+
+export interface ExtractionResponse {
+  form_id: string;
+  form_version?: string;
+  total_rows: number;
+  rows: ExtractionRow[];
   confidence: Record<string, number>;
-  metrics?: {
-    total_seconds?: number;
-    tokens_in?: number;
-    tokens_out?: number;
-    cost_usd?: number;
-    provider?: string;
-    model?: string;
-    asr_seconds?: number;
-    vision_seconds?: number;
-    llm_seconds?: number;
-  };
+  metrics: Metrics;
+  meta: Record<string, any>;
 }

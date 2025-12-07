@@ -1,22 +1,25 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Patch,
-  Param,
-  Delete,
-  Query,
-  ParseUUIDPipe,
-} from '@nestjs/common';
-import { ProgramService } from './program.service';
-import { CurrentUser, RequirePermissions, Roles } from '@/common/decorators';
-import { AssignUsersToProgramDto, CreateProgramDto } from './dto';
-import { UpdateProgramDto } from './dto';
+import { CurrentUser, Roles } from '@/common/decorators';
 import { User } from '@/database/entities';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  ParseUUIDPipe,
+  Patch,
+  Post,
+  Query,
+} from '@nestjs/common';
 import { ApiQuery } from '@nestjs/swagger';
 import { plainToInstance } from 'class-transformer';
+import {
+  AssignUsersToProgramDto,
+  CreateProgramDto,
+  UpdateProgramDto,
+} from './dto';
 import { ProgramResponseDto } from './dto/program-response.dto';
+import { ProgramService } from './program.service';
 
 @Controller('programs')
 export class ProgramController {
@@ -25,8 +28,7 @@ export class ProgramController {
   /**  Get all programs with pagination
    */
   @Get()
-  @Roles('admin')
-  @RequirePermissions('program:read')
+  @Roles('admin', 'user')
   @ApiQuery({ name: 'userId', required: false, type: String })
   @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
@@ -58,7 +60,6 @@ export class ProgramController {
    */
   @Post()
   @Roles('admin')
-  @RequirePermissions('program:create')
   create(@Body() createProgramDto: CreateProgramDto) {
     return this.programService.create(createProgramDto);
   }
@@ -66,17 +67,18 @@ export class ProgramController {
   /** Get a specific program by ID
    */
   @Get(':id')
-  @Roles('admin')
-  @RequirePermissions('program:read')
+  @Roles('admin', 'user')
   findOne(@Param('id') programId: string) {
-    return this.programService.findOne(programId);
+    const program = this.programService.findOne(programId);
+    return plainToInstance(ProgramResponseDto, program, {
+      excludeExtraneousValues: true,
+    });
   }
 
   /** Update a specific program by ID
    */
   @Patch(':id')
   @Roles('admin')
-  @RequirePermissions('program:update')
   update(
     @Param('id') programId: string,
     @Body() updateProgramDto: UpdateProgramDto,
@@ -88,7 +90,6 @@ export class ProgramController {
    */
   @Delete(':id')
   @Roles('admin')
-  @RequirePermissions('program:delete')
   remove(@Param('id') programId: string) {
     return this.programService.remove(programId);
   }
@@ -96,8 +97,7 @@ export class ProgramController {
   /** Get all workflows associated with a specific program
    */
   @Get(':id/workflows')
-  @Roles('admin')
-  @RequirePermissions('program:read')
+  @Roles('admin', 'user')
   findWorkflowsByProgram(@Param('id') programId: string) {
     return this.programService.findAllWorkflows(programId);
   }
@@ -106,7 +106,6 @@ export class ProgramController {
    */
   @Post(':id/workflows')
   @Roles('admin')
-  @RequirePermissions('program:update')
   addWorkflowToProgram(
     @Param('id') programId: string,
     @Body('workflowIds') workflowIds: string[],
@@ -118,11 +117,16 @@ export class ProgramController {
    */
   @Get(':userId/users')
   @Roles('admin')
-  @RequirePermissions('program:read')
   async getAllProgramsForUser(
     @Param('userId', new ParseUUIDPipe()) userId: string,
+    @CurrentUser() currentUser: User,
   ) {
-    const programs = await this.programService.getAllProgramsForUser(userId);
+    const { programs } = await this.programService.getPrograms(
+      1,
+      1000, // Get all programs for the user
+      currentUser,
+      userId,
+    );
     return {
       programs: programs.map(program => ({
         id: program.id,
@@ -138,7 +142,6 @@ export class ProgramController {
    */
   @Post(':id/users')
   @Roles('admin')
-  @RequirePermissions('program:update')
   assignUsersToProgram(
     @Param('id', new ParseUUIDPipe()) programId: string,
     @Body() dto: AssignUsersToProgramDto,
@@ -155,7 +158,6 @@ export class ProgramController {
 
   @Post(':id/users/unassign')
   @Roles('admin')
-  @RequirePermissions('program:update')
   unassignUsersFromProgram(
     @Param('id', new ParseUUIDPipe()) programId: string,
     @Body() dto: AssignUsersToProgramDto,

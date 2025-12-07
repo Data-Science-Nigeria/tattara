@@ -58,7 +58,7 @@ export class WorkflowController {
   }
 
   @Get('/search')
-  @Roles('admin')
+  @Roles('admin', 'user')
   async searchWorkflows(
     @Query('q') searchQuery: string,
     @Query('page', ParseIntPipe) page: number = 1,
@@ -68,7 +68,7 @@ export class WorkflowController {
   }
 
   @Get('/:workflowId')
-  @Roles('admin')
+  @Roles('admin', 'user')
   async findWorkflowById(
     @Param('workflowId', new ParseUUIDPipe()) workflowId: string,
   ) {

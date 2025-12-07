@@ -10,4 +10,5 @@ jsonschema>=4.22
 pytesseract>=0.3.10
 openai>=1.40.0
 groq>=0.9.0
-faster-whisper>=1.0
+# faster-whisper>=1.0  # Requires onnxruntime, not available for Python 3.14
+spitch

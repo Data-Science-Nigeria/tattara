@@ -1,68 +1,40 @@
 'use client';
 
 import { useState } from 'react';
-import { ChevronDown, Download, ArrowUp, ArrowDown } from 'lucide-react';
+import {
+  ChevronDown,
+  Download,
+  ArrowUp,
+  ArrowDown,
+  UserMinus,
+} from 'lucide-react';
 import SearchInput from './search-input';
 import { exportToJSON, exportToCSV, exportToPDF } from '../utils/export-utils';
 
 interface ProgramData {
   name: string;
-  program: string;
-  completedOn: string;
-  status: string;
+  totalWorkflows: number;
+  userId?: string;
 }
 
 interface ProgramTableProps {
   data?: ProgramData[];
   isLoading?: boolean;
   programName?: string;
+  onUnassign?: (userId: string, userName: string) => void;
 }
-
-const StatusBadge = ({ status }: { status: string }) => {
-  const getStatusStyle = () => {
-    switch (status) {
-      case 'Pending':
-        return 'text-[#FD8822] bg-[#FFE2C9]';
-      case 'Completed':
-        return 'text-[#008647] bg-[#DCF5E9]';
-      default:
-        return 'text-gray-600 bg-gray-100';
-    }
-  };
-
-  return (
-    <span
-      className={`rounded-full px-3 py-1 text-sm font-medium ${getStatusStyle()}`}
-    >
-      {status}
-    </span>
-  );
-};
 
 export default function ProgramTable({
   data = [],
   isLoading = false,
   programName = 'Program',
+  onUnassign,
 }: ProgramTableProps) {
   const [search, setSearch] = useState('');
   const [showLimit, setShowLimit] = useState(10);
   const [showExportDropdown, setShowExportDropdown] = useState(false);
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [selectedDate, setSelectedDate] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc' | null>(null);
-  const [statusFilter, setStatusFilter] = useState('');
-  const [showStatusDropdown, setShowStatusDropdown] = useState(false);
-
-  const getCurrentDate = () => {
-    const today = new Date();
-    return today.toISOString().split('T')[0];
-  };
-
-  const clearDate = () => {
-    setSelectedDate('');
-    setShowDatePicker(false);
-  };
 
   const handleSort = () => {
     if (sortOrder === null) {
@@ -76,14 +48,11 @@ export default function ProgramTable({
 
   const filteredData = data
     .filter((item) => {
-      const matchesSearch =
-        item.name?.toLowerCase().includes(search.toLowerCase()) ||
-        item.program?.toLowerCase().includes(search.toLowerCase());
+      const matchesSearch = item.name
+        ?.toLowerCase()
+        .includes(search.toLowerCase());
 
-      const matchesDate = !selectedDate || item.completedOn === selectedDate;
-      const matchesStatus = !statusFilter || item.status === statusFilter;
-
-      return matchesSearch && matchesDate && matchesStatus;
+      return matchesSearch;
     })
     .sort((a, b) => {
       if (sortOrder === null) return 0;
@@ -109,7 +78,7 @@ export default function ProgramTable({
       {/* Search and Controls */}
       <div className="flex flex-col items-center justify-between gap-4 md:flex-row">
         <SearchInput
-          placeholder="Search by name or full name..."
+          placeholder="Search by name..."
           value={search}
           onChange={setSearch}
         />
@@ -149,11 +118,9 @@ export default function ProgramTable({
                   <button
                     onClick={() => {
                       const exportData = filteredData.map(
-                        ({ name, program, completedOn, status }) => ({
+                        ({ name, totalWorkflows }) => ({
                           Name: name,
-                          'Assigned Workflow': program,
-                          'Completed on': completedOn,
-                          Status: status,
+                          'Total Assigned Workflows': totalWorkflows,
                         })
                       );
                       exportToJSON(exportData, `${programName}.json`);
@@ -166,18 +133,14 @@ export default function ProgramTable({
                   <button
                     onClick={() => {
                       const exportData = filteredData.map(
-                        ({ name, program, completedOn, status }) => ({
+                        ({ name, totalWorkflows }) => ({
                           Name: name,
-                          'Assigned Workflow': program,
-                          'Completed on': completedOn,
-                          Status: status,
+                          'Total Assigned Workflows': totalWorkflows,
                         })
                       );
                       exportToCSV(exportData, `${programName}.csv`, [
                         'Name',
-                        'Assigned Workflow',
-                        'Completed on',
-                        'Status',
+                        'Total Assigned Workflows',
                       ]);
                       setShowExportDropdown(false);
                     }}
@@ -188,18 +151,16 @@ export default function ProgramTable({
                   <button
                     onClick={() => {
                       const exportData = filteredData.map(
-                        ({ name, program, completedOn, status }) => ({
+                        ({ name, totalWorkflows }) => ({
                           Name: name,
-                          'Assigned Workflow': program,
-                          'Completed on': completedOn,
-                          Status: status,
+                          'Total Assigned Workflows': totalWorkflows,
                         })
                       );
                       exportToPDF(
                         exportData,
                         `${programName}.pdf`,
                         `${programName} Report`,
-                        ['Name', 'Assigned Workflow', 'Completed on', 'Status']
+                        ['Name', 'Total Assigned Workflows']
                       );
                       setShowExportDropdown(false);
                     }}
@@ -215,13 +176,13 @@ export default function ProgramTable({
       </div>
 
       {/* Table */}
-      <div className="rounded-md border bg-white">
-        <table className="w-full">
+      <div className="custom-scrollbar overflow-x-auto rounded-md border bg-white">
+        <table className="relative w-full min-w-[700px]">
           <thead className="bg-[#F2F3FF]">
             <tr>
-              <th className="px-6 py-4 text-left font-semibold text-gray-700">
+              <th className="px-3 py-4 text-left font-semibold text-gray-700 sm:px-6">
                 <div className="flex items-center gap-2">
-                  Name
+                  <span className="text-sm sm:text-base">Name</span>
                   <button
                     onClick={handleSort}
                     className="flex items-center rounded p-1 hover:bg-gray-100"
@@ -237,91 +198,13 @@ export default function ProgramTable({
                   </button>
                 </div>
               </th>
-              <th className="px-6 py-4 text-left font-semibold text-gray-700">
-                Assigned Workflow
+              <th className="px-3 py-4 text-left font-semibold text-gray-700 sm:px-6">
+                <span className="text-sm sm:text-base">
+                  Total Assigned Workflows
+                </span>
               </th>
-              <th className="px-6 py-4 text-left font-semibold text-gray-700">
-                <div className="flex items-center gap-2">
-                  Completed on
-                  <div className="relative">
-                    <svg
-                      className="h-4 w-4 cursor-pointer"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                      onClick={() => setShowDatePicker(!showDatePicker)}
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                      />
-                    </svg>
-
-                    {showDatePicker && (
-                      <div className="absolute top-6 right-0 z-20 w-40 rounded border bg-white p-2 shadow-lg">
-                        <input
-                          type="date"
-                          value={selectedDate}
-                          max={getCurrentDate()}
-                          onChange={(e) => setSelectedDate(e.target.value)}
-                          className="mb-1 w-full rounded border px-1 py-1 text-xs"
-                        />
-                        <div className="flex gap-1">
-                          <button
-                            onClick={clearDate}
-                            className="flex-1 rounded bg-gray-100 px-2 py-1 text-xs hover:bg-gray-200"
-                          >
-                            Clear
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </th>
-              <th className="px-6 py-4 text-left font-semibold text-gray-700">
-                <div className="flex items-center gap-2">
-                  Status
-                  <div className="relative">
-                    <ChevronDown
-                      className="h-4 w-4 cursor-pointer"
-                      onClick={() => setShowStatusDropdown(!showStatusDropdown)}
-                    />
-                    {showStatusDropdown && (
-                      <div className="absolute top-6 right-0 z-20 w-32 rounded border bg-white shadow-lg">
-                        <button
-                          onClick={() => {
-                            setStatusFilter('');
-                            setShowStatusDropdown(false);
-                          }}
-                          className="w-full px-3 py-2 text-left text-xs hover:bg-gray-50"
-                        >
-                          All
-                        </button>
-                        <button
-                          onClick={() => {
-                            setStatusFilter('Pending');
-                            setShowStatusDropdown(false);
-                          }}
-                          className="w-full px-3 py-2 text-left text-xs hover:bg-gray-50"
-                        >
-                          Pending
-                        </button>
-                        <button
-                          onClick={() => {
-                            setStatusFilter('Completed');
-                            setShowStatusDropdown(false);
-                          }}
-                          className="w-full px-3 py-2 text-left text-xs hover:bg-gray-50"
-                        >
-                          Completed
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
+              <th className="sticky right-0 border-l bg-[#F2F3FF] px-3 py-4 text-left font-semibold text-gray-700 sm:px-6">
+                <span className="text-sm sm:text-base">Actions</span>
               </th>
             </tr>
           </thead>
@@ -329,33 +212,43 @@ export default function ProgramTable({
           <tbody>
             {isLoading ? (
               <tr>
-                <td colSpan={4} className="px-6 py-4 text-center text-gray-500">
+                <td
+                  colSpan={3}
+                  className="px-3 py-4 text-center text-gray-500 sm:px-6"
+                >
                   <div className="flex items-center justify-center py-4">
                     <div className="h-6 w-6 animate-spin rounded-full border-b-2 border-[#008647]"></div>
-                    <span className="ml-2">Loading users...</span>
+                    <span className="ml-2 text-sm">Loading users...</span>
                   </div>
                 </td>
               </tr>
             ) : currentData.length === 0 ? (
               <tr>
-                <td colSpan={4} className="px-6 py-4 text-center text-gray-500">
+                <td
+                  colSpan={3}
+                  className="px-3 py-4 text-center text-sm text-gray-500 sm:px-6"
+                >
                   No users found
                 </td>
               </tr>
             ) : (
               currentData.map((item, index) => (
                 <tr key={index} className="border-b" data-row={index}>
-                  <td className="px-6 py-4 text-gray-700">
+                  <td className="px-3 py-4 text-sm text-gray-700 sm:px-6">
                     {item.name || 'N/A'}
                   </td>
-                  <td className="px-6 py-4 text-gray-700">
-                    {item.program || 'N/A'}
+                  <td className="px-3 py-4 text-sm text-gray-700 sm:px-6">
+                    {item.totalWorkflows || 0}
                   </td>
-                  <td className="px-6 py-4 text-gray-700">
-                    {item.completedOn || 'N/A'}
-                  </td>
-                  <td className="px-6 py-4 text-gray-700">
-                    <StatusBadge status={item.status || 'Pending'} />
+                  <td className="sticky right-0 border-l bg-white px-3 py-4 sm:px-6">
+                    <button
+                      onClick={() => onUnassign?.(item.userId || '', item.name)}
+                      className="flex items-center gap-1 rounded-md border border-red-300 bg-red-50 px-2 py-1 text-xs text-red-600 transition-colors hover:bg-red-100"
+                      disabled={!item.userId}
+                    >
+                      <UserMinus size={14} />
+                      Unassign
+                    </button>
                   </td>
                 </tr>
               ))
@@ -365,37 +258,41 @@ export default function ProgramTable({
       </div>
 
       {/* Pagination */}
-      <div className="flex items-center justify-center gap-2">
-        <button
-          onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-          disabled={currentPage === 1}
-          className="flex items-center gap-1 px-3 py-2 text-sm text-gray-600 hover:text-gray-900 disabled:opacity-50"
-        >
-          &lt; Previous
-        </button>
-
-        {getPageNumbers().map((page) => (
+      {filteredData.length > 0 && totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2">
           <button
-            key={page}
-            onClick={() => setCurrentPage(page)}
-            className={`h-8 w-8 rounded border text-sm ${
-              currentPage === page
-                ? 'border-[#008647] bg-[#008647] text-white'
-                : 'border-gray-300 bg-white text-gray-600 hover:bg-gray-50'
-            }`}
+            onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+            disabled={currentPage === 1}
+            className="flex items-center gap-1 px-3 py-2 text-sm text-gray-600 hover:text-gray-900 disabled:opacity-50"
           >
-            {page}
+            &lt; Previous
           </button>
-        ))}
 
-        <button
-          onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-          disabled={currentPage === totalPages}
-          className="flex items-center gap-1 px-3 py-2 text-sm text-gray-600 hover:text-gray-900 disabled:opacity-50"
-        >
-          Next &gt;
-        </button>
-      </div>
+          {getPageNumbers().map((page) => (
+            <button
+              key={page}
+              onClick={() => setCurrentPage(page)}
+              className={`h-8 w-8 rounded border text-sm ${
+                currentPage === page
+                  ? 'border-[#008647] bg-[#008647] text-white'
+                  : 'border-gray-300 bg-white text-gray-600 hover:bg-gray-50'
+              }`}
+            >
+              {page}
+            </button>
+          ))}
+
+          <button
+            onClick={() =>
+              setCurrentPage(Math.min(totalPages, currentPage + 1))
+            }
+            disabled={currentPage === totalPages}
+            className="flex items-center gap-1 px-3 py-2 text-sm text-gray-600 hover:text-gray-900 disabled:opacity-50"
+          >
+            Next &gt;
+          </button>
+        </div>
+      )}
     </div>
   );
 }

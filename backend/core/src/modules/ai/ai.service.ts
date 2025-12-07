@@ -1,5 +1,5 @@
 import { HttpService } from '@nestjs/axios';
-import { Injectable, Logger } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AxiosError } from 'axios';
 import { catchError, firstValueFrom } from 'rxjs';
@@ -28,8 +28,26 @@ export class AiService {
     }
   }
 
+  private handleAiError(error: AxiosError, endpoint: string): never {
+    const status = error.response?.status ?? HttpStatus.BAD_GATEWAY;
+    const aiError = error.response?.data;
+
+    this.logger.error(
+      `POST ${endpoint} failed: ${status} - ${JSON.stringify(aiError) || error.message}`,
+    );
+
+    throw new HttpException(
+      aiError
+        ? {
+            message: aiError,
+          }
+        : { message: 'Unknown error from AI service' },
+      status,
+    );
+  }
+
   async processText(payload: ProcessTextPayload): Promise<ExtractionResponse> {
-    const endpoint = `${this.baseUrl}/process/text`;
+    const endpoint = `${this.baseUrl}/process/text/batch`;
 
     const response$ = this.httpService
       .post<ExtractionResponse>(endpoint, payload, {
@@ -37,15 +55,7 @@ export class AiService {
       })
       .pipe(
         catchError((error: AxiosError) => {
-          const status = error.response?.status;
-          const errorData = error.response?.data;
-
-          this.logger.error(
-            `POST ${endpoint} failed: ${status ?? 'unknown status'} - ${
-              JSON.stringify(errorData) || error.message
-            }`,
-          );
-          throw error;
+          this.handleAiError(error, endpoint);
         }),
       );
 
@@ -57,7 +67,7 @@ export class AiService {
   async processAudio(
     payload: ProcessAudioPayload,
   ): Promise<ExtractionResponse> {
-    const endpoint = `${this.baseUrl}/process/audio`;
+    const endpoint = `${this.baseUrl}/process/audio/batch`;
 
     const formData = new FormData();
     formData.append('form_id', payload.form_id);
@@ -77,15 +87,7 @@ export class AiService {
       })
       .pipe(
         catchError((error: AxiosError) => {
-          const status = error.response?.status;
-          const errorData = error.response?.data;
-
-          this.logger.error(
-            `POST ${endpoint} failed: ${status ?? 'unknown status'} - ${
-              JSON.stringify(errorData) || error.message
-            }`,
-          );
-          throw error;
+          this.handleAiError(error, endpoint);
         }),
       );
 
@@ -97,7 +99,9 @@ export class AiService {
   async processImage(
     payload: ProcessImagePayload,
   ): Promise<ExtractionResponse> {
-    const endpoint = `${this.baseUrl}/process/image`;
+    const endpoint = `${this.baseUrl}/process/image/batch`;
+
+    console.log('AI Service - processImage called with payload:', payload);
 
     const formData = new FormData();
     formData.append('form_id', payload.form_id);
@@ -109,11 +113,8 @@ export class AiService {
       formData.append('provider_preference', payload.provider_preference);
     }
 
-    // formData.append('image_file', payload.images, 'image.png');
-
     if (Array.isArray(payload.images)) {
       payload.images.forEach((file, idx) => {
-        // Some APIs expect `image_file[]`, others accept repeated `image_file`
         formData.append('images', file.buffer, `image_${idx}.png`);
       });
     }
@@ -124,15 +125,7 @@ export class AiService {
       })
       .pipe(
         catchError((error: AxiosError) => {
-          const status = error.response?.status;
-          const errorData = error.response?.data;
-
-          this.logger.error(
-            `POST ${endpoint} failed: ${status ?? 'unknown status'} - ${
-              JSON.stringify(errorData) || error.message
-            }`,
-          );
-          throw error;
+          this.handleAiError(error, endpoint);
         }),
       );
 

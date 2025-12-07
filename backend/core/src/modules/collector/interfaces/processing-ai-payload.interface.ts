@@ -6,4 +6,5 @@ export interface ProcessAiPayload {
   workflowId: string;
   aiProvider?: AiProviderType;
   text?: string;
+  language?: string;
 }

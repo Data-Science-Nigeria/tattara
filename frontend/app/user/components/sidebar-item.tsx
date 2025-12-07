@@ -19,9 +19,6 @@ export const SidebarItem = ({
   const pathname = usePathname();
 
   const isActive = () => {
-    if (href === '/user/overview') {
-      return pathname === href || pathname.startsWith('/user/overview/');
-    }
     if (href === '/user/data-entry') {
       return pathname === href || pathname.startsWith('/user/data-entry/');
     }

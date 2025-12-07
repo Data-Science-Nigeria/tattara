@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Poppins } from 'next/font/google';
 import { QueryProvider } from '../context/QueryProvider';
 import { GlobalAlertDialog } from './components/global-alert-dialog';
+import { Toaster } from 'sonner';
 import './globals.css';
 
 const poppins = Poppins({
@@ -11,8 +12,8 @@ const poppins = Poppins({
 });
 
 export const metadata: Metadata = {
-  title: 'Tattara',
-  description: 'For App Collection',
+  title: 'Tattara Data Collection App',
+  description: 'A data collection application for Tattara project',
 };
 
 export default function RootLayout({
@@ -25,6 +26,7 @@ export default function RootLayout({
       <body className={`${poppins.variable} antialiased`}>
         <QueryProvider>{children}</QueryProvider>
         <GlobalAlertDialog />
+        <Toaster position="top-right" richColors />
       </body>
     </html>
   );

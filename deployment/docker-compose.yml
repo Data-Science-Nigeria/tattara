@@ -8,6 +8,8 @@ services:
       - ai
     expose:
       - "3000"
+    ports:
+      - "3000:3000"
     env_file:
       - ../backend/core/.env
 

@@ -2,11 +2,12 @@
 
 import React, { useState } from 'react';
 import WorkflowCard from './components/workFlowCard';
-import { Mic, FileText, ClipboardList, Image } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
+import Image from 'next/image';
 import {
   authControllerGetProfileOptions,
   workflowControllerGetWorkflowsOptions,
+  collectorControllerGetSubmissionHistoryOptions,
 } from '../../../client/@tanstack/react-query.gen';
 
 interface Workflow {
@@ -15,6 +16,7 @@ interface Workflow {
   description: string;
   actionLabel: string;
   onClick: () => void;
+  isSubmitted?: boolean;
 }
 
 interface ApiWorkflow {
@@ -22,7 +24,7 @@ interface ApiWorkflow {
   name: string;
   description: string;
   status: 'active' | 'inactive' | 'archived';
-  enabledModes: Array<'audio' | 'text' | 'form' | 'image'>;
+  enabledModes: Array<'audio' | 'text' | 'image'>;
   users?: Array<{ id: string }>;
 }
 
@@ -35,7 +37,7 @@ interface ProfileResponse {
 interface WorkflowsResponse {
   success: boolean;
   data: {
-    data: ApiWorkflow[];
+    workflows: ApiWorkflow[];
     page: number;
     limit: number;
     total: number;
@@ -60,25 +62,24 @@ export default function Workflows() {
     error,
   } = useQuery({
     ...workflowControllerGetWorkflowsOptions({
-      query: { page: 1, limit: 100, userId: userId },
+      query: { page: 1, limit: 1000000, userId: userId },
     }),
     enabled: !!userId,
     retry: 1,
   });
 
   const getIconForWorkflow = (
-    enabledModes: Array<'audio' | 'text' | 'form' | 'image'>
+    enabledModes: Array<'audio' | 'text' | 'image'>
   ) => {
-    if (enabledModes.includes('audio')) return Mic;
-    if (enabledModes.includes('image')) return Image;
-    if (enabledModes.includes('form')) return ClipboardList;
-    if (enabledModes.includes('text')) return FileText;
-    return FileText;
+    if (enabledModes.includes('audio')) return '/microphone-2.svg';
+    if (enabledModes.includes('image')) return '/gallery.svg';
+    if (enabledModes.includes('text')) return '/edit-2.svg';
+    return '/document-text.svg';
   };
 
   // Extract workflows from API response
   const allUserWorkflows =
-    (workflowsData as WorkflowsResponse)?.data?.data || [];
+    (workflowsData as WorkflowsResponse)?.data?.workflows || [];
   const activeWorkflows = allUserWorkflows.filter((w) => w.status === 'active');
   const finalWorkflows = activeWorkflows;
 
@@ -89,16 +90,89 @@ export default function Workflows() {
   const endIndex = startIndex + itemsPerPage;
   const currentWorkflows = finalWorkflows.slice(startIndex, endIndex);
 
+  const getActionLabel = (
+    enabledModes: Array<'audio' | 'text' | 'image'>
+  ): string => {
+    if (enabledModes.includes('text')) return 'Write Text';
+    if (enabledModes.includes('image')) return 'Upload Image';
+    if (enabledModes.includes('audio')) return 'Upload or Record Audio';
+    return 'Start Collection';
+  };
+
+  // Get user submissions to check which workflows have been submitted
+  const { data: submissionsData } = useQuery({
+    ...collectorControllerGetSubmissionHistoryOptions({
+      query: { page: 1, limit: 100 },
+    }),
+    enabled: !!userId,
+  });
+
+  const submissions = Array.isArray(
+    (
+      submissionsData as {
+        data?: {
+          data?: Array<{
+            workflow: { id: string };
+            status: string;
+            submittedAt: string;
+          }>;
+        };
+      }
+    )?.data?.data
+  )
+    ? (
+        submissionsData as {
+          data: {
+            data: Array<{
+              workflow: { id: string };
+              status: string;
+              submittedAt: string;
+            }>;
+          };
+        }
+      ).data.data
+    : [];
+
+  // Map workflow ID to last submission timestamp
+  const workflowLastSubmission = new Map<string, string>();
+  submissions
+    .filter((s) =>
+      ['submitted', 'completed', 'synced'].includes(s.status.toLowerCase())
+    )
+    .forEach((s) => {
+      const existing = workflowLastSubmission.get(s.workflow?.id);
+      if (!existing || new Date(s.submittedAt) > new Date(existing)) {
+        workflowLastSubmission.set(s.workflow?.id, s.submittedAt);
+      }
+    });
+
   const workflows: Workflow[] = currentWorkflows.map(
-    (workflow: ApiWorkflow) => ({
-      icon: React.createElement(getIconForWorkflow(workflow.enabledModes), {
-        className: 'h-6 w-6',
-      }),
-      title: workflow.name,
-      description: workflow.description || 'No description available',
-      actionLabel: 'Start Collection',
-      onClick: () => (window.location.href = `/user/workflow/${workflow.id}`),
-    })
+    (workflow: ApiWorkflow & { updatedAt?: string }) => {
+      const lastSubmission = workflowLastSubmission.get(workflow.id);
+      // Show as submitted only if user submitted AND workflow hasn't been updated since
+      const isSubmitted =
+        lastSubmission && workflow.updatedAt
+          ? new Date(lastSubmission) > new Date(workflow.updatedAt)
+          : !!lastSubmission;
+
+      return {
+        icon: (
+          <Image
+            src={getIconForWorkflow(workflow.enabledModes)}
+            alt="Workflow icon"
+            width={24}
+            height={24}
+            className="h-6 w-6"
+          />
+        ),
+        title: workflow.name,
+        description: workflow.description || 'No description available',
+        actionLabel: getActionLabel(workflow.enabledModes),
+        onClick: () =>
+          (window.location.href = `/user/data-entry/${workflow.id}`),
+        isSubmitted,
+      };
+    }
   );
 
   return (
@@ -136,10 +210,9 @@ export default function Workflows() {
         )}
 
         {/* Pagination */}
-        {workflows.length > 0 && totalPages > 1 && (
+        {workflows.length > 0 && (
           <div className="mt-8 flex flex-col items-center justify-between gap-4 sm:flex-row">
             <div className="flex items-center gap-2 text-sm text-gray-600">
-              <span>Items per page:</span>
               <select
                 value={itemsPerPage}
                 onChange={(e) => {
@@ -157,23 +230,35 @@ export default function Workflows() {
               <button
                 onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                 disabled={currentPage === 1}
-                className="rounded border border-gray-300 px-3 py-1 hover:bg-gray-50 disabled:opacity-50"
+                className="flex items-center gap-1 px-3 py-2 text-sm text-gray-600 hover:text-gray-900 disabled:opacity-50"
               >
-                Previous
+                &lt; Previous
               </button>
 
-              <span className="text-sm text-gray-600">
-                Page {currentPage} of {totalPages}
-              </span>
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                (page) => (
+                  <button
+                    key={page}
+                    onClick={() => setCurrentPage(page)}
+                    className={`h-8 w-8 rounded border text-sm ${
+                      currentPage === page
+                        ? 'border-[#008647] bg-[#008647] text-white'
+                        : 'border-gray-300 bg-white text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    {page}
+                  </button>
+                )
+              )}
 
               <button
                 onClick={() =>
                   setCurrentPage(Math.min(totalPages, currentPage + 1))
                 }
                 disabled={currentPage === totalPages}
-                className="rounded border border-gray-300 px-3 py-1 hover:bg-gray-50 disabled:opacity-50"
+                className="flex items-center gap-1 px-3 py-2 text-sm text-gray-600 hover:text-gray-900 disabled:opacity-50"
               >
-                Next
+                Next &gt;
               </button>
             </div>
           </div>

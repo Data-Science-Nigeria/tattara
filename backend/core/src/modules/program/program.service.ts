@@ -82,7 +82,7 @@ export class ProgramService {
   async findOne(programId: string): Promise<Program> {
     const program = await this.programRepository.findOne({
       where: { id: programId },
-      relations: ['workflows'],
+      relations: ['workflows', 'users'],
     });
     if (!program) {
       throw new ConflictException('Program not found');
@@ -105,7 +105,7 @@ export class ProgramService {
   async findAllWorkflows(programId: string): Promise<Workflow[]> {
     const program = await this.programRepository.findOne({
       where: { id: programId },
-      relations: ['workflows'],
+      relations: ['workflows', 'workflows.workflowConfigurations'],
     });
 
     if (!program) {
@@ -190,21 +190,5 @@ export class ProgramService {
     program.users = program.users.filter(user => !removeSet.has(user.id));
 
     return this.programRepository.save(program);
-  }
-
-  async getAllProgramsForUser(userId: string): Promise<Program[]> {
-    const alias = 'program';
-    const qb = this.programRepository.withScope(alias);
-
-    qb.leftJoinAndSelect(`${alias}.workflows`, 'workflows').leftJoinAndSelect(
-      `${alias}.users`,
-      'users',
-    );
-
-    qb.innerJoin(`${alias}.users`, 'user').andWhere('user.id = :userId', {
-      userId,
-    });
-
-    return qb.getMany();
   }
 }

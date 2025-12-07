@@ -3,6 +3,7 @@ import {
   Injectable,
   InternalServerErrorException,
   Logger,
+  NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import {
@@ -22,6 +23,7 @@ import {
   WorkflowField,
 } from '@/database/entities';
 import { DataSource, Repository } from 'typeorm';
+import { RequestContext } from '@/shared/request-context/request-context.service';
 import { AiService } from '../ai/ai.service';
 import { ExtractionResponse } from '../ai/interfaces';
 import { FileManagerService } from '../file-manager/file-manager.service';
@@ -51,6 +53,7 @@ export class CollectorService {
     private readonly fileManagerService: FileManagerService,
     private readonly dataSource: DataSource,
     private readonly integrationService: IntegrationService,
+    private readonly requestContext: RequestContext,
   ) {
     fileManagerService.setStrategy('local');
   }
@@ -66,12 +69,12 @@ export class CollectorService {
         );
 
       const aiRequestPayload = {
-        form_id: workflow.name,
+        form_id: `${payload.workflowId}-${Date.now()}`,
         form_schema: { fields: formSchema },
         provider_preference: payload.aiProvider,
       };
 
-      const language = workflow.supportedLanguages[0];
+      const language = payload.language ?? workflow.supportedLanguages[0];
       let response: ExtractionResponse | null = null;
 
       switch (payload.processingType) {
@@ -118,17 +121,19 @@ export class CollectorService {
       }
 
       return await this.dataSource.transaction(async manager => {
+        const { rows, ...rest } = response;
+
         const aiProcessingLog = manager.create(AiProcessingLog, {
           aiProvider: payload.aiProvider,
-          confidenceScore: response.confidence?.score ?? undefined,
+          confidenceScore: rest.confidence?.score ?? undefined,
           user,
-          mappedOutput: response.extracted,
+          mappedOutput: rows,
           workflow,
           processingType: payload.processingType,
           formSchema: formSchema,
           completedAt: new Date(),
-          processingTimeMs: response.metrics?.total_seconds ?? undefined,
-          metadata: response.metrics,
+          processingTimeMs: rest.metrics?.total_seconds ?? undefined,
+          metadata: rest,
         });
 
         let savedLog: AiProcessingLog;
@@ -194,86 +199,112 @@ export class CollectorService {
           throw new BadRequestException('Field Mappings not set');
         }
 
-        const extractedIntegrationData = this.extractIntegrationData(
-          workflow.workflowFields,
-          submitData.data,
+        // Normalize to array of data entries
+        const dataEntries = submitData.dataEntries ?? [submitData.data!];
+
+        // Extract integration data for each entry
+        const allExtractedData = dataEntries.map(data =>
+          this.extractIntegrationData(workflow.workflowFields, data),
         );
 
-        // return;
-
-        // console.log('extractedIntegrationData', extractedIntegrationData);
-
         for (const config of workflow.workflowConfigurations) {
-          let payload: unknown;
-
           if (config.type === IntegrationType.DHIS2) {
-            if (
-              workflow.workflowFields.length !==
-              extractedIntegrationData[IntegrationType.DHIS2]?.length
-            ) {
-              throw new BadRequestException(
-                `Field mappings for ${IntegrationType.DHIS2} missing`,
-              );
+            // Validate all entries have proper field mappings
+            for (const extractedData of allExtractedData) {
+              if (
+                workflow.workflowFields.length !==
+                extractedData[IntegrationType.DHIS2]?.length
+              ) {
+                throw new BadRequestException(
+                  `Field mappings for ${IntegrationType.DHIS2} missing`,
+                );
+              }
             }
+
             if (
               'program' in config.configuration &&
               !('schema' in config.configuration)
             ) {
-              payload = {
-                ...config.configuration,
-                program: config.configuration.program,
-                programStage: config.configuration.programStage,
+              // Cast to access program-specific properties
+              const programConfig = config.configuration as {
+                program: string;
+                programStage: string;
+                orgUnit: string;
+              };
+
+              // Build array of event payloads - always send as array
+              const eventPayloads = allExtractedData.map(extractedData => ({
+                ...programConfig,
+                program: programConfig.program,
+                programStage: programConfig.programStage,
                 eventDate: format(new Date(), 'yyyy-MM-dd'),
                 status: 'ACTIVE',
-                dataValues: extractedIntegrationData[IntegrationType.DHIS2],
-              };
+                dataValues: extractedData[IntegrationType.DHIS2],
+              }));
+
+              await this.integrationService.pushData(config, eventPayloads);
             } else if ('dataset' in config.configuration) {
-              payload = {
+              // For datasets, merge all data values into one payload
+              const allDataValues = allExtractedData.flatMap(
+                extractedData => extractedData[IntegrationType.DHIS2] ?? [],
+              );
+
+              const payload = {
                 ...config.configuration,
                 completeDate: format(new Date(), 'yyyy-MM-dd'),
                 period: format(new Date(), 'yyyyMM'),
-                dataValues: extractedIntegrationData[IntegrationType.DHIS2],
+                dataValues: allDataValues,
               };
-            }
 
-            await this.integrationService.pushData(config, payload);
+              await this.integrationService.pushData(config, payload);
+            }
           }
 
           if (config.type === IntegrationType.POSTGRES) {
-            if (
-              workflow.workflowFields.length !==
-              extractedIntegrationData[IntegrationType.POSTGRES]?.length
-            ) {
-              throw new BadRequestException(
-                `Field mappings for ${IntegrationType.POSTGRES} missing`,
-              );
-            }
+            // For Postgres, process each entry individually
+            for (const extractedData of allExtractedData) {
+              if (
+                workflow.workflowFields.length !==
+                extractedData[IntegrationType.POSTGRES]?.length
+              ) {
+                throw new BadRequestException(
+                  `Field mappings for ${IntegrationType.POSTGRES} missing`,
+                );
+              }
 
-            if ('schema' in config.configuration) {
-              payload = {
-                ...config.configuration,
-                values: extractedIntegrationData[IntegrationType.POSTGRES],
-              };
-            }
+              if ('schema' in config.configuration) {
+                const payload = {
+                  ...config.configuration,
+                  values: extractedData[IntegrationType.POSTGRES],
+                };
 
-            await this.integrationService.pushData(config, payload);
+                await this.integrationService.pushData(config, payload);
+              }
+            }
           }
         }
 
-        const submission = manager.create(Submission, {
-          status: SubmissionStatus.COMPLETED,
-          user,
-          workflow,
-          submittedAt: new Date(),
-          data: submitData.data,
-          metadata: submitData.metadata,
-          localId: submitData.localId,
-        });
+        // Create submission record(s)
+        const submissions = dataEntries.map(data =>
+          manager.create(Submission, {
+            status: SubmissionStatus.COMPLETED,
+            user,
+            workflow,
+            submittedAt: new Date(),
+            data,
+            metadata: submitData.metadata,
+            localId: submitData.localId,
+          }),
+        );
 
-        await manager.save(submission);
+        await manager.save(submissions);
 
         return {
-          message: 'Form submitted successfully',
+          message:
+            submissions.length === 1
+              ? 'Form submitted successfully'
+              : `${submissions.length} forms submitted successfully`,
+          count: submissions.length,
         };
       });
     } catch (error) {
@@ -290,6 +321,135 @@ export class CollectorService {
       );
       throw new InternalServerErrorException('Unknown error during Submission');
     }
+  }
+
+  /**
+   * Get submission history with role-based scoping:
+   * - Regular users: See only their own submissions
+   * - Admins: See submissions from users they created
+   * - Super-admins: See all submissions
+   */
+  async getSubmissionHistory(options?: {
+    workflowId?: string;
+    status?: SubmissionStatus;
+    userId?: string;
+    page?: number;
+    limit?: number;
+  }) {
+    const { workflowId, status, userId, page = 1, limit = 20 } = options || {};
+    const currentUserId = this.requestContext.getUserId();
+    const isSuperAdmin = this.requestContext.isSuperAdmin();
+    const isAdmin = this.requestContext.isAdmin();
+
+    const queryBuilder = this.submissionRepo
+      .createQueryBuilder('submission')
+      .leftJoinAndSelect('submission.workflow', 'workflow')
+      .leftJoinAndSelect('submission.user', 'user')
+      .leftJoin('user.createdBy', 'userAdmin')
+      .orderBy('submission.submittedAt', 'DESC');
+
+    if (isSuperAdmin) {
+      // No additional scoping needed
+    } else if (isAdmin) {
+      queryBuilder.andWhere(
+        '(userAdmin.id = :adminId OR submission.user_id = :adminId)',
+        { adminId: currentUserId },
+      );
+    } else {
+      queryBuilder.andWhere('submission.user_id = :userId', {
+        userId: currentUserId,
+      });
+    }
+
+    if (workflowId) {
+      queryBuilder.andWhere('submission.workflow_id = :workflowId', {
+        workflowId,
+      });
+    }
+
+    if (status) {
+      queryBuilder.andWhere('submission.status = :status', { status });
+    }
+
+    // Allow admins/super-admins to filter by specific user
+    if (userId && isAdmin) {
+      queryBuilder.andWhere('submission.user_id = :filterUserId', {
+        filterUserId: userId,
+      });
+    }
+
+    const skip = (page - 1) * limit;
+    queryBuilder.skip(skip).take(limit);
+
+    const [submissions, total] = await queryBuilder.getManyAndCount();
+
+    return {
+      data: submissions.map(s => ({
+        ...s,
+        user: s.user
+          ? {
+              id: s.user.id,
+              email: s.user.email,
+              firstName: s.user.firstName,
+              lastName: s.user.lastName,
+            }
+          : null,
+      })),
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  /**
+   * Get a single submission by ID with role-based scoping
+   */
+  async getSubmissionById(submissionId: string) {
+    const currentUserId = this.requestContext.getUserId();
+    const isSuperAdmin = this.requestContext.isSuperAdmin();
+    const isAdmin = this.requestContext.isAdmin();
+
+    const queryBuilder = this.submissionRepo
+      .createQueryBuilder('submission')
+      .leftJoinAndSelect('submission.workflow', 'workflow')
+      .leftJoinAndSelect('workflow.workflowFields', 'workflowFields')
+      .leftJoinAndSelect('submission.user', 'user')
+      .leftJoin('user.createdBy', 'userAdmin')
+      .where('submission.id = :submissionId', { submissionId });
+
+    if (isSuperAdmin) {
+      // No additional filters
+    } else if (isAdmin) {
+      queryBuilder.andWhere(
+        '(userAdmin.id = :adminId OR submission.user_id = :adminId)',
+        { adminId: currentUserId },
+      );
+    } else {
+      queryBuilder.andWhere('submission.user_id = :userId', {
+        userId: currentUserId,
+      });
+    }
+
+    const submission = await queryBuilder.getOne();
+
+    if (!submission) {
+      throw new NotFoundException('Submission not found');
+    }
+
+    return {
+      ...submission,
+      user: submission.user
+        ? {
+            id: submission.user.id,
+            email: submission.user.email,
+            firstName: submission.user.firstName,
+            lastName: submission.user.lastName,
+          }
+        : null,
+    };
   }
 
   private extractIntegrationData(
@@ -349,17 +509,12 @@ export class CollectorService {
     if (!result.success) {
       const formattedErrors = formatZodErrors(result.error.issues);
 
-      this.logger.log(
-        `❌ Validation failed: ${JSON.stringify(formattedErrors, null, 2)}`,
-      );
-
       throw new BadRequestException({
         statusCode: 400,
         message: 'Validation Failed',
         errors: formattedErrors,
       });
     } else {
-      this.logger.log(`✅ Valid data: ${JSON.stringify(result.data)}`);
       return true;
     }
   }

@@ -27,13 +27,16 @@ import {
   programControllerFindWorkflowsByProgram,
   programControllerAddWorkflowToProgram,
   programControllerGetAllProgramsForUser,
-  programControllerAddUsersToProgram,
+  programControllerAssignUsersToProgram,
+  programControllerUnassignUsersFromProgram,
   workflowControllerGetWorkflows,
   workflowControllerCreateWorkflow,
   workflowControllerSearchWorkflows,
   workflowControllerFindWorkflowById,
+  workflowControllerUpdateWorkflowBasicInfo,
   workflowControllerArchiveWorkflow,
   workflowControllerAssignUsersToWorkflow,
+  workflowControllerUnassignUsersFromWorkflow,
   fieldControllerGetWorkflowFields,
   fieldControllerUpsertWorkflowFields,
   fieldControllerRemoveWorkflowField,
@@ -44,6 +47,8 @@ import {
   fieldMappingControllerUpsertFieldMappings,
   collectorControllerProcessAi,
   collectorControllerSubmitData,
+  collectorControllerGetSubmissionHistory,
+  collectorControllerGetSubmissionById,
   integrationControllerTestConnection,
   integrationControllerFetchSchemas,
   integrationControllerGetPrograms,
@@ -94,16 +99,22 @@ import type {
   ProgramControllerAddWorkflowToProgramData,
   ProgramControllerAddWorkflowToProgramResponse,
   ProgramControllerGetAllProgramsForUserData,
-  ProgramControllerAddUsersToProgramData,
-  ProgramControllerAddUsersToProgramResponse,
+  ProgramControllerAssignUsersToProgramData,
+  ProgramControllerAssignUsersToProgramResponse,
+  ProgramControllerUnassignUsersFromProgramData,
+  ProgramControllerUnassignUsersFromProgramResponse,
   WorkflowControllerGetWorkflowsData,
   WorkflowControllerCreateWorkflowData,
   WorkflowControllerCreateWorkflowResponse,
   WorkflowControllerSearchWorkflowsData,
   WorkflowControllerFindWorkflowByIdData,
+  WorkflowControllerUpdateWorkflowBasicInfoData,
+  WorkflowControllerUpdateWorkflowBasicInfoResponse,
   WorkflowControllerArchiveWorkflowData,
   WorkflowControllerAssignUsersToWorkflowData,
   WorkflowControllerAssignUsersToWorkflowResponse,
+  WorkflowControllerUnassignUsersFromWorkflowData,
+  WorkflowControllerUnassignUsersFromWorkflowResponse,
   FieldControllerGetWorkflowFieldsData,
   FieldControllerUpsertWorkflowFieldsData,
   FieldControllerRemoveWorkflowFieldData,
@@ -116,6 +127,8 @@ import type {
   CollectorControllerProcessAiData,
   CollectorControllerProcessAiResponse,
   CollectorControllerSubmitDataData,
+  CollectorControllerGetSubmissionHistoryData,
+  CollectorControllerGetSubmissionByIdData,
   IntegrationControllerTestConnectionData,
   IntegrationControllerTestConnectionResponse,
   IntegrationControllerFetchSchemasData,
@@ -983,20 +996,44 @@ export const programControllerGetAllProgramsForUserOptions = (
 /**
  * Assign multiple users to a specific program
  */
-export const programControllerAddUsersToProgramMutation = (
-  options?: Partial<Options<ProgramControllerAddUsersToProgramData>>
+export const programControllerAssignUsersToProgramMutation = (
+  options?: Partial<Options<ProgramControllerAssignUsersToProgramData>>
 ): UseMutationOptions<
-  ProgramControllerAddUsersToProgramResponse,
+  ProgramControllerAssignUsersToProgramResponse,
   DefaultError,
-  Options<ProgramControllerAddUsersToProgramData>
+  Options<ProgramControllerAssignUsersToProgramData>
 > => {
   const mutationOptions: UseMutationOptions<
-    ProgramControllerAddUsersToProgramResponse,
+    ProgramControllerAssignUsersToProgramResponse,
     DefaultError,
-    Options<ProgramControllerAddUsersToProgramData>
+    Options<ProgramControllerAssignUsersToProgramData>
   > = {
     mutationFn: async (fnOptions) => {
-      const { data } = await programControllerAddUsersToProgram({
+      const { data } = await programControllerAssignUsersToProgram({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const programControllerUnassignUsersFromProgramMutation = (
+  options?: Partial<Options<ProgramControllerUnassignUsersFromProgramData>>
+): UseMutationOptions<
+  ProgramControllerUnassignUsersFromProgramResponse,
+  DefaultError,
+  Options<ProgramControllerUnassignUsersFromProgramData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    ProgramControllerUnassignUsersFromProgramResponse,
+    DefaultError,
+    Options<ProgramControllerUnassignUsersFromProgramData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await programControllerUnassignUsersFromProgram({
         ...options,
         ...fnOptions,
         throwOnError: true,
@@ -1190,6 +1227,30 @@ export const workflowControllerFindWorkflowByIdOptions = (
   });
 };
 
+export const workflowControllerUpdateWorkflowBasicInfoMutation = (
+  options?: Partial<Options<WorkflowControllerUpdateWorkflowBasicInfoData>>
+): UseMutationOptions<
+  WorkflowControllerUpdateWorkflowBasicInfoResponse,
+  DefaultError,
+  Options<WorkflowControllerUpdateWorkflowBasicInfoData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    WorkflowControllerUpdateWorkflowBasicInfoResponse,
+    DefaultError,
+    Options<WorkflowControllerUpdateWorkflowBasicInfoData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await workflowControllerUpdateWorkflowBasicInfo({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
 export const workflowControllerArchiveWorkflowMutation = (
   options?: Partial<Options<WorkflowControllerArchiveWorkflowData>>
 ): UseMutationOptions<
@@ -1228,6 +1289,30 @@ export const workflowControllerAssignUsersToWorkflowMutation = (
   > = {
     mutationFn: async (fnOptions) => {
       const { data } = await workflowControllerAssignUsersToWorkflow({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const workflowControllerUnassignUsersFromWorkflowMutation = (
+  options?: Partial<Options<WorkflowControllerUnassignUsersFromWorkflowData>>
+): UseMutationOptions<
+  WorkflowControllerUnassignUsersFromWorkflowResponse,
+  DefaultError,
+  Options<WorkflowControllerUnassignUsersFromWorkflowData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    WorkflowControllerUnassignUsersFromWorkflowResponse,
+    DefaultError,
+    Options<WorkflowControllerUnassignUsersFromWorkflowData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await workflowControllerUnassignUsersFromWorkflow({
         ...options,
         ...fnOptions,
         throwOnError: true,
@@ -1429,6 +1514,11 @@ export const fieldMappingControllerUpsertFieldMappingsMutation = (
   return mutationOptions;
 };
 
+/**
+ * Process AI data (text, audio, image)
+ * Accepts multiple files for processing AI data including text, audio, and images.
+ * Accept language parameter for audio processing.
+ */
 export const collectorControllerProcessAiMutation = (
   options?: Partial<Options<CollectorControllerProcessAiData>>
 ): UseMutationOptions<
@@ -1453,6 +1543,9 @@ export const collectorControllerProcessAiMutation = (
   return mutationOptions;
 };
 
+/**
+ * Submit collected data
+ */
 export const collectorControllerSubmitDataMutation = (
   options?: Partial<Options<CollectorControllerSubmitDataData>>
 ): UseMutationOptions<
@@ -1475,6 +1568,115 @@ export const collectorControllerSubmitDataMutation = (
     },
   };
   return mutationOptions;
+};
+
+export const collectorControllerGetSubmissionHistoryQueryKey = (
+  options?: Options<CollectorControllerGetSubmissionHistoryData>
+) => createQueryKey('collectorControllerGetSubmissionHistory', options);
+
+/**
+ * Get submission history - scoped by role:
+ * - Users: Only their own submissions
+ * - Admins: Submissions from users they created
+ * - Super-admins: All submissions
+ */
+export const collectorControllerGetSubmissionHistoryOptions = (
+  options?: Options<CollectorControllerGetSubmissionHistoryData>
+) => {
+  return queryOptions({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await collectorControllerGetSubmissionHistory({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: collectorControllerGetSubmissionHistoryQueryKey(options),
+  });
+};
+
+export const collectorControllerGetSubmissionHistoryInfiniteQueryKey = (
+  options?: Options<CollectorControllerGetSubmissionHistoryData>
+): QueryKey<Options<CollectorControllerGetSubmissionHistoryData>> =>
+  createQueryKey('collectorControllerGetSubmissionHistory', options, true);
+
+/**
+ * Get submission history - scoped by role:
+ * - Users: Only their own submissions
+ * - Admins: Submissions from users they created
+ * - Super-admins: All submissions
+ */
+export const collectorControllerGetSubmissionHistoryInfiniteOptions = (
+  options?: Options<CollectorControllerGetSubmissionHistoryData>
+) => {
+  return infiniteQueryOptions<
+    unknown,
+    DefaultError,
+    InfiniteData<unknown>,
+    QueryKey<Options<CollectorControllerGetSubmissionHistoryData>>,
+    | number
+    | Pick<
+        QueryKey<Options<CollectorControllerGetSubmissionHistoryData>>[0],
+        'body' | 'headers' | 'path' | 'query'
+      >
+  >(
+    // @ts-ignore
+    {
+      queryFn: async ({ pageParam, queryKey, signal }) => {
+        // @ts-ignore
+        const page: Pick<
+          QueryKey<Options<CollectorControllerGetSubmissionHistoryData>>[0],
+          'body' | 'headers' | 'path' | 'query'
+        > =
+          typeof pageParam === 'object'
+            ? pageParam
+            : {
+                query: {
+                  page: pageParam,
+                },
+              };
+        const params = createInfiniteParams(queryKey, page);
+        const { data } = await collectorControllerGetSubmissionHistory({
+          ...options,
+          ...params,
+          signal,
+          throwOnError: true,
+        });
+        return data;
+      },
+      queryKey:
+        collectorControllerGetSubmissionHistoryInfiniteQueryKey(options),
+    }
+  );
+};
+
+export const collectorControllerGetSubmissionByIdQueryKey = (
+  options: Options<CollectorControllerGetSubmissionByIdData>
+) => createQueryKey('collectorControllerGetSubmissionById', options);
+
+/**
+ * Get a single submission by ID - scoped by role:
+ * - Users: Only their own submissions
+ * - Admins: Submissions from users they created
+ * - Super-admins: All submissions
+ */
+export const collectorControllerGetSubmissionByIdOptions = (
+  options: Options<CollectorControllerGetSubmissionByIdData>
+) => {
+  return queryOptions({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await collectorControllerGetSubmissionById({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: collectorControllerGetSubmissionByIdQueryKey(options),
+  });
 };
 
 /**

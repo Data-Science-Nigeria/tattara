@@ -4,8 +4,9 @@ export interface ValidationResult {
 }
 
 export function validateFieldValue(
-  value: string | boolean,
-  fieldType: string
+  value: string | boolean | number | string[],
+  fieldType: string,
+  options?: string[]
 ): ValidationResult {
   if (typeof value === 'boolean') {
     return fieldType === 'boolean'
@@ -13,9 +14,24 @@ export function validateFieldValue(
       : { isValid: false, error: 'Expected boolean value' };
   }
 
-  const stringValue = value as string;
+  // Handle multiselect arrays
+  if (Array.isArray(value)) {
+    if (fieldType === 'multiselect') {
+      if (options && options.length > 0) {
+        const invalidValues = value.filter((val) => !options.includes(val));
+        return invalidValues.length > 0
+          ? { isValid: false, error: 'Please select valid options only' }
+          : { isValid: true };
+      }
+      return { isValid: true };
+    }
+    return { isValid: false, error: 'Unexpected array value' };
+  }
 
-  if (!stringValue.trim()) {
+  // Convert to string for validation
+  const stringValue = String(value);
+
+  if (!stringValue || !stringValue.trim()) {
     return { isValid: true }; // Empty values are handled by required validation
   }
 
@@ -61,6 +77,26 @@ export function validateFieldValue(
       return isNaN(datetime.getTime())
         ? { isValid: false, error: 'Must be a valid date and time' }
         : { isValid: true };
+
+    case 'text':
+    case 'textarea':
+      // Text fields should not be purely numeric
+      const isOnlyNumbers = /^\d+$/.test(stringValue.trim());
+      return isOnlyNumbers
+        ? { isValid: false, error: 'Text field cannot contain only numbers' }
+        : { isValid: true };
+
+    case 'select':
+      if (options && options.length > 0) {
+        return !options.includes(stringValue)
+          ? { isValid: false, error: 'Please select a valid option' }
+          : { isValid: true };
+      }
+      return { isValid: true };
+
+    case 'multiselect':
+      // Already handled above for arrays
+      return { isValid: true };
 
     default:
       return { isValid: true };

@@ -1,19 +1,20 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Plus, TestTube } from 'lucide-react';
+import { Plus } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   externalConnectionsControllerFindAllOptions,
-  externalConnectionsControllerCreateMutation,
   externalConnectionsControllerRemoveMutation,
-  externalConnectionsControllerUpdateMutation,
+  integrationControllerTestConnectionMutation,
 } from '@/client/@tanstack/react-query.gen';
 import type { ExternalConnection } from '@/client/types.gen';
 import { client } from '@/client/client.gen';
 import ConnectionsList from './components/connections-list';
-import ConnectionFormModal from './components/connection-form-modal';
-import TestConnectionModal from '../dhis2-integration/components/test-connection-modal';
+import EditFormModal from './components/edit-form-modal';
+import DeleteConnectionModal from './components/delete-connection-modal';
+import { toast } from 'sonner';
 
 type ApiResponse<T> = {
   success: boolean;
@@ -21,20 +22,25 @@ type ApiResponse<T> = {
   timestamp: string;
 };
 export default function ExternalConnections() {
+  const router = useRouter();
   const queryClient = useQueryClient();
-
-  const [showCreateForm, setShowCreateForm] = useState(false);
   const [editingConnection, setEditingConnection] =
     useState<ExternalConnection | null>(null);
   const [name, setName] = useState('');
-  const [type, setType] = useState('dhis2');
   const [baseUrl, setBaseUrl] = useState('');
   const [pat, setPat] = useState('');
-  const [showToken, setShowToken] = useState(false);
+  const [host, setHost] = useState('');
+  const [port, setPort] = useState('5432');
+  const [database, setDatabase] = useState('');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [deleteConnectionId, setDeleteConnectionId] = useState<string | null>(
     null
   );
-  const [showTestModal, setShowTestModal] = useState(false);
+
+  const [isTestingConnection, setIsTestingConnection] = useState(false);
+  const [connectionTested, setConnectionTested] = useState(false);
+  const [testError, setTestError] = useState<string>();
 
   const { data: connections, isLoading } = useQuery({
     ...externalConnectionsControllerFindAllOptions(),
@@ -43,17 +49,6 @@ export default function ExternalConnections() {
 
   const connectionsArray =
     (connections as unknown as ApiResponse<ExternalConnection[]>)?.data || [];
-
-  const createMutation = useMutation({
-    ...externalConnectionsControllerCreateMutation(),
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: externalConnectionsControllerFindAllOptions().queryKey,
-      });
-      resetForm();
-      setShowCreateForm(false);
-    },
-  });
 
   const updateMutation = useMutation({
     mutationFn: async ({
@@ -64,7 +59,15 @@ export default function ExternalConnections() {
       data: {
         name: string;
         isActive: boolean;
-        configuration: { baseUrl: string; pat: string };
+        configuration:
+          | { baseUrl: string; pat: string }
+          | {
+              host: string;
+              port: number;
+              database: string;
+              username: string;
+              password: string;
+            };
       };
     }) => {
       const response = await client.patch({
@@ -81,9 +84,12 @@ export default function ExternalConnections() {
       queryClient.invalidateQueries({
         queryKey: externalConnectionsControllerFindAllOptions().queryKey,
       });
+      toast.success('Connection updated successfully!');
       resetForm();
       setEditingConnection(null);
-      setShowCreateForm(false);
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Failed to update connection');
     },
   });
 
@@ -93,78 +99,122 @@ export default function ExternalConnections() {
       queryClient.invalidateQueries({
         queryKey: externalConnectionsControllerFindAllOptions().queryKey,
       });
+      toast.success('Connection deleted successfully!');
     },
+    onError: (error) => {
+      toast.error(error.message || 'Failed to delete connection');
+    },
+  });
+
+  const testConnectionMutation = useMutation({
+    ...integrationControllerTestConnectionMutation(),
   });
 
   const resetForm = () => {
     setName('');
     setBaseUrl('');
     setPat('');
-    setShowToken(false);
+    setHost('');
+    setPort('5432');
+    setDatabase('');
+    setUsername('');
+    setPassword('');
+    setConnectionTested(false);
+    setTestError(undefined);
+  };
+
+  const handleTestConnection = async () => {
+    setIsTestingConnection(true);
+    setTestError(undefined);
+    setConnectionTested(false);
+
+    try {
+      const config =
+        editingConnection?.type === 'dhis2'
+          ? { baseUrl, pat }
+          : { host, port: parseInt(port), database, username, password };
+
+      await testConnectionMutation.mutateAsync({
+        body: {
+          type: (editingConnection?.type as 'dhis2' | 'postgres') || 'dhis2',
+          config,
+        },
+      });
+      setConnectionTested(true);
+    } catch (error: unknown) {
+      setTestError((error as Error)?.message || 'Connection test failed');
+      setConnectionTested(false);
+    } finally {
+      setIsTestingConnection(false);
+    }
   };
 
   const handleEdit = (connection: ExternalConnection) => {
     setEditingConnection(connection);
     setName(connection.name);
-    setType(connection.type);
-    const config = connection.configuration as {
-      baseUrl?: string;
-      pat?: string;
-    };
-    setBaseUrl(config.baseUrl || '');
-    setPat(config.pat || '');
-    setShowCreateForm(true);
+
+    if (connection.type === 'dhis2') {
+      const config = connection.configuration as {
+        baseUrl?: string;
+        pat?: string;
+      };
+      setBaseUrl(config.baseUrl || '');
+      setPat(config.pat || '');
+    } else {
+      const config = connection.configuration as {
+        host?: string;
+        port?: number;
+        database?: string;
+        username?: string;
+        password?: string;
+      };
+      setHost(config.host || '');
+      setPort(config.port?.toString() || '5432');
+      setDatabase(config.database || '');
+      setUsername(config.username || '');
+      setPassword(config.password || '');
+    }
+
+    setConnectionTested(false);
+    setTestError(undefined);
   };
 
   const handleSubmit = () => {
-    if (editingConnection) {
-      const updatePayload = {
-        name,
-        isActive: true,
-        configuration: { baseUrl, pat },
-      };
-      updateMutation.mutate({
-        id: editingConnection.id,
-        data: updatePayload,
-      });
-    } else {
-      const createPayload = {
-        name,
-        type: type as 'dhis2',
-        configuration: { baseUrl, pat },
-      };
-      createMutation.mutate({ body: createPayload });
-    }
+    const configuration =
+      editingConnection?.type === 'dhis2'
+        ? { baseUrl, pat }
+        : { host, port: parseInt(port), database, username, password };
+
+    const updatePayload = {
+      name,
+      isActive: true,
+      configuration,
+    };
+    updateMutation.mutate({
+      id: editingConnection!.id,
+      data: updatePayload,
+    });
   };
 
   return (
-    <div className="space-y-6 p-8">
+    <div className="space-y-4 p-4 sm:space-y-6 sm:p-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-800">
+          <h1 className="text-xl font-semibold text-gray-800 sm:text-2xl">
             External Connections
           </h1>
-          <p className="text-gray-600">Manage external system connections</p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-col gap-2 sm:flex-row sm:gap-3">
           <button
-            onClick={() => setShowTestModal(true)}
-            className="flex items-center gap-2 rounded-lg border border-green-600 bg-white px-4 py-2 text-green-600 hover:bg-green-50"
-          >
-            <TestTube className="h-4 w-4" />
-            Test Connection
-          </button>
-          <button
-            onClick={() => {
-              resetForm();
-              setEditingConnection(null);
-              setShowCreateForm(true);
-            }}
-            className="flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-white hover:bg-green-700"
+            onClick={() =>
+              router.push('/admin/external-connection/add-connection')
+            }
+            className="flex items-center justify-center gap-2 rounded-lg bg-green-600 px-3 py-2 text-sm text-white hover:bg-green-700 sm:px-4"
           >
             <Plus className="h-4 w-4" />
-            Add Connection
+            <span className="hidden sm:inline">Add Connection</span>
+            <span className="sm:hidden">Add</span>
           </button>
         </div>
       </div>
@@ -176,69 +226,58 @@ export default function ExternalConnections() {
         onDelete={(id) => setDeleteConnectionId(id)}
       />
 
-      <ConnectionFormModal
-        isOpen={showCreateForm}
-        editingConnection={editingConnection}
-        name={name}
-        setName={setName}
-        type={type}
-        setType={setType}
-        baseUrl={baseUrl}
-        setBaseUrl={setBaseUrl}
-        pat={pat}
-        setPat={setPat}
-        showToken={showToken}
-        setShowToken={setShowToken}
-        onSubmit={handleSubmit}
-        onCancel={() => {
-          setShowCreateForm(false);
-          setEditingConnection(null);
-          resetForm();
-        }}
-        isLoading={createMutation.isPending || updateMutation.isPending}
-        error={
-          createMutation.error
-            ? { message: createMutation.error.message }
-            : updateMutation.error
+      {editingConnection && (
+        <EditFormModal
+          isOpen={true}
+          connectionType={editingConnection.type as 'dhis2' | 'postgres'}
+          name={name}
+          setName={setName}
+          baseUrl={baseUrl}
+          setBaseUrl={setBaseUrl}
+          pat={pat}
+          setPat={setPat}
+          host={host}
+          setHost={setHost}
+          port={port}
+          setPort={setPort}
+          database={database}
+          setDatabase={setDatabase}
+          username={username}
+          setUsername={setUsername}
+          password={password}
+          setPassword={setPassword}
+          onSubmit={handleSubmit}
+          onCancel={() => {
+            setEditingConnection(null);
+            resetForm();
+          }}
+          onTestConnection={handleTestConnection}
+          isLoading={updateMutation.isPending}
+          isTestingConnection={isTestingConnection}
+          connectionTested={connectionTested}
+          testError={testError}
+          error={
+            updateMutation.error
               ? { message: updateMutation.error.message }
               : undefined
-        }
-      />
-
-      <TestConnectionModal
-        isOpen={showTestModal}
-        onClose={() => setShowTestModal(false)}
-      />
-
-      {/* Delete Confirmation Modal */}
-      {deleteConnectionId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="mx-4 w-full max-w-sm rounded-lg bg-white p-6">
-            <h3 className="mb-2 text-lg font-semibold">Delete Connection</h3>
-            <p className="mb-4 text-gray-600">
-              Are you sure you want to delete this connection? This action
-              cannot be undone.
-            </p>
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => setDeleteConnectionId(null)}
-                className="px-4 py-2 text-gray-600 hover:text-gray-800"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => {
-                  deleteMutation.mutate({ path: { id: deleteConnectionId } });
-                  setDeleteConnectionId(null);
-                }}
-                className="rounded bg-red-600 px-4 py-2 text-white hover:bg-red-700"
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        </div>
+          }
+        />
       )}
+
+      <DeleteConnectionModal
+        isOpen={!!deleteConnectionId}
+        onClose={() => setDeleteConnectionId(null)}
+        onConfirm={() => {
+          if (deleteConnectionId) {
+            deleteMutation.mutate({ path: { id: deleteConnectionId } });
+            setDeleteConnectionId(null);
+          }
+        }}
+        connectionName={
+          connectionsArray.find((c) => c.id === deleteConnectionId)?.name
+        }
+        isDeleting={deleteMutation.isPending}
+      />
     </div>
   );
 }
