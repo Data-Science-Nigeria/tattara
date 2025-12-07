@@ -151,7 +151,12 @@ export default function AudioAiReview({
       setAudioBlob(file);
       const url = URL.createObjectURL(file);
       setAudioUrl(url);
-      setRecordingTime(Math.floor(file.size / 16000)); // Rough estimate
+
+      // Get actual audio duration
+      const audio = new Audio(url);
+      audio.onloadedmetadata = () => {
+        setRecordingTime(Math.floor(audio.duration));
+      };
     } else {
       toast.error('Please select a valid audio file');
     }

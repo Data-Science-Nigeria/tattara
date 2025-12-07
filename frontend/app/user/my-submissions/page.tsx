@@ -18,6 +18,9 @@ interface Submission {
   };
   status: string;
   submittedAt: string;
+  metadata?: {
+    type?: string;
+  };
 }
 
 interface StatCardProps {
@@ -208,6 +211,9 @@ export default function MySubmissions() {
                   <span className="text-sm sm:text-base">Description</span>
                 </th>
                 <th className="px-3 py-4 text-left font-semibold text-gray-700 sm:px-6">
+                  <span className="text-sm sm:text-base">Type</span>
+                </th>
+                <th className="px-3 py-4 text-left font-semibold text-gray-700 sm:px-6">
                   <span className="text-sm sm:text-base">Status</span>
                 </th>
                 <th className="px-3 py-4 text-left font-semibold text-gray-700 sm:px-6">
@@ -219,7 +225,7 @@ export default function MySubmissions() {
               {isLoading ? (
                 <tr>
                   <td
-                    colSpan={4}
+                    colSpan={5}
                     className="px-3 py-4 text-center text-gray-500 sm:px-6"
                   >
                     <div className="flex items-center justify-center py-4">
@@ -233,7 +239,7 @@ export default function MySubmissions() {
               ) : currentSubmissions.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={4}
+                    colSpan={5}
                     className="px-3 py-4 text-center text-sm text-gray-500 sm:px-6"
                   >
                     {search
@@ -249,6 +255,11 @@ export default function MySubmissions() {
                     </td>
                     <td className="px-3 py-4 text-sm text-gray-700 sm:px-6">
                       {submission.workflow?.description || 'N/A'}
+                    </td>
+                    <td className="px-3 py-4 text-sm text-gray-700 sm:px-6">
+                      <span className="capitalize">
+                        {submission.metadata?.type || 'N/A'}
+                      </span>
                     </td>
                     <td className="px-3 py-4 text-gray-700 sm:px-6">
                       <StatusBadge status={submission.status} />

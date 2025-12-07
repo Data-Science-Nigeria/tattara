@@ -136,7 +136,12 @@ export default function AudioRenderer({
       setAudioBlob(file);
       const url = URL.createObjectURL(file);
       setAudioUrl(url);
-      setRecordingTime(Math.floor(file.size / 16000)); // Rough estimate
+
+      // Get actual audio duration
+      const audio = new Audio(url);
+      audio.onloadedmetadata = () => {
+        setRecordingTime(Math.floor(audio.duration));
+      };
 
       // Convert to base64 for AI processing
       const reader = new FileReader();
@@ -182,7 +187,7 @@ export default function AudioRenderer({
       <FormRenderer
         workflowId={workflow.id}
         workflowType="audio"
-        inputData={audioData}
+        inputData={audioBlob}
         onProcessingComplete={handleProcessingComplete}
       />
     );

@@ -4,7 +4,7 @@ export interface ValidationResult {
 }
 
 export function validateFieldValue(
-  value: string | boolean,
+  value: string | boolean | number | string[],
   fieldType: string,
   options?: string[]
 ): ValidationResult {
@@ -14,9 +14,24 @@ export function validateFieldValue(
       : { isValid: false, error: 'Expected boolean value' };
   }
 
-  const stringValue = value as string;
+  // Handle multiselect arrays
+  if (Array.isArray(value)) {
+    if (fieldType === 'multiselect') {
+      if (options && options.length > 0) {
+        const invalidValues = value.filter((val) => !options.includes(val));
+        return invalidValues.length > 0
+          ? { isValid: false, error: 'Please select valid options only' }
+          : { isValid: true };
+      }
+      return { isValid: true };
+    }
+    return { isValid: false, error: 'Unexpected array value' };
+  }
 
-  if (!stringValue.trim()) {
+  // Convert to string for validation
+  const stringValue = String(value);
+
+  if (!stringValue || !stringValue.trim()) {
     return { isValid: true }; // Empty values are handled by required validation
   }
 
@@ -80,23 +95,8 @@ export function validateFieldValue(
       return { isValid: true };
 
     case 'multiselect':
-      try {
-        const selectedValues = JSON.parse(stringValue);
-        if (!Array.isArray(selectedValues)) {
-          return { isValid: false, error: 'Invalid selection format' };
-        }
-        if (options && options.length > 0) {
-          const invalidValues = selectedValues.filter(
-            (val) => !options.includes(val)
-          );
-          return invalidValues.length > 0
-            ? { isValid: false, error: 'Please select valid options only' }
-            : { isValid: true };
-        }
-        return { isValid: true };
-      } catch {
-        return { isValid: false, error: 'Invalid selection format' };
-      }
+      // Already handled above for arrays
+      return { isValid: true };
 
     default:
       return { isValid: true };

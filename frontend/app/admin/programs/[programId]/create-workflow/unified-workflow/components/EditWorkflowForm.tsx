@@ -3,12 +3,14 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
   workflowControllerUpdateWorkflowBasicInfoMutation,
   fieldControllerUpsertWorkflowFieldsMutation,
   configurationControllerUpsertWorkflowConfigurationsMutation,
+  programControllerFindWorkflowsByProgramQueryKey,
+  workflowControllerFindWorkflowByIdQueryKey,
 } from '@/client/@tanstack/react-query.gen';
 
 import WorkflowDetailsStep from './WorkflowDetailsStep';
@@ -67,6 +69,7 @@ export default function EditWorkflowForm({
   existingWorkflow,
 }: EditWorkflowFormProps) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [currentStep, setCurrentStep] = useState(1);
   const [isExternalMode, setIsExternalMode] = useState<boolean | null>(null);
 
@@ -338,6 +341,16 @@ export default function EditWorkflowForm({
       }
 
       toast.success('Workflow updated successfully!');
+      await queryClient.invalidateQueries({
+        queryKey: programControllerFindWorkflowsByProgramQueryKey({
+          path: { id: programId },
+        }),
+      });
+      await queryClient.invalidateQueries({
+        queryKey: workflowControllerFindWorkflowByIdQueryKey({
+          path: { workflowId },
+        }),
+      });
       router.push(`/admin/programs/${programId}/create-workflow`);
     } catch (error) {
       console.error('Failed to update workflow:', error);

@@ -110,41 +110,69 @@ export default function Workflows() {
   const submissions = Array.isArray(
     (
       submissionsData as {
-        data?: { data?: Array<{ workflow: { id: string }; status: string }> };
+        data?: {
+          data?: Array<{
+            workflow: { id: string };
+            status: string;
+            submittedAt: string;
+          }>;
+        };
       }
     )?.data?.data
   )
     ? (
         submissionsData as {
-          data: { data: Array<{ workflow: { id: string }; status: string }> };
+          data: {
+            data: Array<{
+              workflow: { id: string };
+              status: string;
+              submittedAt: string;
+            }>;
+          };
         }
       ).data.data
     : [];
-  const submittedWorkflowIds = new Set(
-    submissions
-      .filter((s) =>
-        ['submitted', 'completed', 'synced'].includes(s.status.toLowerCase())
-      )
-      .map((s) => s.workflow?.id)
-  );
+
+  // Map workflow ID to last submission timestamp
+  const workflowLastSubmission = new Map<string, string>();
+  submissions
+    .filter((s) =>
+      ['submitted', 'completed', 'synced'].includes(s.status.toLowerCase())
+    )
+    .forEach((s) => {
+      const existing = workflowLastSubmission.get(s.workflow?.id);
+      if (!existing || new Date(s.submittedAt) > new Date(existing)) {
+        workflowLastSubmission.set(s.workflow?.id, s.submittedAt);
+      }
+    });
 
   const workflows: Workflow[] = currentWorkflows.map(
-    (workflow: ApiWorkflow) => ({
-      icon: (
-        <Image
-          src={getIconForWorkflow(workflow.enabledModes)}
-          alt="Workflow icon"
-          width={24}
-          height={24}
-          className="h-6 w-6"
-        />
-      ),
-      title: workflow.name,
-      description: workflow.description || 'No description available',
-      actionLabel: getActionLabel(workflow.enabledModes),
-      onClick: () => (window.location.href = `/user/data-entry/${workflow.id}`),
-      isSubmitted: submittedWorkflowIds.has(workflow.id),
-    })
+    (workflow: ApiWorkflow & { updatedAt?: string }) => {
+      const lastSubmission = workflowLastSubmission.get(workflow.id);
+      // Show as submitted only if user submitted AND workflow hasn't been updated since
+      const isSubmitted =
+        lastSubmission && workflow.updatedAt
+          ? new Date(lastSubmission) > new Date(workflow.updatedAt)
+          : !!lastSubmission;
+
+      return {
+        icon: (
+          <Image
+            src={getIconForWorkflow(workflow.enabledModes)}
+            alt="Workflow icon"
+            width={24}
+            height={24}
+            className="h-6 w-6"
+          />
+        ),
+        title: workflow.name,
+        description: workflow.description || 'No description available',
+        actionLabel: getActionLabel(workflow.enabledModes),
+        onClick: () =>
+          (window.location.href = `/user/data-entry/${workflow.id}`),
+        isSubmitted,
+      };
+    }
   );
 
   return (

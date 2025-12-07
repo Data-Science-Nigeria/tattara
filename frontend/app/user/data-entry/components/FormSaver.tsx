@@ -172,23 +172,26 @@ export default function FormRenderer({
         formData.append('files', file);
 
         aiResponse = await aiProcessMutation.mutateAsync({ formData });
-      } else {
-        // For text and audio, use JSON body
-        const body: {
-          workflowId: string;
-          processingType: 'text' | 'audio';
-          text?: string;
-          audio?: string;
-        } = {
-          workflowId,
-          processingType: workflowType as 'text' | 'audio',
-        };
+      } else if (workflowType === 'audio') {
+        // For audio, use FormData with blob
+        const audioBlob = inputData as Blob;
+        const file = new File([audioBlob], 'audio.wav', {
+          type: audioBlob.type || 'audio/wav',
+        });
 
-        if (workflowType === 'text') {
-          body.text = inputData as string;
-        } else if (workflowType === 'audio') {
-          body.audio = inputData as string;
-        }
+        const formData = new FormData();
+        formData.append('workflowId', workflowId);
+        formData.append('processingType', 'audio');
+        formData.append('files', file);
+
+        aiResponse = await aiProcessMutation.mutateAsync({ formData });
+      } else {
+        // For text, use JSON body
+        const body = {
+          workflowId,
+          processingType: 'text' as const,
+          text: inputData as string,
+        };
 
         aiResponse = await aiProcessMutation.mutateAsync({ body });
       }
