@@ -21,7 +21,15 @@ interface ActiveWorkflowsTableProps {
   workflows: Workflow[];
   isLoading: boolean;
   onArchive: (workflowId: string, workflowName: string) => void;
-  onDeleteConfig: (configId: string, workflowName: string) => void;
+  onDeleteConfig: (
+    configs: Array<{
+      id: string;
+      type: string;
+      updatedAt: string;
+      externalConnection?: { name?: string; type?: string };
+    }>,
+    workflowName: string
+  ) => void;
 }
 
 export default function ActiveWorkflowsTable({
@@ -146,7 +154,7 @@ export default function ActiveWorkflowsTable({
                             <DropdownMenuItem
                               onClick={() =>
                                 onDeleteConfig(
-                                  workflow.workflowConfigurations[0].id,
+                                  workflow.workflowConfigurations,
                                   workflow.name
                                 )
                               }

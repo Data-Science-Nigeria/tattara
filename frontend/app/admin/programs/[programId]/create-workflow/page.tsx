@@ -39,6 +39,11 @@ interface Workflow {
   workflowConfigurations?: Array<{
     id: string;
     type: string;
+    updatedAt: string;
+    externalConnection?: {
+      name?: string;
+      type?: string;
+    };
   }>;
 }
 
@@ -56,7 +61,12 @@ export default function CreateWorkflow() {
   } | null>(null);
   const [showDeleteConfigModal, setShowDeleteConfigModal] = useState(false);
   const [deleteConfigData, setDeleteConfigData] = useState<{
-    configId: string;
+    configs: Array<{
+      id: string;
+      type: string;
+      updatedAt: string;
+      externalConnection?: { name?: string; type?: string };
+    }>;
     workflowName: string;
   } | null>(null);
   const itemsPerPage = 10;
@@ -315,9 +325,9 @@ export default function CreateWorkflow() {
                                     <DropdownMenuItem
                                       onClick={() => {
                                         setDeleteConfigData({
-                                          configId:
-                                            workflow.workflowConfigurations?.[0]
-                                              ?.id || '',
+                                          configs:
+                                            workflow.workflowConfigurations ||
+                                            [],
                                           workflowName: workflow.name,
                                         });
                                         setShowDeleteConfigModal(true);
@@ -452,7 +462,7 @@ export default function CreateWorkflow() {
         {showDeleteConfigModal && deleteConfigData && (
           <DeleteConfigModal
             isOpen={showDeleteConfigModal}
-            configId={deleteConfigData.configId}
+            configs={deleteConfigData.configs}
             workflowName={deleteConfigData.workflowName}
             onClose={() => {
               setShowDeleteConfigModal(false);

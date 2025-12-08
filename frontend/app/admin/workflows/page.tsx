@@ -50,7 +50,12 @@ export default function ManageWorkflows() {
     workflowName: string;
   } | null>(null);
   const [deleteConfigData, setDeleteConfigData] = useState<{
-    configId: string;
+    configs: Array<{
+      id: string;
+      type: string;
+      updatedAt: string;
+      externalConnection?: { name?: string; type?: string };
+    }>;
     workflowName: string;
   } | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -173,8 +178,16 @@ export default function ManageWorkflows() {
     setShowArchiveModal(true);
   };
 
-  const handleDeleteConfig = (configId: string, workflowName: string) => {
-    setDeleteConfigData({ configId, workflowName });
+  const handleDeleteConfig = (
+    configs: Array<{
+      id: string;
+      type: string;
+      updatedAt: string;
+      externalConnection?: { name?: string; type?: string };
+    }>,
+    workflowName: string
+  ) => {
+    setDeleteConfigData({ configs, workflowName });
     setShowDeleteConfigModal(true);
   };
 
@@ -370,7 +383,7 @@ export default function ManageWorkflows() {
       {showDeleteConfigModal && deleteConfigData && (
         <DeleteConfigModal
           isOpen={showDeleteConfigModal}
-          configId={deleteConfigData.configId}
+          configs={deleteConfigData.configs}
           workflowName={deleteConfigData.workflowName}
           onClose={() => {
             setShowDeleteConfigModal(false);
