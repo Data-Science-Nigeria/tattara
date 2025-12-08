@@ -1,5 +1,5 @@
 import { BaseRepository } from '@/common/repositories/base.repository';
-import { User, Workflow, WorkflowConfiguration } from '@/database/entities';
+import { Workflow, WorkflowConfiguration } from '@/database/entities';
 import { RequestContext } from '@/shared/request-context/request-context.service';
 import {
   BadRequestException,
@@ -17,10 +17,6 @@ export class ConfigurationService {
   private readonly workflowConfigurationRepository: BaseRepository<WorkflowConfiguration>;
 
   constructor(
-    // @InjectRepository(Workflow)
-    // private workflowRepository: Repository<Workflow>,
-    // @InjectRepository(WorkflowConfiguration)
-    // private workflowConfigurationRepository: Repository<WorkflowConfiguration>,
     private dataSource: DataSource,
     private readonly requestContext: RequestContext,
   ) {
@@ -143,7 +139,7 @@ export class ConfigurationService {
               : {}),
           }),
         );
-        console.log('Saving configurations:', newConfigurations);
+
         await workflowConfigRepo.save(newConfigurations);
       }
 
@@ -176,17 +172,9 @@ export class ConfigurationService {
     return workflow.workflowConfigurations || [];
   }
 
-  async removeWorkflowConfiguration(
-    configurationId: string,
-    currentUser: User,
-  ): Promise<void> {
+  async removeWorkflowConfiguration(configurationId: string): Promise<void> {
     const result = await this.workflowConfigurationRepository.delete({
       id: configurationId,
-      ...(currentUser.hasRole('super-admin')
-        ? {}
-        : {
-            workflow: { createdBy: { id: currentUser.id } },
-          }),
     });
 
     if (result.affected === 0) {

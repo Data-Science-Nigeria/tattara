@@ -1,25 +1,36 @@
+import { BaseRepository } from '@/common/repositories/base.repository';
+import { removeUndefinedProperties } from '@/common/utils';
+import { Workflow, WorkflowField } from '@/database/entities';
+import { RequestContext } from '@/shared/request-context/request-context.service';
 import {
   BadRequestException,
   Injectable,
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { removeUndefinedProperties } from '@/common/utils';
-import { Workflow, WorkflowField } from '@/database/entities';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, In } from 'typeorm';
 
 @Injectable()
 export class FieldService {
   private readonly logger = new Logger(FieldService.name);
+  private readonly workflowFieldRepository: BaseRepository<WorkflowField>;
+  private readonly workflowRepository: BaseRepository<Workflow>;
 
   constructor(
-    @InjectRepository(WorkflowField)
-    private workflowFieldRepository: Repository<WorkflowField>,
-    @InjectRepository(Workflow)
-    private workflowRepository: Repository<Workflow>,
     private dataSource: DataSource,
-  ) {}
+    private readonly requestContext: RequestContext,
+  ) {
+    this.workflowFieldRepository = new BaseRepository<WorkflowField>(
+      WorkflowField,
+      this.dataSource,
+      this.requestContext,
+    );
+    this.workflowRepository = new BaseRepository<Workflow>(
+      Workflow,
+      this.dataSource,
+      this.requestContext,
+    );
+  }
 
   async getWorkflowFields(workflowId: string): Promise<WorkflowField[]> {
     const workflow = await this.workflowRepository.findOne({
@@ -43,7 +54,19 @@ export class FieldService {
     }
 
     return this.dataSource.transaction(async manager => {
-      const workflow = await manager.findOne(Workflow, {
+      const workflowRepo = BaseRepository.fromManager(
+        Workflow,
+        manager,
+        this.requestContext,
+      );
+
+      const fieldRepo = BaseRepository.fromManager(
+        WorkflowField,
+        manager,
+        this.requestContext,
+      );
+
+      const workflow = await workflowRepo.findOne({
         where: { id: workflowId },
         relations: ['workflowFields'],
       });
@@ -54,13 +77,11 @@ export class FieldService {
         );
       }
 
-      const existingFieldIds = workflow.workflowFields.map(field => field.id);
-
       const fieldsToUpdate: Partial<WorkflowField>[] = [];
       const fieldsToCreate: Omit<Partial<WorkflowField>, 'id'>[] = [];
 
       fieldsData.forEach(fieldData => {
-        if (fieldData.id && existingFieldIds.includes(fieldData.id)) {
+        if (fieldData.id) {
           fieldsToUpdate.push(fieldData);
         } else {
           fieldsToCreate.push(fieldData);
@@ -69,28 +90,56 @@ export class FieldService {
 
       // Update existing fields
       if (fieldsToUpdate.length > 0) {
-        for (const fieldUpdate of fieldsToUpdate) {
+        const updateIds = fieldsToUpdate.map(field => field.id!);
+
+        const existingFields = await fieldRepo.find({
+          where: {
+            id: In(updateIds),
+            workflow: { id: workflowId },
+          },
+        });
+
+        const existingFieldMap = new Map(
+          existingFields.map(field => [field.id, field]),
+        );
+
+        const nonExistentIds = updateIds.filter(
+          id => !existingFieldMap.has(id),
+        );
+
+        if (nonExistentIds.length > 0) {
+          throw new NotFoundException(
+            `Field(s) with ID(s) '${nonExistentIds.join(', ')}' not found for workflow '${workflowId}'`,
+          );
+        }
+
+        const fieldsToSave = fieldsToUpdate.map(fieldUpdate => {
           const { id, ...updateFields } = fieldUpdate;
+          const existingField = existingFieldMap.get(id!)!;
           const cleanUpdateFields = removeUndefinedProperties(updateFields);
 
-          if (Object.keys(cleanUpdateFields).length > 0) {
-            await manager.update(WorkflowField, id, cleanUpdateFields);
-          }
-        }
+          return fieldRepo.create({
+            ...existingField,
+            ...cleanUpdateFields,
+            id: id!,
+          });
+        });
+
+        await fieldRepo.save(fieldsToSave);
       }
 
       // Create new fields
       if (fieldsToCreate.length > 0) {
         const newFields = fieldsToCreate.map(fieldData =>
-          manager.create(WorkflowField, {
+          fieldRepo.create({
             workflow,
             ...fieldData,
           }),
         );
-        await manager.save(newFields);
+        await fieldRepo.save(newFields);
       }
 
-      return manager.find(WorkflowField, {
+      return fieldRepo.find({
         where: { workflow: { id: workflowId } },
         order: { createdAt: 'ASC' },
       });

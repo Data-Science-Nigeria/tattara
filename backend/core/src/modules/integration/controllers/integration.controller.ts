@@ -25,6 +25,7 @@ export class IntegrationController {
    */
   @Post('test-connection')
   async testConnection(@Body() connection: ConnectionDto): Promise<any> {
+    console.log('Testing connection with config:', connection);
     return this.integrationService.testConnection(connection);
   }
 
