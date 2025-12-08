@@ -90,6 +90,8 @@ export default function EditWorkflowForm({
     orgUnit: '',
   });
 
+  const [existingConfigId, setExistingConfigId] = useState<string | null>(null);
+
   const [aiFields, setAiFields] = useState<AIField[]>([]);
   const [manualFields, setManualFields] = useState<ManualField[]>([]);
 
@@ -146,6 +148,7 @@ export default function EditWorkflowForm({
 
       if (externalConfiguration) {
         setIsExternalMode(true);
+        setExistingConfigId((externalConfiguration.id as string) || null);
         const config = externalConfiguration.configuration as
           | Record<string, unknown>
           | undefined;
@@ -164,17 +167,41 @@ export default function EditWorkflowForm({
                 ? config.orgUnits[0]
                 : '')) as string) || '',
         });
+        const existingFields = Array.isArray(workflow.workflowFields)
+          ? (workflow.workflowFields as Array<Record<string, unknown>>)
+          : [];
         setAiFields(
-          Array.isArray(workflow.workflowFields)
-            ? (workflow.workflowFields as AIField[])
-            : []
+          existingFields.map((field) => ({
+            id: (field.id as string) || '',
+            fieldName: (field.fieldName as string) || '',
+            label: (field.label as string) || '',
+            fieldType: (field.fieldType as string) || 'text',
+            isRequired: (field.isRequired as boolean) || false,
+            displayOrder: (field.displayOrder as number) || 0,
+            aiPrompt:
+              ((field.aiMapping as Record<string, unknown>)
+                ?.prompt as string) || '',
+            externalDataElement: (field.externalDataElement as string) || '',
+            options: (field.options as string[]) || undefined,
+          }))
         );
       } else {
         setIsExternalMode(false);
+        const existingFields = Array.isArray(workflow.workflowFields)
+          ? (workflow.workflowFields as Array<Record<string, unknown>>)
+          : [];
         setManualFields(
-          Array.isArray(workflow.workflowFields)
-            ? (workflow.workflowFields as ManualField[])
-            : []
+          existingFields.map((field) => ({
+            id: (field.id as string) || '',
+            name: (field.fieldName as string) || '',
+            label: (field.label as string) || '',
+            type: (field.fieldType as string) || 'text',
+            description:
+              ((field.aiMapping as Record<string, unknown>)
+                ?.prompt as string) || '',
+            required: (field.isRequired as boolean) || false,
+            options: (field.options as string[]) || undefined,
+          }))
         );
       }
     }
@@ -267,29 +294,27 @@ export default function EditWorkflowForm({
 
       // Step 2: Upsert workflow fields
       if (isExternalMode) {
-        const fieldsToUpsert = aiFields
-          .filter((field) => isUUID(field.id))
-          .map((field) => ({
-            id: field.id,
-            fieldName: field.fieldName,
-            label: field.label,
-            fieldType: field.fieldType as
-              | 'text'
-              | 'number'
-              | 'date'
-              | 'datetime'
-              | 'select'
-              | 'multiselect'
-              | 'boolean'
-              | 'email'
-              | 'phone'
-              | 'url'
-              | 'textarea',
-            isRequired: field.isRequired,
-            displayOrder: field.displayOrder,
-            aiMapping: { prompt: field.aiPrompt },
-            options: field.options,
-          }));
+        const fieldsToUpsert = aiFields.map((field) => ({
+          ...(isUUID(field.id) ? { id: field.id } : {}),
+          fieldName: field.fieldName,
+          label: field.label,
+          fieldType: field.fieldType as
+            | 'text'
+            | 'number'
+            | 'date'
+            | 'datetime'
+            | 'select'
+            | 'multiselect'
+            | 'boolean'
+            | 'email'
+            | 'phone'
+            | 'url'
+            | 'textarea',
+          isRequired: field.isRequired,
+          displayOrder: field.displayOrder,
+          aiMapping: { prompt: field.aiPrompt },
+          options: field.options,
+        }));
 
         await upsertFieldsMutation.mutateAsync({
           path: { workflowId },
@@ -302,6 +327,7 @@ export default function EditWorkflowForm({
           body: {
             configurations: [
               {
+                ...(existingConfigId ? { id: existingConfigId } : {}),
                 type: 'dhis2',
                 externalConnectionId: externalConfig.connectionId,
                 configuration:
@@ -321,33 +347,31 @@ export default function EditWorkflowForm({
           } as unknown as undefined,
         });
       } else {
-        const fieldsToUpsert = manualFields
-          .filter((field) => isUUID(field.id))
-          .map((field, index) => ({
-            id: field.id,
-            fieldName: field.name,
-            label: field.label,
-            fieldType: field.type.toLowerCase() as
-              | 'text'
-              | 'number'
-              | 'date'
-              | 'datetime'
-              | 'select'
-              | 'multiselect'
-              | 'boolean'
-              | 'email'
-              | 'phone'
-              | 'url'
-              | 'textarea',
-            isRequired: field.required,
-            displayOrder: index + 1,
-            aiMapping: {
-              prompt:
-                field.description ||
-                `Extract ${field.label.toLowerCase()} from the ${workflowData.inputType} input`,
-            },
-            options: field.options,
-          }));
+        const fieldsToUpsert = manualFields.map((field, index) => ({
+          ...(isUUID(field.id) ? { id: field.id } : {}),
+          fieldName: field.name,
+          label: field.label,
+          fieldType: field.type.toLowerCase() as
+            | 'text'
+            | 'number'
+            | 'date'
+            | 'datetime'
+            | 'select'
+            | 'multiselect'
+            | 'boolean'
+            | 'email'
+            | 'phone'
+            | 'url'
+            | 'textarea',
+          isRequired: field.required,
+          displayOrder: index + 1,
+          aiMapping: {
+            prompt:
+              field.description ||
+              `Extract ${field.label.toLowerCase()} from the ${workflowData.inputType} input`,
+          },
+          options: field.options,
+        }));
 
         await upsertFieldsMutation.mutateAsync({
           path: { workflowId },
@@ -428,6 +452,7 @@ export default function EditWorkflowForm({
               fields={aiFields}
               setFields={setAiFields}
               externalConfig={externalConfig}
+              workflowId={workflowId}
             />
           )}
 

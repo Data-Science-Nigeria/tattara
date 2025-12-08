@@ -23,10 +23,10 @@ export const dashboardSidebarItems = [
     alt: 'Program Profile icon',
   },
   {
-    name: 'User Workflow',
-    href: `/admin/user-workflow`,
+    name: 'Workflows',
+    href: `/admin/workflows`,
     icon: UserCog,
-    alt: 'User Workflow icon',
+    alt: 'Workflows icon',
   },
   {
     name: 'Manage Users',

@@ -9,6 +9,7 @@ import {
   MoreHorizontal,
   TestTube,
   Archive,
+  Trash2,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
@@ -23,6 +24,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import ArchiveWorkflowModal from './components/archive-workflow-modal';
+import DeleteConfigModal from '@/app/admin/workflows/components/delete-config-modal';
 
 interface Workflow {
   id: string;
@@ -50,6 +52,11 @@ export default function CreateWorkflow() {
   const [showArchiveModal, setShowArchiveModal] = useState(false);
   const [archiveWorkflowData, setArchiveWorkflowData] = useState<{
     workflowId: string;
+    workflowName: string;
+  } | null>(null);
+  const [showDeleteConfigModal, setShowDeleteConfigModal] = useState(false);
+  const [deleteConfigData, setDeleteConfigData] = useState<{
+    configId: string;
     workflowName: string;
   } | null>(null);
   const itemsPerPage = 10;
@@ -307,6 +314,20 @@ export default function CreateWorkflow() {
                                     </DropdownMenuItem>
                                     <DropdownMenuItem
                                       onClick={() => {
+                                        setDeleteConfigData({
+                                          configId:
+                                            workflow.workflowConfigurations?.[0]
+                                              ?.id || '',
+                                          workflowName: workflow.name,
+                                        });
+                                        setShowDeleteConfigModal(true);
+                                      }}
+                                    >
+                                      <Trash2 className="mr-2 h-4 w-4" />
+                                      Delete Config
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      onClick={() => {
                                         setArchiveWorkflowData({
                                           workflowId: workflow.id,
                                           workflowName: workflow.name,
@@ -423,6 +444,19 @@ export default function CreateWorkflow() {
             onClose={() => {
               setShowArchiveModal(false);
               setArchiveWorkflowData(null);
+            }}
+          />
+        )}
+
+        {/* Delete Config Modal */}
+        {showDeleteConfigModal && deleteConfigData && (
+          <DeleteConfigModal
+            isOpen={showDeleteConfigModal}
+            configId={deleteConfigData.configId}
+            workflowName={deleteConfigData.workflowName}
+            onClose={() => {
+              setShowDeleteConfigModal(false);
+              setDeleteConfigData(null);
             }}
           />
         )}
