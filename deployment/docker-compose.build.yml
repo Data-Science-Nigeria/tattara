@@ -79,6 +79,31 @@ services:
     volumes:
       - redis_data:/data
 
+  nginx:
+    image: nginx:latest
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf.template:/etc/nginx/nginx.conf.template:ro
+      - ./nginx/entrypoint.sh:/docker-entrypoint.d/10-entrypoint.sh:ro
+      - certbot_data:/etc/letsencrypt:ro
+      - certbot_www:/var/www/certbot:ro
+    environment:
+      - BASE_DOMAIN=${BASE_DOMAIN:-tattara.dsnsandbox.com}
+      - CERT_DOMAIN=${CERT_DOMAIN:-tattara.dsnsandbox.com}
+    depends_on:
+      - app
+      - ai
+    expose:
+      - "80"
+      - "443"
+    entrypoint: /bin/sh
+    command: /docker-entrypoint.d/10-entrypoint.sh
+
 volumes:
   postgres_data:
   redis_data:
+  certbot_data:
+  certbot_www:
