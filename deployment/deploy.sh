@@ -71,7 +71,13 @@ fi
 # Check for DNS configuration
 echo -e "${YELLOW}Checking DNS configuration...${NC}"
 DNS_IP=$(dig +short A $BASE_DOMAIN @8.8.8.8 2>/dev/null | tail -n1)
-SERVER_IP=$(hostname -I | awk '{print $1}')
+
+# Get server IP (cross-platform: macOS and Linux)
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    SERVER_IP=$(ipconfig getifaddr en0 2>/dev/null || ipconfig getifaddr en1 2>/dev/null || echo "unknown")
+else
+    SERVER_IP=$(hostname -I 2>/dev/null | awk '{print $1}' || hostname -i 2>/dev/null | awk '{print $1}' || echo "unknown")
+fi
 
 if [ -z "$DNS_IP" ]; then
     echo -e "${RED}⚠ WARNING: DNS A record not configured for $BASE_DOMAIN${NC}"
@@ -116,22 +122,40 @@ else
     echo -e "${GREEN}✓ DNS A record correctly configured for $BASE_DOMAIN${NC}"
 fi
 
-# Check for SSL certificates
+# Check for SSL certificates (check Docker volume or local directory)
 CERT_DIR="$DEPLOYMENT_DIR/certbot_data/live/$CERT_DOMAIN"
-if [ ! -d "$CERT_DIR" ] || [ ! -f "$CERT_DIR/fullchain.pem" ]; then
-    echo -e "${YELLOW}⚠ SSL Certificate not found at $CERT_DIR${NC}"
+CERT_EXISTS=false
+
+# Check local directory first
+if [ -d "$CERT_DIR" ] && [ -f "$CERT_DIR/fullchain.pem" ]; then
+    CERT_EXISTS=true
+fi
+
+# Check if certs exist in Docker volume
+if [ "$CERT_EXISTS" = false ] && docker volume inspect deployment_certbot_data &>/dev/null; then
+    if docker run --rm -v deployment_certbot_data:/certs alpine test -f /certs/live/$CERT_DOMAIN/fullchain.pem 2>/dev/null; then
+        CERT_EXISTS=true
+    fi
+fi
+
+if [ "$CERT_EXISTS" = false ]; then
+    echo -e "${YELLOW}⚠ SSL Certificate not found for $CERT_DOMAIN${NC}"
     echo ""
     echo "  You need to obtain a certificate before deploying."
     echo "  Options:"
     echo ""
-    echo "  1. Let's Encrypt (RECOMMENDED - requires DNS to be configured):"
-    echo "     docker run --rm -it -v \$(pwd)/certbot_data:/etc/letsencrypt certbot/certbot certonly --standalone \\"
-    echo "       -d $BASE_DOMAIN -d '*.$BASE_DOMAIN' --agree-tos -m your-email@example.com"
+    echo "  1. Let's Encrypt - Single domain (HTTP-01 challenge):"
+    echo "     docker run --rm -it -p 80:80 -v \$(pwd)/certbot_data:/etc/letsencrypt certbot/certbot certonly --standalone \\"
+    echo "       -d $BASE_DOMAIN -d api.$BASE_DOMAIN -d ai.$BASE_DOMAIN --agree-tos -m your-email@example.com"
     echo ""
-    echo "  2. Self-signed certificate (for testing only):"
+    echo "  2. Let's Encrypt - Wildcard (DNS-01 challenge, requires DNS provider plugin):"
+    echo "     docker run --rm -it -v \$(pwd)/certbot_data:/etc/letsencrypt certbot/certbot certonly --manual \\"
+    echo "       --preferred-challenges dns -d $BASE_DOMAIN -d '*.$BASE_DOMAIN' --agree-tos -m your-email@example.com"
+    echo ""
+    echo "  3. Self-signed certificate (for testing only):"
     echo "     mkdir -p certbot_data/live/$CERT_DOMAIN"
     echo "     openssl req -x509 -newkey rsa:4096 -keyout certbot_data/live/$CERT_DOMAIN/privkey.pem \\"
-    echo "       -out certbot_data/live/$CERT_DOMAIN/fullchain.pem -days 365 -nodes"
+    echo "       -out certbot_data/live/$CERT_DOMAIN/fullchain.pem -days 365 -nodes -subj '/CN=$BASE_DOMAIN'"
     echo ""
     read -p "Continue deployment without HTTPS? (y/n) " -n 1 -r
     echo
@@ -214,8 +238,8 @@ if [ -z "$DNS_IP" ]; then
     echo "2. Wait for DNS propagation (5-30 minutes)"
     echo ""
     echo "3. Generate SSL certificate (after DNS is active):"
-    echo "   docker run --rm -it -v \$(pwd)/certbot_data:/etc/letsencrypt certbot/certbot certonly --standalone \\"
-    echo "     -d $BASE_DOMAIN -d '*.$BASE_DOMAIN' --agree-tos -m your-email@example.com"
+    echo "   docker run --rm -it -p 80:80 -v \$(pwd)/certbot_data:/etc/letsencrypt certbot/certbot certonly --standalone \\"
+    echo "     -d $BASE_DOMAIN -d api.$BASE_DOMAIN -d ai.$BASE_DOMAIN --agree-tos -m your-email@example.com"
     echo ""
     echo "4. Restart nginx to use the certificate:"
     echo "   $DOCKER_COMPOSE restart nginx"
@@ -239,8 +263,8 @@ else
     echo ""
     echo "Next steps:"
     echo "  1. If you haven't already, generate SSL certificates:"
-    echo "     docker run --rm -it -v \$(pwd)/certbot_data:/etc/letsencrypt certbot/certbot certonly --standalone \\"
-    echo "       -d $BASE_DOMAIN -d '*.$BASE_DOMAIN' --agree-tos -m your-email@example.com"
+    echo "     docker run --rm -it -p 80:80 -v \$(pwd)/certbot_data:/etc/letsencrypt certbot/certbot certonly --standalone \\"
+    echo "       -d $BASE_DOMAIN -d api.$BASE_DOMAIN -d ai.$BASE_DOMAIN --agree-tos -m your-email@example.com"
     echo "     Then: $DOCKER_COMPOSE restart nginx"
     echo ""
     echo "  2. Verify everything is working:"
