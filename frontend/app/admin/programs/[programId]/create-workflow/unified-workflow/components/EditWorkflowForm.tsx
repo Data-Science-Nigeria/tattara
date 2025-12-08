@@ -56,6 +56,7 @@ interface ManualField {
   description: string;
   required: boolean;
   options?: string[];
+  externalDataElement?: string;
 }
 
 interface EditWorkflowFormProps {
@@ -146,6 +147,22 @@ export default function EditWorkflowForm({
           ) as Record<string, unknown> | undefined)
         : undefined;
 
+      // Build field mappings lookup from fieldMappings array
+      const fieldMappings = Array.isArray(workflow.fieldMappings)
+        ? (workflow.fieldMappings as Array<Record<string, unknown>>)
+        : [];
+      const mappingsByFieldId = new Map<string, string>();
+      fieldMappings.forEach((mapping) => {
+        const fieldId = (mapping.workflowField as Record<string, unknown>)
+          ?.id as string;
+        const dataElement =
+          ((mapping.target as Record<string, unknown>)
+            ?.dataElement as string) || '';
+        if (fieldId && dataElement) {
+          mappingsByFieldId.set(fieldId, dataElement);
+        }
+      });
+
       if (externalConfiguration) {
         setIsExternalMode(true);
         setExistingConfigId((externalConfiguration.id as string) || null);
@@ -171,19 +188,25 @@ export default function EditWorkflowForm({
           ? (workflow.workflowFields as Array<Record<string, unknown>>)
           : [];
         setAiFields(
-          existingFields.map((field) => ({
-            id: (field.id as string) || '',
-            fieldName: (field.fieldName as string) || '',
-            label: (field.label as string) || '',
-            fieldType: (field.fieldType as string) || 'text',
-            isRequired: (field.isRequired as boolean) || false,
-            displayOrder: (field.displayOrder as number) || 0,
-            aiPrompt:
-              ((field.aiMapping as Record<string, unknown>)
-                ?.prompt as string) || '',
-            externalDataElement: (field.externalDataElement as string) || '',
-            options: (field.options as string[]) || undefined,
-          }))
+          existingFields.map((field) => {
+            const fieldId = (field.id as string) || '';
+            return {
+              id: fieldId,
+              fieldName: (field.fieldName as string) || '',
+              label: (field.label as string) || '',
+              fieldType: (field.fieldType as string) || 'text',
+              isRequired: (field.isRequired as boolean) || false,
+              displayOrder: (field.displayOrder as number) || 0,
+              aiPrompt:
+                ((field.aiMapping as Record<string, unknown>)
+                  ?.prompt as string) || '',
+              externalDataElement:
+                mappingsByFieldId.get(fieldId) ||
+                (field.externalDataElement as string) ||
+                '',
+              options: (field.options as string[]) || undefined,
+            };
+          })
         );
       } else {
         setIsExternalMode(false);
@@ -191,17 +214,24 @@ export default function EditWorkflowForm({
           ? (workflow.workflowFields as Array<Record<string, unknown>>)
           : [];
         setManualFields(
-          existingFields.map((field) => ({
-            id: (field.id as string) || '',
-            name: (field.fieldName as string) || '',
-            label: (field.label as string) || '',
-            type: (field.fieldType as string) || 'text',
-            description:
-              ((field.aiMapping as Record<string, unknown>)
-                ?.prompt as string) || '',
-            required: (field.isRequired as boolean) || false,
-            options: (field.options as string[]) || undefined,
-          }))
+          existingFields.map((field) => {
+            const fieldId = (field.id as string) || '';
+            return {
+              id: fieldId,
+              name: (field.fieldName as string) || '',
+              label: (field.label as string) || '',
+              type: (field.fieldType as string) || 'text',
+              description:
+                ((field.aiMapping as Record<string, unknown>)
+                  ?.prompt as string) || '',
+              required: (field.isRequired as boolean) || false,
+              options: (field.options as string[]) || undefined,
+              externalDataElement:
+                mappingsByFieldId.get(fieldId) ||
+                (field.externalDataElement as string) ||
+                '',
+            };
+          })
         );
       }
     }
@@ -209,22 +239,63 @@ export default function EditWorkflowForm({
 
   const maxSteps = isExternalMode ? 4 : isExternalMode === false ? 2 : 1;
 
-  const handleExternalModeChange = () => {
-    toast.error(
-      'Cannot change integration mode when editing. Create a new workflow instead.'
-    );
+  const handleExternalModeChange = (
+    useExternal: boolean,
+    connectionId?: string
+  ) => {
+    // Only allow changing from manual to external, not the reverse
+    if (isExternalMode === true) {
+      toast.error(
+        'Cannot remove external integration. Create a new workflow instead.'
+      );
+      return;
+    }
+
+    // Allow upgrading from manual to external
+    if (useExternal && connectionId) {
+      // Convert manual fields to AI fields, preserving IDs and external mappings
+      const convertedFields: AIField[] = manualFields.map((field, index) => ({
+        id: field.id,
+        fieldName: field.name,
+        label: field.label,
+        fieldType: field.type,
+        isRequired: field.required,
+        displayOrder: index + 1,
+        aiPrompt:
+          field.description ||
+          `Extract ${field.label.toLowerCase()} from the input`,
+        externalDataElement: field.externalDataElement || '',
+        options: field.options,
+      }));
+
+      setIsExternalMode(true);
+      setExternalConfig((prev) => ({ ...prev, connectionId }));
+      setAiFields(convertedFields);
+      setManualFields([]);
+    }
   };
 
   const handleExternalConfigChange = (newConfig: Partial<ExternalConfig>) => {
     const updatedConfig = { ...externalConfig, ...newConfig };
 
-    if (
-      newConfig.connectionId !== undefined ||
-      newConfig.type !== undefined ||
-      newConfig.programId !== undefined ||
-      newConfig.datasetId !== undefined
-    ) {
-      setAiFields([]);
+    // Check if config actually changed (not just set to same value)
+    const configChanged =
+      (newConfig.connectionId !== undefined &&
+        newConfig.connectionId !== externalConfig.connectionId) ||
+      (newConfig.type !== undefined &&
+        newConfig.type !== externalConfig.type) ||
+      (newConfig.programId !== undefined &&
+        newConfig.programId !== externalConfig.programId) ||
+      (newConfig.datasetId !== undefined &&
+        newConfig.datasetId !== externalConfig.datasetId);
+
+    if (configChanged) {
+      // Keep fields with IDs but clear their external mappings (need to remap)
+      setAiFields((prev) =>
+        prev
+          .filter((field) => isUUID(field.id))
+          .map((field) => ({ ...field, externalDataElement: '' }))
+      );
     }
 
     setExternalConfig(updatedConfig);
@@ -435,7 +506,7 @@ export default function EditWorkflowForm({
               setWorkflowData={setWorkflowData}
               isExternalMode={isExternalMode}
               onExternalModeChange={handleExternalModeChange}
-              isEditMode={true}
+              isEditMode={isExternalMode === true}
             />
           )}
 
