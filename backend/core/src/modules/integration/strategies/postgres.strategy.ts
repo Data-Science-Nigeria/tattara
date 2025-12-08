@@ -25,6 +25,21 @@ export class PostgresStrategy extends ConnectorStrategy {
   async testConnection(
     connectionConfig: PostgresConnectionConfig,
   ): Promise<boolean> {
+    const { host, port, username, password, database } = connectionConfig;
+
+    const missingFields: string[] = [];
+    if (!host) missingFields.push('host');
+    if (!port) missingFields.push('port');
+    if (!username) missingFields.push('username');
+    if (!password) missingFields.push('password');
+    if (!database) missingFields.push('database');
+
+    if (missingFields.length > 0) {
+      throw new BadRequestException(
+        `Invalid connection configuration: ${missingFields.join(', ')} ${missingFields.length === 1 ? 'is' : 'are'} required`,
+      );
+    }
+
     const db: Knex = knex({
       client: 'pg',
       connection: {
@@ -33,6 +48,12 @@ export class PostgresStrategy extends ConnectorStrategy {
         user: connectionConfig.username,
         password: connectionConfig.password,
         database: connectionConfig.database,
+        connectionTimeoutMillis: 10000,
+      },
+      pool: {
+        min: 0,
+        max: 1,
+        acquireTimeoutMillis: 10000,
       },
     });
 
