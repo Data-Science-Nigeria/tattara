@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { Mic, Square, X, Upload } from 'lucide-react';
 import { useAuthStore } from '@/app/store/use-auth-store';
 import AiResponseDisplay from '../field-mapping/components/AiResponseDisplay';
+import { getLanguageForBackend, getLanguageName } from '@/lib/language-utils';
 
 interface AudioAiReviewProps {
   workflowId: string;
@@ -25,15 +26,6 @@ export default function AudioAiReview({
     supportedLanguages[0] || 'en'
   );
 
-  const getLanguageName = (code: string) => {
-    const names: Record<string, string> = {
-      en: 'English',
-      yo: 'Yoruba',
-      ig: 'Igbo',
-      ha: 'Hausa',
-    };
-    return names[code] || code;
-  };
   const [recordingTime, setRecordingTime] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
   const [aiReviewData, setAiReviewData] = useState<{
@@ -138,7 +130,7 @@ export default function AudioAiReview({
       const formData = new FormData();
       formData.append('workflowId', workflowId);
       formData.append('processingType', 'audio');
-      formData.append('language', selectedLanguage);
+      formData.append('language', getLanguageForBackend(selectedLanguage));
       audioBlobs.forEach((blob, idx) =>
         formData.append('files', blob, `audio-${idx}.wav`)
       );

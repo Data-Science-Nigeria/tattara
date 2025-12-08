@@ -6,21 +6,34 @@ interface AiResponseData {
   data?: {
     aiData?: {
       form_id?: string;
-      extracted?: Record<string, unknown>;
+      total_rows?: number;
+      rows?: Array<{
+        row_index: number;
+        extracted: Record<string, unknown>;
+        missing_required: string[];
+      }>;
       confidence?: Record<string, number>;
-      spans?: Record<string, unknown>;
-      missing_required?: string[];
-    };
-    metrics?: {
-      asr_seconds?: number;
-      vision_seconds?: number;
-      llm_seconds?: number;
-      total_seconds?: number;
-      tokens_in?: number;
-      tokens_out?: number;
-      cost_usd?: number;
-      model?: string;
-      provider?: string;
+      meta?: {
+        asr_provider?: string;
+        language?: string;
+        transcript_length?: number;
+        cost_breakdown?: {
+          asr_cost_usd?: number;
+          translation_cost_usd?: number;
+          llm_cost_usd?: number;
+        };
+      };
+      metrics?: {
+        asr_seconds?: number;
+        vision_seconds?: number;
+        llm_seconds?: number;
+        total_seconds?: number;
+        tokens_in?: number;
+        tokens_out?: number;
+        cost_usd?: number;
+        model?: string;
+        provider?: string;
+      };
     };
     aiProcessingLogId?: string;
   };
@@ -57,19 +70,41 @@ export default function AiResponseDisplay({
           </pre>
         </div>
 
-        {responseData.success && responseData.data?.aiData && (
+        {responseData.success && responseData.data?.aiData?.rows && (
           <div>
-            <strong>Extracted Data:</strong>
-            <div className="mt-2 space-y-1">
-              {Object.entries(responseData.data.aiData.extracted || {}).map(
-                ([key, value]) => (
-                  <div key={key} className="flex justify-between">
-                    <span className="font-medium">{key}:</span>
-                    <span>{String(value)}</span>
+            <strong>
+              Extracted Data ({responseData.data.aiData.total_rows} row
+              {responseData.data.aiData.total_rows !== 1 ? 's' : ''}):
+            </strong>
+            {responseData.data.aiData.rows.map((row, idx) => (
+              <div
+                key={idx}
+                className="mt-2 rounded border border-gray-200 p-2"
+              >
+                {(responseData.data?.aiData?.total_rows ?? 0) > 1 && (
+                  <div className="mb-2 text-sm font-semibold text-gray-600">
+                    Row {row.row_index + 1}
                   </div>
-                )
-              )}
-            </div>
+                )}
+                <div className="space-y-1">
+                  {Object.entries(row.extracted).map(([key, value]) => (
+                    <div key={key} className="flex justify-between text-sm">
+                      <span className="font-medium">{key}:</span>
+                      <span className="text-right">
+                        {Array.isArray(value)
+                          ? value.join(', ')
+                          : String(value)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                {row.missing_required.length > 0 && (
+                  <div className="mt-2 text-xs text-red-600">
+                    Missing: {row.missing_required.join(', ')}
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
         )}
 
@@ -89,31 +124,52 @@ export default function AiResponseDisplay({
           </div>
         )}
 
-        {responseData.data?.metrics && (
+        {responseData.data?.aiData?.meta && (
           <div>
-            <strong>Processing Metrics:</strong>
+            <strong>Processing Info:</strong>
             <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
-              <div>Total Time: {responseData.data.metrics.total_seconds}s</div>
-              <div>Cost: ${responseData.data.metrics.cost_usd}</div>
-              <div>Model: {responseData.data.metrics.model}</div>
-              <div>
-                Tokens: {responseData.data.metrics.tokens_in}/
-                {responseData.data.metrics.tokens_out}
-              </div>
+              {responseData.data.aiData.meta.language && (
+                <div>Language: {responseData.data.aiData.meta.language}</div>
+              )}
+              {responseData.data.aiData.meta.asr_provider && (
+                <div>ASR: {responseData.data.aiData.meta.asr_provider}</div>
+              )}
+              {responseData.data.aiData.meta.transcript_length && (
+                <div>
+                  Transcript: {responseData.data.aiData.meta.transcript_length}{' '}
+                  chars
+                </div>
+              )}
             </div>
           </div>
         )}
 
-        {(responseData.data?.aiData?.missing_required?.length ?? 0) > 0 && (
-          <div className="text-sm text-red-600">
-            <strong>Missing Required Fields:</strong>
-            <ul className="mt-1 list-inside list-disc">
-              {responseData.data?.aiData?.missing_required?.map(
-                (field: string, index: number) => (
-                  <li key={index}>{field}</li>
-                )
+        {responseData.data?.aiData?.metrics && (
+          <div>
+            <strong>Performance Metrics:</strong>
+            <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
+              <div>
+                Total:{' '}
+                {responseData.data.aiData.metrics.total_seconds?.toFixed(2)}s
+              </div>
+              <div>
+                Cost: ${responseData.data.aiData.metrics.cost_usd?.toFixed(6)}
+              </div>
+              <div>Model: {responseData.data.aiData.metrics.model}</div>
+              <div>
+                Tokens: {responseData.data.aiData.metrics.tokens_in}/
+                {responseData.data.aiData.metrics.tokens_out}
+              </div>
+              {(responseData.data?.aiData?.metrics?.asr_seconds ?? 0) > 0 && (
+                <div>
+                  ASR:{' '}
+                  {responseData.data.aiData.metrics.asr_seconds?.toFixed(2)}s
+                </div>
               )}
-            </ul>
+              <div>
+                LLM: {responseData.data.aiData.metrics.llm_seconds?.toFixed(2)}s
+              </div>
+            </div>
           </div>
         )}
 

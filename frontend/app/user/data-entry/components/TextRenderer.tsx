@@ -6,6 +6,7 @@ import { useSaveDraft } from '../hooks/useSaveDraft';
 import FormRenderer from './FormSaver';
 import { useQuery } from '@tanstack/react-query';
 import { workflowControllerFindWorkflowByIdOptions } from '@/client/@tanstack/react-query.gen';
+import { getLanguageName } from '@/lib/language-utils';
 
 interface TextRendererProps {
   workflow: {
@@ -53,16 +54,6 @@ export default function TextRenderer({
       setSelectedLanguage(supportedLanguages[0]);
     }
   }, [supportedLanguages, selectedLanguage]);
-
-  const getLanguageName = (code: string) => {
-    const names: Record<string, string> = {
-      en: 'English',
-      yo: 'Yoruba',
-      ig: 'Igbo',
-      ha: 'Hausa',
-    };
-    return names[code] || code;
-  };
 
   useEffect(() => {
     const draft = loadDraft();
