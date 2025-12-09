@@ -2,8 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { Trash2, GripVertical, Eye } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
-import { integrationControllerFetchSchemasOptions } from '@/client/@tanstack/react-query.gen';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { toast } from 'sonner';
+import {
+  integrationControllerFetchSchemasOptions,
+  fieldControllerRemoveWorkflowFieldMutation,
+} from '@/client/@tanstack/react-query.gen';
 import { _Object } from '@/client/types.gen';
 
 interface DataElement {
@@ -68,6 +72,7 @@ interface AIFieldMappingStepProps {
   fields: AIField[];
   setFields: (fields: AIField[]) => void;
   externalConfig: ExternalConfig;
+  workflowId?: string;
 }
 
 export default function AIFieldMappingStep({
@@ -75,11 +80,24 @@ export default function AIFieldMappingStep({
   fields,
   setFields,
   externalConfig,
+  workflowId,
 }: AIFieldMappingStepProps) {
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [optionsInputs, setOptionsInputs] = useState<Record<string, string>>(
     {}
   );
+
+  const isEditMode = !!workflowId;
+
+  const deleteFieldMutation = useMutation({
+    ...fieldControllerRemoveWorkflowFieldMutation(),
+    onSuccess: () => {
+      toast.success('Field deleted successfully');
+    },
+    onError: () => {
+      toast.error('Failed to delete field');
+    },
+  });
 
   useEffect(() => {
     const newInputs: Record<string, string> = {};
@@ -230,7 +248,18 @@ export default function AIFieldMappingStep({
     );
   };
 
-  const removeField = (id: string) => {
+  const isUUID = (id: string): boolean => {
+    const uuidRegex =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    return uuidRegex.test(id);
+  };
+
+  const removeField = async (id: string) => {
+    if (isEditMode && isUUID(id)) {
+      await deleteFieldMutation.mutateAsync({
+        path: { fieldId: id },
+      });
+    }
     setFields(fields.filter((field) => field.id !== id));
   };
 
@@ -267,7 +296,7 @@ export default function AIFieldMappingStep({
             available)
           </button>
         )}
-        {fields.length > 0 && (
+        {!isEditMode && fields.length > 0 && (
           <button
             onClick={() => setFields([])}
             className="flex items-center gap-2 rounded-lg border border-red-600 px-4 py-2 text-red-600 hover:bg-red-50"

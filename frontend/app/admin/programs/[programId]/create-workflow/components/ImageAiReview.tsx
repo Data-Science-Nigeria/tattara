@@ -217,7 +217,7 @@ export default function ImageAiReview({
                 setPreviewUrls([]);
                 setAiReviewData(null);
               }}
-              className="text-sm text-gray-600 hover:text-gray-800"
+              className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
             >
               Upload different images
             </button>

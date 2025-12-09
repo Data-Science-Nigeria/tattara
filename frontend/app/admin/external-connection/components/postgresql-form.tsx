@@ -165,7 +165,7 @@ export default function PostgreSQLForm({
         {testError && (
           <div className="mt-3 flex items-start gap-2">
             <div className="mt-1 h-2 w-2 flex-shrink-0 rounded-full bg-red-500"></div>
-            <p className="text-sm break-words text-red-600">{testError}</p>
+            <p className="flex-1 text-sm break-all text-red-600">{testError}</p>
           </div>
         )}
       </div>
