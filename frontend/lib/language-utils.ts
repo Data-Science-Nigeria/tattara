@@ -12,8 +12,26 @@ export function getLanguageForBackend(code: string): string {
 }
 
 /**
- * Get display name for language code
+ * Convert full language name from backend to language code
  */
-export function getLanguageName(code: string): string {
-  return getLanguageForBackend(code);
+export function getLanguageCode(name: string): string {
+  const reverseMap: Record<string, string> = {
+    English: 'en',
+    Yoruba: 'yo',
+    Igbo: 'ig',
+    Hausa: 'ha',
+  };
+  return reverseMap[name] || name.toLowerCase();
+}
+
+/**
+ * Get display name for language code or full name
+ */
+export function getLanguageName(codeOrName: string): string {
+  // If it's already a full name, return it
+  if (['English', 'Yoruba', 'Igbo', 'Hausa'].includes(codeOrName)) {
+    return codeOrName;
+  }
+  // Otherwise convert code to name
+  return getLanguageForBackend(codeOrName);
 }

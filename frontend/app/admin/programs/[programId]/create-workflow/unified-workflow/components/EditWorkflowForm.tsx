@@ -12,6 +12,7 @@ import {
   programControllerFindWorkflowsByProgramQueryKey,
   workflowControllerFindWorkflowByIdQueryKey,
 } from '@/client/@tanstack/react-query.gen';
+import { getLanguageForBackend } from '@/lib/language-utils';
 
 import WorkflowDetailsStep from './WorkflowDetailsStep';
 import DHIS2ConfigurationStep from './DHIS2ConfigurationStep';
@@ -360,7 +361,9 @@ export default function EditWorkflowForm({
         body: {
           name: workflowData.name,
           description: workflowData.description,
-          supportedLanguages: workflowData.supportedLanguages,
+          supportedLanguages: workflowData.supportedLanguages.map(
+            getLanguageForBackend
+          ),
           enabledModes: [workflowData.inputType],
         },
       });

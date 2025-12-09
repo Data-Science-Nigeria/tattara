@@ -9,6 +9,7 @@ import {
   workflowControllerCreateWorkflowMutation,
   workflowControllerFindWorkflowByIdOptions,
 } from '@/client/@tanstack/react-query.gen';
+import { getLanguageForBackend } from '@/lib/language-utils';
 
 import WorkflowDetailsStep from './components/WorkflowDetailsStep';
 import DHIS2ConfigurationStep from './components/DHIS2ConfigurationStep';
@@ -233,7 +234,9 @@ function CreateWorkflowContent({ programId }: { programId: string }) {
           programId: programId || undefined,
           name: workflowData.name,
           description: workflowData.description,
-          supportedLanguages: workflowData.supportedLanguages,
+          supportedLanguages: workflowData.supportedLanguages.map(
+            getLanguageForBackend
+          ),
           enabledModes: [workflowData.inputType],
           workflowFields: aiFields.map((field) => ({
             fieldName: field.fieldName,
@@ -282,7 +285,9 @@ function CreateWorkflowContent({ programId }: { programId: string }) {
           programId: programId || undefined,
           name: workflowData.name,
           description: workflowData.description,
-          supportedLanguages: workflowData.supportedLanguages,
+          supportedLanguages: workflowData.supportedLanguages.map(
+            getLanguageForBackend
+          ),
           enabledModes: [workflowData.inputType],
           workflowFields: manualFields.map((field, index) => ({
             fieldName: field.name,
