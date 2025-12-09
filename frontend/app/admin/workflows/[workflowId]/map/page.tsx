@@ -65,6 +65,7 @@ export default function StandaloneFieldMapping() {
   const [workflowType, setWorkflowType] = useState<'audio' | 'image' | 'text'>(
     'text'
   );
+  const [supportedLanguages, setSupportedLanguages] = useState<string[]>([]);
   const [availableConnections, setAvailableConnections] = useState<
     Connection[]
   >([]);
@@ -88,8 +89,11 @@ export default function StandaloneFieldMapping() {
 
   useEffect(() => {
     if (workflowData) {
-      const workflow = (workflowData as { data?: Workflow })?.data;
+      const workflow = (
+        workflowData as { data?: Workflow & { supportedLanguages?: string[] } }
+      )?.data;
       setFields(workflow?.workflowFields || []);
+      setSupportedLanguages(workflow?.supportedLanguages || ['English']);
 
       const enabledModes = workflow?.enabledModes || ['text'];
       if (enabledModes.includes('audio')) {
@@ -258,18 +262,21 @@ export default function StandaloneFieldMapping() {
             {workflowType === 'audio' && (
               <AudioAiReview
                 workflowId={workflowId}
+                supportedLanguages={supportedLanguages}
                 onReviewComplete={() => setTestCompleted(true)}
               />
             )}
             {workflowType === 'image' && (
               <ImageAiReview
                 workflowId={workflowId}
+                supportedLanguages={supportedLanguages}
                 onReviewComplete={() => setTestCompleted(true)}
               />
             )}
             {workflowType === 'text' && (
               <TextAiReview
                 workflowId={workflowId}
+                supportedLanguages={supportedLanguages}
                 onReviewComplete={() => setTestCompleted(true)}
               />
             )}

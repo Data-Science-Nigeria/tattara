@@ -109,17 +109,7 @@ export default function CreateWorkflowStep({
                 Languages:
               </span>
               <p className="text-gray-900">
-                {workflowData.supportedLanguages
-                  .map((lang) => {
-                    const langNames: Record<string, string> = {
-                      en: 'English',
-                      yo: 'Yoruba',
-                      ig: 'Igbo',
-                      ha: 'Hausa',
-                    };
-                    return langNames[lang] || lang;
-                  })
-                  .join(', ')}
+                {workflowData.supportedLanguages.join(', ')}
               </p>
             </div>
           </div>

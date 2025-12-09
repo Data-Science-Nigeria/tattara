@@ -20,8 +20,13 @@ export default function StandaloneManualTest() {
     enabled: !!workflowId,
   });
 
-  const workflow = (workflowData as { data?: Record<string, unknown> })?.data;
+  const workflow = (
+    workflowData as {
+      data?: Record<string, unknown> & { supportedLanguages?: string[] };
+    }
+  )?.data;
   const inputType = (workflow?.enabledModes as string[])?.[0] || 'text';
+  const supportedLanguages = workflow?.supportedLanguages || ['English'];
 
   if (isLoading) {
     return (
@@ -42,6 +47,7 @@ export default function StandaloneManualTest() {
   const renderTestComponent = () => {
     const testProps = {
       workflowId,
+      supportedLanguages,
       onReviewComplete: () => {},
       onAiTestStatusChange: () => {},
     };

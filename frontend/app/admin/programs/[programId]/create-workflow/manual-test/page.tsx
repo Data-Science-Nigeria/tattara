@@ -22,7 +22,14 @@ export default function ManualTestPage() {
     enabled: !!workflowId,
   });
 
-  const workflow = (workflowData as { data?: Record<string, unknown> })?.data;
+  const workflow = (
+    workflowData as {
+      data?: Record<string, unknown> & { supportedLanguages?: string[] };
+    }
+  )?.data;
+  const supportedLanguages = (workflow?.supportedLanguages as string[]) || [
+    'English',
+  ];
 
   if (isLoading) {
     return (
@@ -43,6 +50,7 @@ export default function ManualTestPage() {
   const renderTestComponent = () => {
     const testProps = {
       workflowId: workflowId!,
+      supportedLanguages,
       onReviewComplete: () => {
         // No automatic redirect - user decides when to leave
       },

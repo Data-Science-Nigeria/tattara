@@ -67,6 +67,7 @@ export default function FieldMapping() {
   const [workflowType, setWorkflowType] = useState<'audio' | 'image' | 'text'>(
     'text'
   );
+  const [supportedLanguages, setSupportedLanguages] = useState<string[]>([]);
 
   // Load saved mappings from localStorage
   useEffect(() => {
@@ -110,8 +111,11 @@ export default function FieldMapping() {
 
   useEffect(() => {
     if (workflowData) {
-      const workflow = (workflowData as { data?: Workflow })?.data;
+      const workflow = (
+        workflowData as { data?: Workflow & { supportedLanguages?: string[] } }
+      )?.data;
       setFields(workflow?.workflowFields || []);
+      setSupportedLanguages(workflow?.supportedLanguages || ['English']);
 
       // Determine workflow type from enabledModes
       const enabledModes = workflow?.enabledModes || ['text'];
@@ -317,18 +321,21 @@ export default function FieldMapping() {
               <AudioAiReview
                 workflowId={workflowId || ''}
                 onReviewComplete={handleTestComplete}
+                supportedLanguages={supportedLanguages}
               />
             )}
             {workflowType === 'image' && (
               <ImageAiReview
                 workflowId={workflowId || ''}
                 onReviewComplete={handleTestComplete}
+                supportedLanguages={supportedLanguages}
               />
             )}
             {workflowType === 'text' && (
               <TextAiReview
                 workflowId={workflowId || ''}
                 onReviewComplete={handleTestComplete}
+                supportedLanguages={supportedLanguages}
               />
             )}
           </div>

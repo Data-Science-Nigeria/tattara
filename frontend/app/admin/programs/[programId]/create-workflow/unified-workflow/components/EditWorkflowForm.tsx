@@ -12,7 +12,6 @@ import {
   programControllerFindWorkflowsByProgramQueryKey,
   workflowControllerFindWorkflowByIdQueryKey,
 } from '@/client/@tanstack/react-query.gen';
-import { getLanguageForBackend } from '@/lib/language-utils';
 
 import WorkflowDetailsStep from './WorkflowDetailsStep';
 import DHIS2ConfigurationStep from './DHIS2ConfigurationStep';
@@ -82,7 +81,7 @@ export default function EditWorkflowForm({
     name: '',
     description: '',
     inputType: 'text',
-    supportedLanguages: ['en'],
+    supportedLanguages: ['English'],
   });
 
   const [externalConfig, setExternalConfig] = useState<ExternalConfig>({
@@ -138,7 +137,7 @@ export default function EditWorkflowForm({
             : 'text') || 'text',
         supportedLanguages: Array.isArray(workflow.supportedLanguages)
           ? (workflow.supportedLanguages as string[])
-          : ['en'],
+          : ['English'],
       });
 
       const externalConfiguration = Array.isArray(
@@ -361,9 +360,7 @@ export default function EditWorkflowForm({
         body: {
           name: workflowData.name,
           description: workflowData.description,
-          supportedLanguages: workflowData.supportedLanguages.map(
-            getLanguageForBackend
-          ),
+          supportedLanguages: workflowData.supportedLanguages,
           enabledModes: [workflowData.inputType],
         },
       });
