@@ -176,7 +176,7 @@ export default function WorkflowDetailsStep({
 
       <div>
         <label className="mb-2 block text-sm font-medium text-gray-700">
-          Supported Languages <span className="text-red-600">*</span>
+          Supported Language <span className="text-red-600">*</span>
         </label>
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
           {[
@@ -187,26 +187,15 @@ export default function WorkflowDetailsStep({
           ].map((lang) => (
             <label key={lang.code} className="flex items-center space-x-2">
               <input
-                type="checkbox"
-                checked={workflowData.supportedLanguages.includes(lang.code)}
-                onChange={(e) => {
-                  if (e.target.checked) {
-                    updateWorkflowData({
-                      supportedLanguages: [
-                        ...workflowData.supportedLanguages,
-                        lang.code,
-                      ],
-                    });
-                  } else {
-                    updateWorkflowData({
-                      supportedLanguages:
-                        workflowData.supportedLanguages.filter(
-                          (l) => l !== lang.code
-                        ),
-                    });
-                  }
+                type="radio"
+                name="language"
+                checked={workflowData.supportedLanguages[0] === lang.code}
+                onChange={() => {
+                  updateWorkflowData({
+                    supportedLanguages: [lang.code],
+                  });
                 }}
-                className="rounded border-gray-300 text-green-600 focus:ring-green-500"
+                className="border-gray-300 text-green-600 focus:ring-green-500"
               />
               <span className="text-sm text-gray-700">{lang.name}</span>
             </label>
