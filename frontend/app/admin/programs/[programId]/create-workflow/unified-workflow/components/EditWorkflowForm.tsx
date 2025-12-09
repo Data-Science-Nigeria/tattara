@@ -15,6 +15,7 @@ import {
 
 import WorkflowDetailsStep from './WorkflowDetailsStep';
 import DHIS2ConfigurationStep from './DHIS2ConfigurationStep';
+import PostgresConfigurationStep from './PostgresConfigurationStep';
 import AIFieldMappingStep from './AIFieldMappingStep';
 import ManualFieldStep from './ManualFieldStep';
 import CreateWorkflowStep from './CreateWorkflowStep';
@@ -29,11 +30,14 @@ interface WorkflowData {
 
 interface ExternalConfig {
   connectionId: string;
+  connectionType?: string;
   type: string;
   programId: string;
   programStageId?: string;
   datasetId?: string;
   orgUnit: string;
+  schema?: string;
+  table?: string;
 }
 
 interface AIField {
@@ -86,11 +90,14 @@ export default function EditWorkflowForm({
 
   const [externalConfig, setExternalConfig] = useState<ExternalConfig>({
     connectionId: '',
+    connectionType: '',
     type: '',
     programId: '',
     programStageId: '',
     datasetId: '',
     orgUnit: '',
+    schema: '',
+    table: '',
   });
 
   const [existingConfigId, setExistingConfigId] = useState<string | null>(null);
@@ -174,8 +181,10 @@ export default function EditWorkflowForm({
         const externalConnection = externalConfiguration.externalConnection as
           | Record<string, unknown>
           | undefined;
+        const connType = (externalConnection?.type as string) || 'dhis2';
         setExternalConfig({
           connectionId: (externalConnection?.id as string) || '',
+          connectionType: connType,
           type: (config?.type as string) || 'program',
           programId: ((config?.program || config?.programId) as string) || '',
           programStageId: (config?.programStage as string) || '',
@@ -185,6 +194,8 @@ export default function EditWorkflowForm({
               (Array.isArray(config?.orgUnits)
                 ? config.orgUnits[0]
                 : '')) as string) || '',
+          schema: (config?.schema as string) || '',
+          table: (config?.table as string) || '',
         });
         const existingFields = Array.isArray(workflow.workflowFields)
           ? (workflow.workflowFields as Array<Record<string, unknown>>)
@@ -243,7 +254,8 @@ export default function EditWorkflowForm({
 
   const handleExternalModeChange = (
     useExternal: boolean,
-    connectionId?: string
+    connectionId?: string,
+    connectionType?: string
   ) => {
     // Only allow changing from manual to external, not the reverse
     if (isExternalMode === true) {
@@ -271,7 +283,7 @@ export default function EditWorkflowForm({
       }));
 
       setIsExternalMode(true);
-      setExternalConfig((prev) => ({ ...prev, connectionId }));
+      setExternalConfig((prev) => ({ ...prev, connectionId, connectionType }));
       setAiFields(convertedFields);
       setManualFields([]);
     }
@@ -331,13 +343,15 @@ export default function EditWorkflowForm({
           workflowData.supportedLanguages.length > 0
         );
       case 3:
+        if (isExternalMode !== true || !externalConfig.connectionId)
+          return false;
+        if (externalConfig.connectionType === 'postgres') {
+          return !!externalConfig.schema && !!externalConfig.table;
+        }
         return (
-          isExternalMode === true &&
-          !!externalConfig.connectionId &&
           (externalConfig.type === 'program'
             ? !!externalConfig.programId && !!externalConfig.programStageId
-            : !!externalConfig.datasetId) &&
-          !!externalConfig.orgUnit
+            : !!externalConfig.datasetId) && !!externalConfig.orgUnit
         );
       case 4:
         return isExternalMode === true && aiFields.length > 0;
@@ -394,17 +408,22 @@ export default function EditWorkflowForm({
           body: { fields: fieldsToUpsert },
         });
 
-        // Step 3: Upsert DHIS2 configurations
+        // Step 3: Upsert external configurations (DHIS2 or Postgres)
+        const isPostgres = externalConfig.connectionType === 'postgres';
         await upsertConfigurationsMutation.mutateAsync({
           path: { workflowId },
           body: {
             configurations: [
               {
                 ...(existingConfigId ? { id: existingConfigId } : {}),
-                type: 'dhis2',
+                type: isPostgres ? ('postgres' as const) : ('dhis2' as const),
                 externalConnectionId: externalConfig.connectionId,
-                configuration:
-                  externalConfig.type === 'program'
+                configuration: isPostgres
+                  ? {
+                      schema: externalConfig.schema,
+                      table: externalConfig.table,
+                    }
+                  : externalConfig.type === 'program'
                     ? {
                         program: externalConfig.programId,
                         programStage: externalConfig.programStageId,
@@ -522,12 +541,23 @@ export default function EditWorkflowForm({
             />
           )}
 
-          {isExternalMode === true && currentStep === 2 && (
-            <DHIS2ConfigurationStep
-              config={externalConfig}
-              onChange={handleExternalConfigChange}
-            />
-          )}
+          {isExternalMode === true &&
+            currentStep === 2 &&
+            (externalConfig.connectionType === 'postgres' ? (
+              <PostgresConfigurationStep
+                config={{
+                  connectionId: externalConfig.connectionId,
+                  schema: externalConfig.schema || '',
+                  table: externalConfig.table || '',
+                }}
+                onChange={handleExternalConfigChange}
+              />
+            ) : (
+              <DHIS2ConfigurationStep
+                config={externalConfig}
+                onChange={handleExternalConfigChange}
+              />
+            ))}
 
           {isExternalMode === true && currentStep === 3 && (
             <AIFieldMappingStep

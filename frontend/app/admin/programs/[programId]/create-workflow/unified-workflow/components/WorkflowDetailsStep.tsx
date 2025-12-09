@@ -15,7 +15,11 @@ interface WorkflowDetailsStepProps {
   workflowData: WorkflowData;
   setWorkflowData: (data: WorkflowData) => void;
   isExternalMode: boolean | null;
-  onExternalModeChange: (useExternal: boolean, connectionId?: string) => void;
+  onExternalModeChange: (
+    useExternal: boolean,
+    connectionId?: string,
+    connectionType?: string
+  ) => void;
   isEditMode?: boolean;
 }
 
@@ -70,9 +74,10 @@ export default function WorkflowDetailsStep({
 
   const handleExternalConfirm = (
     useExternal: boolean,
-    connectionId?: string
+    connectionId?: string,
+    connectionType?: string
   ) => {
-    onExternalModeChange(useExternal, connectionId);
+    onExternalModeChange(useExternal, connectionId, connectionType);
     setExternalStatus(useExternal ? 'selected' : 'not-selected');
   };
 

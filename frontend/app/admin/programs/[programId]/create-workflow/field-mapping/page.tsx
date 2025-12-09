@@ -109,6 +109,8 @@ export default function FieldMapping() {
     ...fieldMappingControllerUpsertFieldMappingsMutation(),
   });
 
+  const [connectionType, setConnectionType] = useState<string>('');
+
   useEffect(() => {
     if (workflowData) {
       const workflow = (
@@ -116,6 +118,12 @@ export default function FieldMapping() {
       )?.data;
       setFields(workflow?.workflowFields || []);
       setSupportedLanguages(workflow?.supportedLanguages || ['English']);
+
+      // Check if workflow uses PostgreSQL
+      const config = workflow?.workflowConfigurations?.[0];
+      if (config?.type === 'postgres') {
+        setConnectionType('postgres');
+      }
 
       // Determine workflow type from enabledModes
       const enabledModes = workflow?.enabledModes || ['text'];
@@ -246,6 +254,51 @@ export default function FieldMapping() {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-[#008647]"></div>
+      </div>
+    );
+  }
+
+  // PostgreSQL workflows don't need field mapping
+  if (connectionType === 'postgres') {
+    return (
+      <div className="space-y-8 p-8">
+        <div>
+          <button
+            onClick={() =>
+              router.push(`/admin/programs/${programId}/create-workflow`)
+            }
+            className="mb-4 flex items-center gap-2 text-gray-600 hover:text-gray-900"
+          >
+            <ArrowLeft size={20} />
+            Back to Workflows
+          </button>
+          <h1 className="mb-2 text-3xl font-semibold text-gray-900">
+            Field Mapping Not Required
+          </h1>
+          <p className="text-gray-600">
+            PostgreSQL workflows use direct column mapping and don&apos;t
+            require additional field mapping.
+          </p>
+        </div>
+        <div className="max-w-4xl rounded-lg border border-blue-200 bg-blue-50 p-6">
+          <h3 className="mb-2 text-lg font-medium text-blue-900">
+            PostgreSQL Direct Mapping
+          </h3>
+          <p className="text-blue-700">
+            Your workflow fields are automatically mapped to PostgreSQL table
+            columns using the column names specified during field configuration.
+          </p>
+        </div>
+        <div className="flex justify-end">
+          <button
+            onClick={() =>
+              router.push(`/admin/programs/${programId}/create-workflow`)
+            }
+            className="rounded-lg bg-green-600 px-6 py-2 text-white hover:bg-green-700"
+          >
+            Back to Workflows
+          </button>
+        </div>
       </div>
     );
   }

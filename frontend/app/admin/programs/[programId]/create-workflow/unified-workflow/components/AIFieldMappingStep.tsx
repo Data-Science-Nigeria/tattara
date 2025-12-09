@@ -60,11 +60,14 @@ interface AIField {
 
 interface ExternalConfig {
   connectionId: string;
+  connectionType?: string;
   type: string;
   programId: string;
   programStageId?: string;
   datasetId?: string;
   orgUnit: string;
+  schema?: string;
+  table?: string;
 }
 
 interface AIFieldMappingStepProps {
@@ -112,30 +115,72 @@ export default function AIFieldMappingStep({
     setOptionsInputs(newInputs);
   }, [fields.length]);
 
+  const isPostgres = externalConfig.connectionType === 'postgres';
+
   const { data: schemaData } = useQuery({
     ...integrationControllerFetchSchemasOptions({
       path: { connectionId: externalConfig.connectionId },
-      query: {
-        type: externalConfig.type as unknown as _Object,
-        id:
-          (externalConfig.type === 'dataset'
-            ? externalConfig.datasetId
-            : externalConfig.programId) || '',
-      },
+      query: isPostgres
+        ? {}
+        : {
+            type: externalConfig.type as unknown as _Object,
+            id:
+              (externalConfig.type === 'dataset'
+                ? externalConfig.datasetId
+                : externalConfig.programId) || '',
+          },
     }),
-    enabled:
-      !!externalConfig.connectionId &&
-      !!(externalConfig.type === 'dataset'
-        ? externalConfig.datasetId
-        : externalConfig.programId) &&
-      !!externalConfig.type,
+    enabled: isPostgres
+      ? !!externalConfig.connectionId &&
+        !!externalConfig.schema &&
+        !!externalConfig.table
+      : !!externalConfig.connectionId &&
+        !!(externalConfig.type === 'dataset'
+          ? externalConfig.datasetId
+          : externalConfig.programId) &&
+        !!externalConfig.type,
   });
 
   // Extract available fields from schema
   const availableFields: AvailableField[] = [];
   const schema = (schemaData as { data?: SchemaData })?.data;
 
-  if (externalConfig.type === 'program' && schema?.programStages) {
+  if (isPostgres && externalConfig.schema && externalConfig.table) {
+    // PostgreSQL: Extract columns from table
+    const tableSchema = (
+      schemaData as {
+        data?: Record<
+          string,
+          {
+            tables?: Record<
+              string,
+              {
+                columns?: Array<{
+                  name: string;
+                  type: string;
+                  nullable: boolean;
+                }>;
+              }
+            >;
+          }
+        >;
+      }
+    )?.data;
+    const columns =
+      tableSchema?.[externalConfig.schema]?.tables?.[externalConfig.table]
+        ?.columns || [];
+    columns.forEach((column) => {
+      availableFields.push({
+        id: column.name,
+        name: column.name,
+        displayName: column.name,
+        valueType: column.type,
+        description: undefined,
+        mandatory: !column.nullable,
+      });
+    });
+  } else if (externalConfig.type === 'program' && schema?.programStages) {
+    // DHIS2 Program
     schema.programStages.forEach((stage) => {
       stage.programStageDataElements?.forEach((element) => {
         availableFields.push({
@@ -150,6 +195,7 @@ export default function AIFieldMappingStep({
       });
     });
   } else if (externalConfig.type === 'dataset' && schema?.dataSetElements) {
+    // DHIS2 Dataset
     schema.dataSetElements.forEach((element) => {
       availableFields.push({
         id: element.dataElement.id,
@@ -187,7 +233,35 @@ export default function AIFieldMappingStep({
   };
 
   const mapValueTypeToFieldType = (valueType: string): string => {
-    switch (valueType) {
+    const type = valueType.toUpperCase();
+    // PostgreSQL types
+    if (
+      type.includes('INT') ||
+      type.includes('SERIAL') ||
+      type.includes('NUMERIC') ||
+      type.includes('DECIMAL') ||
+      type.includes('FLOAT') ||
+      type.includes('DOUBLE')
+    ) {
+      return 'number';
+    }
+    if (type.includes('DATE') && !type.includes('TIME')) {
+      return 'date';
+    }
+    if (type.includes('TIMESTAMP') || type.includes('DATETIME')) {
+      return 'datetime';
+    }
+    if (type.includes('BOOL')) {
+      return 'boolean';
+    }
+    if (
+      type.includes('TEXT') ||
+      (type.includes('VARCHAR') && valueType.length > 255)
+    ) {
+      return 'textarea';
+    }
+    // DHIS2 types
+    switch (type) {
       case 'NUMBER':
       case 'INTEGER':
       case 'INTEGER_ZERO_OR_POSITIVE':

@@ -28,6 +28,8 @@ interface EditFormModalProps {
   setUsername?: (username: string) => void;
   password?: string;
   setPassword?: (password: string) => void;
+  ssl?: boolean;
+  setSsl?: (ssl: boolean) => void;
   onSubmit: () => void;
   onCancel: () => void;
   onTestConnection: () => void;
@@ -57,6 +59,8 @@ export default function EditFormModal({
   setUsername = () => {},
   password = '',
   setPassword = () => {},
+  ssl = false,
+  setSsl = () => {},
   onSubmit,
   onCancel,
   onTestConnection,
@@ -112,6 +116,8 @@ export default function EditFormModal({
               setUsername={setUsername}
               password={password}
               setPassword={setPassword}
+              ssl={ssl}
+              setSsl={setSsl}
               onTestConnection={onTestConnection}
               isTestingConnection={isTestingConnection}
               connectionTested={connectionTested}

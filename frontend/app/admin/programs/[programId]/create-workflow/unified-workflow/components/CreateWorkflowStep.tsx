@@ -11,11 +11,14 @@ interface WorkflowData {
 
 interface ExternalConfig {
   connectionId: string;
+  connectionType?: string;
   type: string;
   programId: string;
   programStageId?: string;
   datasetId?: string;
   orgUnit: string;
+  schema?: string;
+  table?: string;
 }
 
 interface AIField {
@@ -130,29 +133,64 @@ export default function CreateWorkflowStep({
               </p>
             </div>
             <div>
-              <span className="text-sm font-medium text-gray-500">Type:</span>
-              <p className="text-gray-900 capitalize">
-                {externalConfig.type || 'Not selected'}
-              </p>
-            </div>
-            <div>
               <span className="text-sm font-medium text-gray-500">
-                {externalConfig.type === 'dataset' ? 'Dataset:' : 'Program:'}
+                Connection Type:
               </span>
-              <p className="text-gray-900">
-                {(externalConfig.type === 'dataset'
-                  ? externalConfig.datasetId
-                  : externalConfig.programId) || 'Not selected'}
+              <p className="text-gray-900 uppercase">
+                {externalConfig.connectionType || 'Not selected'}
               </p>
             </div>
-            <div>
-              <span className="text-sm font-medium text-gray-500">
-                Organization Unit:
-              </span>
-              <p className="text-gray-900">
-                {externalConfig.orgUnit || 'Not selected'}
-              </p>
-            </div>
+            {externalConfig.connectionType === 'postgres' ? (
+              <>
+                <div>
+                  <span className="text-sm font-medium text-gray-500">
+                    Schema:
+                  </span>
+                  <p className="text-gray-900">
+                    {externalConfig.schema || 'Not selected'}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-sm font-medium text-gray-500">
+                    Table:
+                  </span>
+                  <p className="text-gray-900">
+                    {externalConfig.table || 'Not selected'}
+                  </p>
+                </div>
+              </>
+            ) : (
+              <>
+                <div>
+                  <span className="text-sm font-medium text-gray-500">
+                    Type:
+                  </span>
+                  <p className="text-gray-900 capitalize">
+                    {externalConfig.type || 'Not selected'}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-sm font-medium text-gray-500">
+                    {externalConfig.type === 'dataset'
+                      ? 'Dataset:'
+                      : 'Program:'}
+                  </span>
+                  <p className="text-gray-900">
+                    {(externalConfig.type === 'dataset'
+                      ? externalConfig.datasetId
+                      : externalConfig.programId) || 'Not selected'}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-sm font-medium text-gray-500">
+                    Organization Unit:
+                  </span>
+                  <p className="text-gray-900">
+                    {externalConfig.orgUnit || 'Not selected'}
+                  </p>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>
