@@ -63,12 +63,14 @@ interface EditWorkflowFormProps {
   workflowId: string;
   programId: string;
   existingWorkflow: Record<string, unknown>;
+  isStandalone?: boolean;
 }
 
 export default function EditWorkflowForm({
   workflowId,
   programId,
   existingWorkflow,
+  isStandalone = false,
 }: EditWorkflowFormProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -451,17 +453,23 @@ export default function EditWorkflowForm({
       }
 
       toast.success('Workflow updated successfully!');
-      await queryClient.invalidateQueries({
-        queryKey: programControllerFindWorkflowsByProgramQueryKey({
-          path: { id: programId },
-        }),
-      });
+      if (!isStandalone && programId) {
+        await queryClient.invalidateQueries({
+          queryKey: programControllerFindWorkflowsByProgramQueryKey({
+            path: { id: programId },
+          }),
+        });
+      }
       await queryClient.invalidateQueries({
         queryKey: workflowControllerFindWorkflowByIdQueryKey({
           path: { workflowId },
         }),
       });
-      router.push(`/admin/programs/${programId}/create-workflow`);
+      router.push(
+        isStandalone
+          ? '/admin/workflows'
+          : `/admin/programs/${programId}/create-workflow`
+      );
     } catch (error) {
       console.error('Failed to update workflow:', error);
     }
@@ -478,7 +486,11 @@ export default function EditWorkflowForm({
         <div className="mb-8">
           <button
             onClick={() =>
-              router.push(`/admin/programs/${programId}/create-workflow`)
+              router.push(
+                isStandalone
+                  ? '/admin/workflows'
+                  : `/admin/programs/${programId}/create-workflow`
+              )
             }
             className="mb-4 flex items-center gap-2 text-gray-600 hover:text-gray-900"
           >

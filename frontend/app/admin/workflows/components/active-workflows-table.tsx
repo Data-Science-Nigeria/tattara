@@ -134,7 +134,7 @@ export default function ActiveWorkflowsTable({
                             <DropdownMenuItem
                               onClick={() =>
                                 router.push(
-                                  `/admin/programs/${workflow.program.id}/create-workflow/field-mapping?workflowId=${workflow.id}`
+                                  `/admin/workflows/${workflow.id}/map`
                                 )
                               }
                             >
@@ -144,7 +144,7 @@ export default function ActiveWorkflowsTable({
                             <DropdownMenuItem
                               onClick={() =>
                                 router.push(
-                                  `/admin/programs/${workflow.program.id}/create-workflow/unified-workflow?workflowId=${workflow.id}`
+                                  `/admin/workflows/${workflow.id}/edit`
                                 )
                               }
                             >
@@ -176,7 +176,7 @@ export default function ActiveWorkflowsTable({
                             <DropdownMenuItem
                               onClick={() =>
                                 router.push(
-                                  `/admin/programs/${workflow.program.id}/create-workflow/manual-test?workflowId=${workflow.id}&inputType=${workflow.enabledModes?.[0] || 'text'}`
+                                  `/admin/workflows/${workflow.id}/test`
                                 )
                               }
                             >
@@ -186,7 +186,7 @@ export default function ActiveWorkflowsTable({
                             <DropdownMenuItem
                               onClick={() =>
                                 router.push(
-                                  `/admin/programs/${workflow.program.id}/create-workflow/unified-workflow?workflowId=${workflow.id}`
+                                  `/admin/workflows/${workflow.id}/edit`
                                 )
                               }
                             >
