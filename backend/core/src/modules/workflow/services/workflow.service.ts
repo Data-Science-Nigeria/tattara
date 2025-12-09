@@ -48,6 +48,8 @@ export class WorkflowService {
     return BaseRepository.fromManager(Workflow, manager, this.requestContext);
   }
 
+  // TODO: Make workflowFields reusable across multiple workflows in future, right now each workflow has its own set of fields
+  // TODO: Make workflowConfigurations reusable across multiple workflows in future
   async createWorkflow(
     workflowData: CreateWorkflowDto,
     currentUser: User,

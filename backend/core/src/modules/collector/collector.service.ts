@@ -127,7 +127,7 @@ export class CollectorService {
           aiProvider: payload.aiProvider,
           confidenceScore: rest.confidence?.score ?? undefined,
           user,
-          mappedOutput: rows,
+          mappedOutput: rows as unknown as Record<string, unknown>,
           workflow,
           processingType: payload.processingType,
           formSchema: formSchema,
@@ -261,7 +261,6 @@ export class CollectorService {
           }
 
           if (config.type === IntegrationType.POSTGRES) {
-            // For Postgres, process each entry individually
             for (const extractedData of allExtractedData) {
               if (
                 workflow.workflowFields.length !==
@@ -271,15 +270,19 @@ export class CollectorService {
                   `Field mappings for ${IntegrationType.POSTGRES} missing`,
                 );
               }
+            }
 
-              if ('schema' in config.configuration) {
-                const payload = {
-                  ...config.configuration,
-                  values: extractedData[IntegrationType.POSTGRES],
-                };
+            if ('schema' in config.configuration) {
+              const rows = allExtractedData.map(
+                extractedData => extractedData[IntegrationType.POSTGRES] ?? [],
+              );
 
-                await this.integrationService.pushData(config, payload);
-              }
+              const payload = {
+                ...config.configuration,
+                rows,
+              };
+
+              await this.integrationService.pushData(config, payload);
             }
           }
         }
@@ -480,6 +483,8 @@ export class CollectorService {
             table: m.target.table as string,
             column: m.target.column as string,
             value,
+            type: f.fieldType,
+            isNullable: f.isRequired ? false : true,
           };
           extractedData[m.targetType] = [
             ...(extractedData[m.targetType] || []),
