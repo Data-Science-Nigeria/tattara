@@ -31,6 +31,11 @@ export const SidebarItem = ({
       );
     }
 
+    // For workflows, match exact path and sub-routes (including /map, /test, /edit)
+    if (href === '/admin/workflows') {
+      return pathname === href || pathname.startsWith('/admin/workflows/');
+    }
+
     // For program-specific routes, match the base path
     if (href.includes('/admin/programs/')) {
       return pathname === href || pathname.startsWith(href + '/');
