@@ -12,6 +12,7 @@ import {
 
 import WorkflowDetailsStep from './components/WorkflowDetailsStep';
 import DHIS2ConfigurationStep from './components/DHIS2ConfigurationStep';
+import PostgresConfigurationStep from './components/PostgresConfigurationStep';
 import AIFieldMappingStep from './components/AIFieldMappingStep';
 import ManualFieldStep from './components/ManualFieldStep';
 import CreateWorkflowStep from './components/CreateWorkflowStep';
@@ -27,11 +28,14 @@ interface WorkflowData {
 
 interface ExternalConfig {
   connectionId: string;
+  connectionType?: string;
   type: string;
   programId: string;
   programStageId?: string;
   datasetId?: string;
   orgUnit: string;
+  schema?: string;
+  table?: string;
 }
 
 interface AIField {
@@ -111,16 +115,19 @@ function CreateWorkflowContent({ programId }: { programId: string }) {
     name: '',
     description: '',
     inputType: 'text',
-    supportedLanguages: ['en'],
+    supportedLanguages: ['English'],
   });
 
   const [externalConfig, setExternalConfig] = useState<ExternalConfig>({
     connectionId: '',
+    connectionType: '',
     type: '',
     programId: '',
     programStageId: '',
     datasetId: '',
     orgUnit: '',
+    schema: '',
+    table: '',
   });
 
   const [aiFields, setAiFields] = useState<AIField[]>([]);
@@ -142,7 +149,8 @@ function CreateWorkflowContent({ programId }: { programId: string }) {
 
   const handleExternalModeChange = (
     useExternal: boolean,
-    connectionId?: string
+    connectionId?: string,
+    connectionType?: string
   ) => {
     if (isExternalMode !== useExternal) {
       setIsExternalMode(useExternal);
@@ -150,16 +158,23 @@ function CreateWorkflowContent({ programId }: { programId: string }) {
       if (useExternal) {
         setManualFields([]);
         if (connectionId) {
-          setExternalConfig((prev) => ({ ...prev, connectionId }));
+          setExternalConfig((prev) => ({
+            ...prev,
+            connectionId,
+            connectionType,
+          }));
         }
       } else {
         setExternalConfig({
           connectionId: '',
+          connectionType: '',
           type: '',
           programId: '',
           programStageId: '',
           datasetId: '',
           orgUnit: '',
+          schema: '',
+          table: '',
         });
         setAiFields([]);
       }
@@ -210,13 +225,15 @@ function CreateWorkflowContent({ programId }: { programId: string }) {
           workflowData.supportedLanguages.length > 0
         );
       case 3:
+        if (isExternalMode !== true || !externalConfig.connectionId)
+          return false;
+        if (externalConfig.connectionType === 'postgres') {
+          return !!externalConfig.schema && !!externalConfig.table;
+        }
         return (
-          isExternalMode === true &&
-          !!externalConfig.connectionId &&
           (externalConfig.type === 'program'
             ? !!externalConfig.programId && !!externalConfig.programStageId
-            : !!externalConfig.datasetId) &&
-          !!externalConfig.orgUnit
+            : !!externalConfig.datasetId) && !!externalConfig.orgUnit
         );
       case 4:
         return isExternalMode === true && aiFields.length > 0;
@@ -227,7 +244,8 @@ function CreateWorkflowContent({ programId }: { programId: string }) {
 
   const handleSubmit = async () => {
     if (isExternalMode) {
-      // DHIS2 workflow creation
+      // External workflow creation (DHIS2 or Postgres)
+      const isPostgres = externalConfig.connectionType === 'postgres';
       await createWorkflowMutation.mutateAsync({
         body: {
           programId: programId || undefined,
@@ -257,10 +275,14 @@ function CreateWorkflowContent({ programId }: { programId: string }) {
           })),
           workflowConfigurations: [
             {
-              type: 'dhis2' as const,
+              type: isPostgres ? ('postgres' as const) : ('dhis2' as const),
               externalConnectionId: externalConfig.connectionId,
-              configuration:
-                externalConfig.type === 'program'
+              configuration: isPostgres
+                ? {
+                    schema: externalConfig.schema,
+                    table: externalConfig.table,
+                  }
+                : externalConfig.type === 'program'
                   ? {
                       program: externalConfig.programId,
                       programStage: externalConfig.programStageId,
@@ -270,7 +292,7 @@ function CreateWorkflowContent({ programId }: { programId: string }) {
                       dataSet: externalConfig.datasetId,
                       orgUnit: externalConfig.orgUnit,
                     },
-              isActive: true as boolean,
+              isActive: true,
             },
           ],
         },
@@ -357,12 +379,23 @@ function CreateWorkflowContent({ programId }: { programId: string }) {
             />
           )}
 
-          {isExternalMode === true && currentStep === 2 && (
-            <DHIS2ConfigurationStep
-              config={externalConfig}
-              onChange={handleExternalConfigChange}
-            />
-          )}
+          {isExternalMode === true &&
+            currentStep === 2 &&
+            (externalConfig.connectionType === 'postgres' ? (
+              <PostgresConfigurationStep
+                config={{
+                  connectionId: externalConfig.connectionId,
+                  schema: externalConfig.schema || '',
+                  table: externalConfig.table || '',
+                }}
+                onChange={handleExternalConfigChange}
+              />
+            ) : (
+              <DHIS2ConfigurationStep
+                config={externalConfig}
+                onChange={handleExternalConfigChange}
+              />
+            ))}
 
           {isExternalMode === true && currentStep === 3 && (
             <AIFieldMappingStep

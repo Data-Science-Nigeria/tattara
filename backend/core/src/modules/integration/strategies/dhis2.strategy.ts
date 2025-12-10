@@ -49,9 +49,13 @@ export class Dhis2Strategy extends ConnectorStrategy {
   }
 
   async testConnection(config: Dhis2ConnectionConfig) {
-    try {
-      const url = `${config.baseUrl}/api/system/info`;
+    if (!config.baseUrl || !config.pat) {
+      throw new BadRequestException('Both baseUrl and PAT must be provided.');
+    }
 
+    const url = `${config.baseUrl}/api/system/info`;
+
+    try {
       const response = await firstValueFrom(
         this.httpService.get<Dhis2SystemInfo>(url, {
           headers: { Authorization: `ApiToken ${config.pat}` },
@@ -71,6 +75,11 @@ export class Dhis2Strategy extends ConnectorStrategy {
         'Connected to server, but it does not appear to be a valid DHIS2 instance.',
       );
     } catch (error: unknown) {
+      // Re-throw HttpExceptions as-is
+      if (error instanceof HttpException) {
+        throw error;
+      }
+
       if (isAxiosError(error)) {
         if (error.code === 'ENOTFOUND' || error.code === 'EAI_AGAIN') {
           throw new BadRequestException(

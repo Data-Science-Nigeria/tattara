@@ -15,7 +15,11 @@ interface WorkflowDetailsStepProps {
   workflowData: WorkflowData;
   setWorkflowData: (data: WorkflowData) => void;
   isExternalMode: boolean | null;
-  onExternalModeChange: (useExternal: boolean, connectionId?: string) => void;
+  onExternalModeChange: (
+    useExternal: boolean,
+    connectionId?: string,
+    connectionType?: string
+  ) => void;
   isEditMode?: boolean;
 }
 
@@ -70,9 +74,10 @@ export default function WorkflowDetailsStep({
 
   const handleExternalConfirm = (
     useExternal: boolean,
-    connectionId?: string
+    connectionId?: string,
+    connectionType?: string
   ) => {
-    onExternalModeChange(useExternal, connectionId);
+    onExternalModeChange(useExternal, connectionId, connectionType);
     setExternalStatus(useExternal ? 'selected' : 'not-selected');
   };
 
@@ -176,37 +181,26 @@ export default function WorkflowDetailsStep({
 
       <div>
         <label className="mb-2 block text-sm font-medium text-gray-700">
-          Supported Languages <span className="text-red-600">*</span>
+          Supported Language <span className="text-red-600">*</span>
         </label>
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
           {[
-            { code: 'en', name: 'English' },
-            { code: 'yo', name: 'Yoruba' },
-            { code: 'ig', name: 'Igbo' },
-            { code: 'ha', name: 'Hausa' },
+            { name: 'English' },
+            { name: 'Yoruba' },
+            { name: 'Igbo' },
+            { name: 'Hausa' },
           ].map((lang) => (
-            <label key={lang.code} className="flex items-center space-x-2">
+            <label key={lang.name} className="flex items-center space-x-2">
               <input
-                type="checkbox"
-                checked={workflowData.supportedLanguages.includes(lang.code)}
-                onChange={(e) => {
-                  if (e.target.checked) {
-                    updateWorkflowData({
-                      supportedLanguages: [
-                        ...workflowData.supportedLanguages,
-                        lang.code,
-                      ],
-                    });
-                  } else {
-                    updateWorkflowData({
-                      supportedLanguages:
-                        workflowData.supportedLanguages.filter(
-                          (l) => l !== lang.code
-                        ),
-                    });
-                  }
+                type="radio"
+                name="language"
+                checked={workflowData.supportedLanguages[0] === lang.name}
+                onChange={() => {
+                  updateWorkflowData({
+                    supportedLanguages: [lang.name],
+                  });
                 }}
-                className="rounded border-gray-300 text-green-600 focus:ring-green-500"
+                className="border-gray-300 text-green-600 focus:ring-green-500"
               />
               <span className="text-sm text-gray-700">{lang.name}</span>
             </label>

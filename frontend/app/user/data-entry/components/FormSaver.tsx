@@ -10,7 +10,6 @@ import {
 import { toast } from 'sonner';
 import { validateFieldValue } from '@/lib/field-validation';
 import { useAuthStore } from '@/app/store/use-auth-store';
-import { getLanguageForBackend } from '@/lib/language-utils';
 
 interface AiReviewData {
   form_id: string;
@@ -204,8 +203,7 @@ export default function FormRenderer({
         const formData = new FormData();
         formData.append('workflowId', workflowId);
         formData.append('processingType', 'image');
-        if (language)
-          formData.append('language', getLanguageForBackend(language));
+        if (language) formData.append('language', language);
 
         const base64Array =
           typeof inputData === 'string' ? JSON.parse(inputData) : inputData;
@@ -227,8 +225,7 @@ export default function FormRenderer({
         const formData = new FormData();
         formData.append('workflowId', workflowId);
         formData.append('processingType', 'audio');
-        if (language)
-          formData.append('language', getLanguageForBackend(language));
+        if (language) formData.append('language', language);
 
         const audioArray =
           typeof inputData === 'string' ? JSON.parse(inputData) : inputData;
@@ -249,7 +246,7 @@ export default function FormRenderer({
           workflowId,
           processingType: 'text' as const,
           text: inputData as string,
-          ...(language && { language: getLanguageForBackend(language) }),
+          ...(language && { language }),
         };
 
         aiResponse = await aiProcessMutation.mutateAsync({ body });
@@ -529,7 +526,18 @@ export default function FormRenderer({
   };
 
   if (!aiReviewData) {
-    return null;
+    return (
+      <div className="mx-auto max-w-4xl">
+        <div className="rounded-xl border border-gray-200 bg-white p-8">
+          <div className="flex items-center justify-center py-12">
+            <div className="text-center">
+              <Loader2 className="mx-auto h-8 w-8 animate-spin text-green-600" />
+              <p className="mt-4 text-gray-600">Processing your data...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -590,22 +598,7 @@ export default function FormRenderer({
                     <span className="ml-1 text-red-500">*</span>
                   )}
                 </label>
-                <div className="relative">
-                  {renderField(field)}
-                  {aiReviewData?.rows?.[isBulkMode ? currentEntryIndex : 0]
-                    ?.extracted?.[field.fieldName] !== undefined &&
-                    aiReviewData?.rows?.[isBulkMode ? currentEntryIndex : 0]
-                      ?.extracted?.[field.fieldName] !== null &&
-                    formData[field.fieldName] !== undefined &&
-                    formData[field.fieldName] !== null &&
-                    formData[field.fieldName] !== '' && (
-                      <div className="absolute -top-2 right-2">
-                        <span className="inline-flex items-center rounded bg-blue-100 px-1 py-0.5 text-xs text-blue-800">
-                          AI Extracted
-                        </span>
-                      </div>
-                    )}
-                </div>
+                <div className="relative">{renderField(field)}</div>
                 {fieldErrors[field.fieldName] && (
                   <p className="flex items-center gap-1 text-sm text-red-600">
                     <AlertCircle className="h-4 w-4" />

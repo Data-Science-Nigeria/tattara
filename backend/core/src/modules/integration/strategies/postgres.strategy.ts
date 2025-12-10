@@ -11,8 +11,14 @@ import type { Cache } from 'cache-manager';
 import knex, { Knex } from 'knex';
 import { DatabaseError } from 'pg';
 import type { PostgresConnectionConfig } from '@/common/interfaces';
-import type { PushPayload, SchemaMetadata, TableMetadata } from '../interfaces';
+import type {
+  ColumnValue,
+  PushPayload,
+  SchemaMetadata,
+  TableMetadata,
+} from '../interfaces';
 import { ConnectorStrategy } from '../interfaces/connector.strategy';
+import { FieldType } from '@/common/enums';
 
 @Injectable()
 export class PostgresStrategy extends ConnectorStrategy {
@@ -25,6 +31,21 @@ export class PostgresStrategy extends ConnectorStrategy {
   async testConnection(
     connectionConfig: PostgresConnectionConfig,
   ): Promise<boolean> {
+    const { host, port, username, password, database } = connectionConfig;
+
+    const missingFields: string[] = [];
+    if (!host) missingFields.push('host');
+    if (!port) missingFields.push('port');
+    if (!username) missingFields.push('username');
+    if (!password) missingFields.push('password');
+    if (!database) missingFields.push('database');
+
+    if (missingFields.length > 0) {
+      throw new BadRequestException(
+        `Invalid connection configuration: ${missingFields.join(', ')} ${missingFields.length === 1 ? 'is' : 'are'} required`,
+      );
+    }
+
     const db: Knex = knex({
       client: 'pg',
       connection: {
@@ -33,14 +54,11 @@ export class PostgresStrategy extends ConnectorStrategy {
         user: connectionConfig.username,
         password: connectionConfig.password,
         database: connectionConfig.database,
+        connectionTimeoutMillis: 10000,
       },
     });
 
     try {
-      this.logger.log(
-        `Testing connection to ${connectionConfig.host}:${connectionConfig.port}/${connectionConfig.database}`,
-      );
-
       await db.raw('SELECT 1');
 
       this.logger.log('Connection successful');
@@ -164,13 +182,24 @@ export class PostgresStrategy extends ConnectorStrategy {
       },
     });
 
-    const { schema, table, values } = payload;
+    const { schema, table, rows } = payload;
 
-    // Build object for insert
-    const insertObj = values.reduce(
-      (acc, v) => ({ ...acc, [v.column]: v.value }),
-      {},
+    if (rows.length === 0) {
+      throw new BadRequestException(
+        'No data provided: either values or rows must be specified',
+      );
+    }
+
+    // Build array of objects for insert
+    const insertData = rows.map((row: ColumnValue[]) =>
+      row.reduce<Record<string, unknown>>(
+        (acc, v: ColumnValue) => ({ ...acc, [v.column]: v.value }),
+        {},
+      ),
     );
+
+    // Use first row for schema inference
+    const firstRow: ColumnValue[] = rows[0];
 
     try {
       // Ensure schema exists
@@ -185,26 +214,38 @@ export class PostgresStrategy extends ConnectorStrategy {
           .createTable(table, (t: Knex.CreateTableBuilder) => {
             t.increments('id').primary();
 
-            for (const col of values) {
-              // Naive column type inference (you can improve this mapping)
-              if (typeof col.value === 'number') {
-                t.float(col.column);
-              } else if (typeof col.value === 'boolean') {
-                t.boolean(col.column);
-              } else if ((col.value as any) instanceof Date) {
-                t.timestamp(col.column);
-              } else {
-                t.text(col.column);
+            for (const col of firstRow) {
+              switch (col.type) {
+                case FieldType.NUMBER:
+                  t.float(col.column);
+                  break;
+                case FieldType.BOOLEAN:
+                  t.boolean(col.column);
+                  break;
+                case FieldType.DATE:
+                case FieldType.DATETIME:
+                  t.timestamp(col.column);
+                  break;
+                case FieldType.TEXT:
+                case FieldType.SELECT:
+                case FieldType.MULTISELECT:
+                case FieldType.EMAIL:
+                case FieldType.PHONE:
+                case FieldType.URL:
+                case FieldType.TEXTAREA:
+                default:
+                  t.text(col.column);
+                  break;
               }
             }
           });
       }
 
-      // Insert data
+      // Insert data (supports batch insert)
       const result = await db
         .withSchema(schema)
         .table(table)
-        .insert(insertObj)
+        .insert(insertData)
         .returning('*');
       return result as R[];
     } catch (err: any) {

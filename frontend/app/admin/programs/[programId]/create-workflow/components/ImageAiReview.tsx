@@ -3,7 +3,6 @@ import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useAuthStore } from '@/app/store/use-auth-store';
 import AiResponseDisplay from '../field-mapping/components/AiResponseDisplay';
-import { getLanguageForBackend, getLanguageName } from '@/lib/language-utils';
 
 interface ImageAiReviewProps {
   workflowId: string;
@@ -16,12 +15,12 @@ export default function ImageAiReview({
   workflowId,
   onReviewComplete,
   onAiTestStatusChange,
-  supportedLanguages = ['en'],
+  supportedLanguages = ['English'],
 }: ImageAiReviewProps) {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const [selectedLanguage, setSelectedLanguage] = useState<string>(
-    supportedLanguages[0] || 'en'
+    supportedLanguages[0] || 'English'
   );
 
   const [isProcessing, setIsProcessing] = useState(false);
@@ -118,7 +117,7 @@ export default function ImageAiReview({
       const formData = new FormData();
       formData.append('workflowId', workflowId);
       formData.append('processingType', 'image');
-      formData.append('language', getLanguageForBackend(selectedLanguage));
+      formData.append('language', selectedLanguage);
       selectedFiles.forEach((file) => formData.append('files', file));
 
       const aiResponse = await aiProcessMutation.mutateAsync({ formData });
@@ -142,7 +141,7 @@ export default function ImageAiReview({
         </h3>
         {supportedLanguages.length === 1 ? (
           <div className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-medium text-green-600 sm:px-4 sm:text-sm">
-            {getLanguageName(supportedLanguages[0])}
+            {supportedLanguages[0]}
           </div>
         ) : (
           <select
@@ -156,7 +155,7 @@ export default function ImageAiReview({
                 value={lang}
                 className="bg-white text-gray-900"
               >
-                {getLanguageName(lang)}
+                {lang}
               </option>
             ))}
           </select>

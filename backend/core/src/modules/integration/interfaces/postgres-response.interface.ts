@@ -1,3 +1,5 @@
+import { FieldType } from '@/common/enums';
+
 export interface PostgresConnectionResponse {
   success: boolean;
   message: string;
@@ -57,16 +59,22 @@ export interface InsertPayload {
   value2: string | number;
 }
 
+export interface ColumnValue {
+  column: string;
+  value: string | number | boolean | Date | null;
+  type: FieldType;
+  isNullable: boolean;
+}
+
 export interface PushPayload {
   schema: string;
   table: string;
-  values: { column: string; value: string }[];
+  rows: ColumnValue[][];
 }
 
 export interface ColumnMetadata {
   name: string;
   type: string;
-  nullable: boolean;
 }
 
 export interface TableMetadata {

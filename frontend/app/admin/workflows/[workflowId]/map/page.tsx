@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useSearchParams, useRouter, useParams } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
@@ -10,10 +10,10 @@ import {
   fieldMappingControllerUpsertFieldMappingsMutation,
   externalConnectionsControllerFindAllOptions,
 } from '@/client/@tanstack/react-query.gen';
-import FieldMappingStep from '../components/field-mapping-step';
-import AudioAiReview from '../components/AudioAiReview';
-import ImageAiReview from '../components/ImageAiReview';
-import TextAiReview from '../components/TextAiReview';
+import FieldMappingStep from '@/app/admin/programs/[programId]/create-workflow/components/field-mapping-step';
+import AudioAiReview from '@/app/admin/programs/[programId]/create-workflow/components/AudioAiReview';
+import ImageAiReview from '@/app/admin/programs/[programId]/create-workflow/components/ImageAiReview';
+import TextAiReview from '@/app/admin/programs/[programId]/create-workflow/components/TextAiReview';
 
 interface WorkflowField {
   id: string;
@@ -51,12 +51,10 @@ interface Workflow {
   enabledModes?: string[];
 }
 
-export default function FieldMapping() {
-  const searchParams = useSearchParams();
+export default function StandaloneFieldMapping() {
   const router = useRouter();
   const params = useParams();
-  const programId = params.programId as string;
-  const workflowId = searchParams.get('workflowId');
+  const workflowId = params.workflowId as string;
 
   const [fields, setFields] = useState<WorkflowField[]>([]);
   const [selectedConnection, setSelectedConnection] = useState('');
@@ -68,35 +66,16 @@ export default function FieldMapping() {
     'text'
   );
   const [supportedLanguages, setSupportedLanguages] = useState<string[]>([]);
-
-  // Load saved mappings from localStorage
-  useEffect(() => {
-    if (workflowId) {
-      const savedMappings = localStorage.getItem(
-        `field-mappings-${workflowId}`
-      );
-      if (savedMappings) {
-        try {
-          const mappings = JSON.parse(savedMappings);
-          setFields((prev) =>
-            prev.map((field) => ({
-              ...field,
-              dhis2DataElement: mappings[field.id] || field.dhis2DataElement,
-            }))
-          );
-        } catch (error) {
-          console.error('Failed to load saved mappings:', error);
-        }
-      }
-    }
-  }, [workflowId, fields.length]);
   const [availableConnections, setAvailableConnections] = useState<
     Connection[]
   >([]);
+  const [showAiReview, setShowAiReview] = useState(false);
+  const [testCompleted, setTestCompleted] = useState(false);
+  const [connectionType, setConnectionType] = useState<string>('');
 
   const { data: workflowData, isLoading } = useQuery({
     ...workflowControllerFindWorkflowByIdOptions({
-      path: { workflowId: workflowId || '' },
+      path: { workflowId },
     }),
     enabled: !!workflowId,
   });
@@ -109,8 +88,6 @@ export default function FieldMapping() {
     ...fieldMappingControllerUpsertFieldMappingsMutation(),
   });
 
-  const [connectionType, setConnectionType] = useState<string>('');
-
   useEffect(() => {
     if (workflowData) {
       const workflow = (
@@ -119,13 +96,6 @@ export default function FieldMapping() {
       setFields(workflow?.workflowFields || []);
       setSupportedLanguages(workflow?.supportedLanguages || ['English']);
 
-      // Check if workflow uses PostgreSQL
-      const config = workflow?.workflowConfigurations?.[0];
-      if (config?.type === 'postgres') {
-        setConnectionType('postgres');
-      }
-
-      // Determine workflow type from enabledModes
       const enabledModes = workflow?.enabledModes || ['text'];
       if (enabledModes.includes('audio')) {
         setWorkflowType('audio');
@@ -135,12 +105,17 @@ export default function FieldMapping() {
         setWorkflowType('text');
       }
 
+      // Check if workflow uses PostgreSQL
+      const config = workflow?.workflowConfigurations?.[0];
+      if (config?.type === 'postgres') {
+        setConnectionType('postgres');
+      }
+
       const dhis2Config = workflow?.workflowConfigurations?.find(
         (config) => config.type === 'dhis2'
       );
 
       if (dhis2Config) {
-        // Get the external connection ID from the DHIS2 config
         const connectionId =
           dhis2Config.externalConnectionId ||
           dhis2Config.configuration?.externalConnectionId;
@@ -155,7 +130,6 @@ export default function FieldMapping() {
           '';
         setSelectedProgram(programOrDatasetId);
 
-        // Set type based on what's in configuration
         if (dhis2Config.configuration?.program) {
           setSelectedType('program');
         } else if (dhis2Config.configuration?.dataSet) {
@@ -175,44 +149,15 @@ export default function FieldMapping() {
   }, [workflowData, connectionsData]);
 
   const updateField = (id: string, updates: Partial<WorkflowField>) => {
-    const updatedFields = fields.map((field) =>
-      field.id === id ? { ...field, ...updates } : field
+    setFields(
+      fields.map((field) =>
+        field.id === id ? { ...field, ...updates } : field
+      )
     );
-    setFields(updatedFields);
-
-    // Save mappings to localStorage
-    if (workflowId && updates.dhis2DataElement !== undefined) {
-      const mappings = updatedFields.reduce(
-        (acc, field) => {
-          if (field.dhis2DataElement) {
-            acc[field.id] = field.dhis2DataElement;
-          }
-          return acc;
-        },
-        {} as Record<string, string>
-      );
-      localStorage.setItem(
-        `field-mappings-${workflowId}`,
-        JSON.stringify(mappings)
-      );
-    }
   };
 
-  // Check if all fields are mapped
   const allFieldsMapped =
     fields.length > 0 && fields.every((field) => field.dhis2DataElement);
-
-  const [showAiReview, setShowAiReview] = useState(false);
-  const [testCompleted, setTestCompleted] = useState(false);
-
-  const handleTest = () => {
-    setShowAiReview(true);
-    setTestCompleted(false);
-  };
-
-  const handleTestComplete = () => {
-    setTestCompleted(true);
-  };
 
   const handleSave = async () => {
     if (!workflowId) return;
@@ -234,8 +179,6 @@ export default function FieldMapping() {
           body: { fieldMappings: mappings },
         });
         toast.success('Field mappings saved successfully!');
-        // Clear localStorage after successful save
-        localStorage.removeItem(`field-mappings-${workflowId}`);
       } catch (error) {
         console.error('Save failed:', error);
         toast.error('Failed to save mappings.');
@@ -246,27 +189,24 @@ export default function FieldMapping() {
   const handleSaveAndContinue = async () => {
     await handleSave();
     if (!upsertMappingMutation.isError) {
-      router.push(`/admin/programs/${programId}/create-workflow`);
+      router.push('/admin/workflows');
     }
   };
 
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-[#008647]"></div>
+        <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-green-600"></div>
       </div>
     );
   }
 
-  // PostgreSQL workflows don't need field mapping
   if (connectionType === 'postgres') {
     return (
       <div className="space-y-8 p-8">
         <div>
           <button
-            onClick={() =>
-              router.push(`/admin/programs/${programId}/create-workflow`)
-            }
+            onClick={() => router.push('/admin/workflows')}
             className="mb-4 flex items-center gap-2 text-gray-600 hover:text-gray-900"
           >
             <ArrowLeft size={20} />
@@ -276,8 +216,7 @@ export default function FieldMapping() {
             Field Mapping Not Required
           </h1>
           <p className="text-gray-600">
-            PostgreSQL workflows use direct column mapping and don&apos;t
-            require additional field mapping.
+            PostgreSQL workflows use direct column mapping.
           </p>
         </div>
         <div className="max-w-4xl rounded-lg border border-blue-200 bg-blue-50 p-6">
@@ -285,15 +224,12 @@ export default function FieldMapping() {
             PostgreSQL Direct Mapping
           </h3>
           <p className="text-blue-700">
-            Your workflow fields are automatically mapped to PostgreSQL table
-            columns using the column names specified during field configuration.
+            Workflow fields are automatically mapped to table columns.
           </p>
         </div>
         <div className="flex justify-end">
           <button
-            onClick={() =>
-              router.push(`/admin/programs/${programId}/create-workflow`)
-            }
+            onClick={() => router.push('/admin/workflows')}
             className="rounded-lg bg-green-600 px-6 py-2 text-white hover:bg-green-700"
           >
             Back to Workflows
@@ -307,9 +243,7 @@ export default function FieldMapping() {
     <div className="space-y-8 p-8">
       <div>
         <button
-          onClick={() =>
-            router.push(`/admin/programs/${programId}/create-workflow`)
-          }
+          onClick={() => router.push('/admin/workflows')}
           className="mb-4 flex items-center gap-2 text-gray-600 hover:text-gray-900"
         >
           <ArrowLeft size={20} />
@@ -372,23 +306,23 @@ export default function FieldMapping() {
             <h3 className="mb-4 text-lg font-medium">Test Workflow</h3>
             {workflowType === 'audio' && (
               <AudioAiReview
-                workflowId={workflowId || ''}
-                onReviewComplete={handleTestComplete}
+                workflowId={workflowId}
                 supportedLanguages={supportedLanguages}
+                onReviewComplete={() => setTestCompleted(true)}
               />
             )}
             {workflowType === 'image' && (
               <ImageAiReview
-                workflowId={workflowId || ''}
-                onReviewComplete={handleTestComplete}
+                workflowId={workflowId}
                 supportedLanguages={supportedLanguages}
+                onReviewComplete={() => setTestCompleted(true)}
               />
             )}
             {workflowType === 'text' && (
               <TextAiReview
-                workflowId={workflowId || ''}
-                onReviewComplete={handleTestComplete}
+                workflowId={workflowId}
                 supportedLanguages={supportedLanguages}
+                onReviewComplete={() => setTestCompleted(true)}
               />
             )}
           </div>
@@ -398,11 +332,11 @@ export default function FieldMapping() {
       <div className="flex flex-col gap-3 border-t border-gray-200 pt-4 sm:flex-row sm:justify-end sm:pt-6">
         {!showAiReview ? (
           <button
-            onClick={handleTest}
+            onClick={() => setShowAiReview(true)}
             disabled={!allFieldsMapped || upsertMappingMutation.isPending}
             className="w-full rounded-lg border border-green-600 px-4 py-2 text-sm text-green-600 hover:bg-green-50 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto sm:px-6 sm:text-base"
           >
-            {upsertMappingMutation.isPending ? 'Saving...' : 'Test Mapping'}
+            Test Mapping
           </button>
         ) : (
           <>

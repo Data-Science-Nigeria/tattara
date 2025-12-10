@@ -15,6 +15,7 @@ import {
 
 import WorkflowDetailsStep from './WorkflowDetailsStep';
 import DHIS2ConfigurationStep from './DHIS2ConfigurationStep';
+import PostgresConfigurationStep from './PostgresConfigurationStep';
 import AIFieldMappingStep from './AIFieldMappingStep';
 import ManualFieldStep from './ManualFieldStep';
 import CreateWorkflowStep from './CreateWorkflowStep';
@@ -29,11 +30,14 @@ interface WorkflowData {
 
 interface ExternalConfig {
   connectionId: string;
+  connectionType?: string;
   type: string;
   programId: string;
   programStageId?: string;
   datasetId?: string;
   orgUnit: string;
+  schema?: string;
+  table?: string;
 }
 
 interface AIField {
@@ -56,18 +60,21 @@ interface ManualField {
   description: string;
   required: boolean;
   options?: string[];
+  externalDataElement?: string;
 }
 
 interface EditWorkflowFormProps {
   workflowId: string;
   programId: string;
   existingWorkflow: Record<string, unknown>;
+  isStandalone?: boolean;
 }
 
 export default function EditWorkflowForm({
   workflowId,
   programId,
   existingWorkflow,
+  isStandalone = false,
 }: EditWorkflowFormProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -78,16 +85,19 @@ export default function EditWorkflowForm({
     name: '',
     description: '',
     inputType: 'text',
-    supportedLanguages: ['en'],
+    supportedLanguages: ['English'],
   });
 
   const [externalConfig, setExternalConfig] = useState<ExternalConfig>({
     connectionId: '',
+    connectionType: '',
     type: '',
     programId: '',
     programStageId: '',
     datasetId: '',
     orgUnit: '',
+    schema: '',
+    table: '',
   });
 
   const [existingConfigId, setExistingConfigId] = useState<string | null>(null);
@@ -134,7 +144,7 @@ export default function EditWorkflowForm({
             : 'text') || 'text',
         supportedLanguages: Array.isArray(workflow.supportedLanguages)
           ? (workflow.supportedLanguages as string[])
-          : ['en'],
+          : ['English'],
       });
 
       const externalConfiguration = Array.isArray(
@@ -146,6 +156,22 @@ export default function EditWorkflowForm({
           ) as Record<string, unknown> | undefined)
         : undefined;
 
+      // Build field mappings lookup from fieldMappings array
+      const fieldMappings = Array.isArray(workflow.fieldMappings)
+        ? (workflow.fieldMappings as Array<Record<string, unknown>>)
+        : [];
+      const mappingsByFieldId = new Map<string, string>();
+      fieldMappings.forEach((mapping) => {
+        const fieldId = (mapping.workflowField as Record<string, unknown>)
+          ?.id as string;
+        const dataElement =
+          ((mapping.target as Record<string, unknown>)
+            ?.dataElement as string) || '';
+        if (fieldId && dataElement) {
+          mappingsByFieldId.set(fieldId, dataElement);
+        }
+      });
+
       if (externalConfiguration) {
         setIsExternalMode(true);
         setExistingConfigId((externalConfiguration.id as string) || null);
@@ -155,9 +181,14 @@ export default function EditWorkflowForm({
         const externalConnection = externalConfiguration.externalConnection as
           | Record<string, unknown>
           | undefined;
+        const connType = (externalConnection?.type as string) || 'dhis2';
+        // Determine type based on configuration properties
+        const configType = config?.dataSet ? 'dataset' : 'program';
+
         setExternalConfig({
           connectionId: (externalConnection?.id as string) || '',
-          type: (config?.type as string) || 'program',
+          connectionType: connType,
+          type: configType,
           programId: ((config?.program || config?.programId) as string) || '',
           programStageId: (config?.programStage as string) || '',
           datasetId: (config?.dataSet as string) || '',
@@ -166,24 +197,32 @@ export default function EditWorkflowForm({
               (Array.isArray(config?.orgUnits)
                 ? config.orgUnits[0]
                 : '')) as string) || '',
+          schema: (config?.schema as string) || '',
+          table: (config?.table as string) || '',
         });
         const existingFields = Array.isArray(workflow.workflowFields)
           ? (workflow.workflowFields as Array<Record<string, unknown>>)
           : [];
         setAiFields(
-          existingFields.map((field) => ({
-            id: (field.id as string) || '',
-            fieldName: (field.fieldName as string) || '',
-            label: (field.label as string) || '',
-            fieldType: (field.fieldType as string) || 'text',
-            isRequired: (field.isRequired as boolean) || false,
-            displayOrder: (field.displayOrder as number) || 0,
-            aiPrompt:
-              ((field.aiMapping as Record<string, unknown>)
-                ?.prompt as string) || '',
-            externalDataElement: (field.externalDataElement as string) || '',
-            options: (field.options as string[]) || undefined,
-          }))
+          existingFields.map((field) => {
+            const fieldId = (field.id as string) || '';
+            return {
+              id: fieldId,
+              fieldName: (field.fieldName as string) || '',
+              label: (field.label as string) || '',
+              fieldType: (field.fieldType as string) || 'text',
+              isRequired: (field.isRequired as boolean) || false,
+              displayOrder: (field.displayOrder as number) || 0,
+              aiPrompt:
+                ((field.aiMapping as Record<string, unknown>)
+                  ?.prompt as string) || '',
+              externalDataElement:
+                mappingsByFieldId.get(fieldId) ||
+                (field.externalDataElement as string) ||
+                '',
+              options: (field.options as string[]) || undefined,
+            };
+          })
         );
       } else {
         setIsExternalMode(false);
@@ -191,17 +230,24 @@ export default function EditWorkflowForm({
           ? (workflow.workflowFields as Array<Record<string, unknown>>)
           : [];
         setManualFields(
-          existingFields.map((field) => ({
-            id: (field.id as string) || '',
-            name: (field.fieldName as string) || '',
-            label: (field.label as string) || '',
-            type: (field.fieldType as string) || 'text',
-            description:
-              ((field.aiMapping as Record<string, unknown>)
-                ?.prompt as string) || '',
-            required: (field.isRequired as boolean) || false,
-            options: (field.options as string[]) || undefined,
-          }))
+          existingFields.map((field) => {
+            const fieldId = (field.id as string) || '';
+            return {
+              id: fieldId,
+              name: (field.fieldName as string) || '',
+              label: (field.label as string) || '',
+              type: (field.fieldType as string) || 'text',
+              description:
+                ((field.aiMapping as Record<string, unknown>)
+                  ?.prompt as string) || '',
+              required: (field.isRequired as boolean) || false,
+              options: (field.options as string[]) || undefined,
+              externalDataElement:
+                mappingsByFieldId.get(fieldId) ||
+                (field.externalDataElement as string) ||
+                '',
+            };
+          })
         );
       }
     }
@@ -209,22 +255,64 @@ export default function EditWorkflowForm({
 
   const maxSteps = isExternalMode ? 4 : isExternalMode === false ? 2 : 1;
 
-  const handleExternalModeChange = () => {
-    toast.error(
-      'Cannot change integration mode when editing. Create a new workflow instead.'
-    );
+  const handleExternalModeChange = (
+    useExternal: boolean,
+    connectionId?: string,
+    connectionType?: string
+  ) => {
+    // Only allow changing from manual to external, not the reverse
+    if (isExternalMode === true) {
+      toast.error(
+        'Cannot remove external integration. Create a new workflow instead.'
+      );
+      return;
+    }
+
+    // Allow upgrading from manual to external
+    if (useExternal && connectionId) {
+      // Convert manual fields to AI fields, preserving IDs and external mappings
+      const convertedFields: AIField[] = manualFields.map((field, index) => ({
+        id: field.id,
+        fieldName: field.name,
+        label: field.label,
+        fieldType: field.type,
+        isRequired: field.required,
+        displayOrder: index + 1,
+        aiPrompt:
+          field.description ||
+          `Extract ${field.label.toLowerCase()} from the input`,
+        externalDataElement: field.externalDataElement || '',
+        options: field.options,
+      }));
+
+      setIsExternalMode(true);
+      setExternalConfig((prev) => ({ ...prev, connectionId, connectionType }));
+      setAiFields(convertedFields);
+      setManualFields([]);
+    }
   };
 
   const handleExternalConfigChange = (newConfig: Partial<ExternalConfig>) => {
     const updatedConfig = { ...externalConfig, ...newConfig };
 
-    if (
-      newConfig.connectionId !== undefined ||
-      newConfig.type !== undefined ||
-      newConfig.programId !== undefined ||
-      newConfig.datasetId !== undefined
-    ) {
-      setAiFields([]);
+    // Check if config actually changed (not just set to same value)
+    const configChanged =
+      (newConfig.connectionId !== undefined &&
+        newConfig.connectionId !== externalConfig.connectionId) ||
+      (newConfig.type !== undefined &&
+        newConfig.type !== externalConfig.type) ||
+      (newConfig.programId !== undefined &&
+        newConfig.programId !== externalConfig.programId) ||
+      (newConfig.datasetId !== undefined &&
+        newConfig.datasetId !== externalConfig.datasetId);
+
+    if (configChanged) {
+      // Keep fields with IDs but clear their external mappings (need to remap)
+      setAiFields((prev) =>
+        prev
+          .filter((field) => isUUID(field.id))
+          .map((field) => ({ ...field, externalDataElement: '' }))
+      );
     }
 
     setExternalConfig(updatedConfig);
@@ -258,13 +346,15 @@ export default function EditWorkflowForm({
           workflowData.supportedLanguages.length > 0
         );
       case 3:
+        if (isExternalMode !== true || !externalConfig.connectionId)
+          return false;
+        if (externalConfig.connectionType === 'postgres') {
+          return !!externalConfig.schema && !!externalConfig.table;
+        }
         return (
-          isExternalMode === true &&
-          !!externalConfig.connectionId &&
           (externalConfig.type === 'program'
             ? !!externalConfig.programId && !!externalConfig.programStageId
-            : !!externalConfig.datasetId) &&
-          !!externalConfig.orgUnit
+            : !!externalConfig.datasetId) && !!externalConfig.orgUnit
         );
       case 4:
         return isExternalMode === true && aiFields.length > 0;
@@ -321,17 +411,22 @@ export default function EditWorkflowForm({
           body: { fields: fieldsToUpsert },
         });
 
-        // Step 3: Upsert DHIS2 configurations
+        // Step 3: Upsert external configurations (DHIS2 or Postgres)
+        const isPostgres = externalConfig.connectionType === 'postgres';
         await upsertConfigurationsMutation.mutateAsync({
           path: { workflowId },
           body: {
             configurations: [
               {
                 ...(existingConfigId ? { id: existingConfigId } : {}),
-                type: 'dhis2',
+                type: isPostgres ? ('postgres' as const) : ('dhis2' as const),
                 externalConnectionId: externalConfig.connectionId,
-                configuration:
-                  externalConfig.type === 'program'
+                configuration: isPostgres
+                  ? {
+                      schema: externalConfig.schema,
+                      table: externalConfig.table,
+                    }
+                  : externalConfig.type === 'program'
                     ? {
                         program: externalConfig.programId,
                         programStage: externalConfig.programStageId,
@@ -380,17 +475,23 @@ export default function EditWorkflowForm({
       }
 
       toast.success('Workflow updated successfully!');
-      await queryClient.invalidateQueries({
-        queryKey: programControllerFindWorkflowsByProgramQueryKey({
-          path: { id: programId },
-        }),
-      });
+      if (!isStandalone && programId) {
+        await queryClient.invalidateQueries({
+          queryKey: programControllerFindWorkflowsByProgramQueryKey({
+            path: { id: programId },
+          }),
+        });
+      }
       await queryClient.invalidateQueries({
         queryKey: workflowControllerFindWorkflowByIdQueryKey({
           path: { workflowId },
         }),
       });
-      router.push(`/admin/programs/${programId}/create-workflow`);
+      router.push(
+        isStandalone
+          ? '/admin/workflows'
+          : `/admin/programs/${programId}/create-workflow`
+      );
     } catch (error) {
       console.error('Failed to update workflow:', error);
     }
@@ -407,7 +508,11 @@ export default function EditWorkflowForm({
         <div className="mb-8">
           <button
             onClick={() =>
-              router.push(`/admin/programs/${programId}/create-workflow`)
+              router.push(
+                isStandalone
+                  ? '/admin/workflows'
+                  : `/admin/programs/${programId}/create-workflow`
+              )
             }
             className="mb-4 flex items-center gap-2 text-gray-600 hover:text-gray-900"
           >
@@ -439,12 +544,24 @@ export default function EditWorkflowForm({
             />
           )}
 
-          {isExternalMode === true && currentStep === 2 && (
-            <DHIS2ConfigurationStep
-              config={externalConfig}
-              onChange={handleExternalConfigChange}
-            />
-          )}
+          {isExternalMode === true &&
+            currentStep === 2 &&
+            (externalConfig.connectionType === 'postgres' ? (
+              <PostgresConfigurationStep
+                config={{
+                  connectionId: externalConfig.connectionId,
+                  schema: externalConfig.schema || '',
+                  table: externalConfig.table || '',
+                }}
+                onChange={handleExternalConfigChange}
+              />
+            ) : (
+              <DHIS2ConfigurationStep
+                config={externalConfig}
+                onChange={handleExternalConfigChange}
+                isEditMode={true}
+              />
+            ))}
 
           {isExternalMode === true && currentStep === 3 && (
             <AIFieldMappingStep
@@ -452,7 +569,7 @@ export default function EditWorkflowForm({
               fields={aiFields}
               setFields={setAiFields}
               externalConfig={externalConfig}
-              workflowId={workflowId}
+              isEditMode={true}
             />
           )}
 
@@ -474,6 +591,7 @@ export default function EditWorkflowForm({
               setFields={setManualFields}
               onSubmit={handleSubmit}
               isLoading={isLoading}
+              isEditMode={true}
             />
           )}
         </div>
