@@ -540,7 +540,7 @@ export default function EditWorkflowForm({
               setWorkflowData={setWorkflowData}
               isExternalMode={isExternalMode}
               onExternalModeChange={handleExternalModeChange}
-              isEditMode={isExternalMode === true}
+              isEditMode={true}
             />
           )}
 
