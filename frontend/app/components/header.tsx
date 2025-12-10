@@ -12,6 +12,12 @@ const Header = () => {
       <div className="flex items-center space-x-4">
         <div className="hidden items-center space-x-4 md:flex">
           <Link href="/auth/login">
+            <Button className="px-6 text-[#2F3A4C]" variant={'ghost'}>Home</Button>
+          </Link>
+          <Link href="#">
+            <Button className="px-6 text-[#2F3A4C]" variant={'ghost'}>Dashboard</Button>
+          </Link>
+          <Link href="/auth/login">
             <Button className="bg-[#008647] px-6 text-white">Login</Button>
           </Link>
         </div>
