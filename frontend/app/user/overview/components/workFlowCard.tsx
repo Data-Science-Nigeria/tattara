@@ -23,7 +23,9 @@ export default function WorkflowCard({
   return (
     <div className="flex flex-col items-start space-y-8 rounded-xl border border-[#D2DDF5] bg-white px-4 py-6">
       <div className="flex gap-4">
-        <div className="mb-3 text-green-600">{icon}</div>
+        <div className="mb-3 flex h-6 w-6 flex-shrink-0 text-green-600">
+          {icon}
+        </div>
         <div>
           <h3 className="text-base font-semibold text-gray-800">{title}</h3>
           <p className="mb-4 text-sm text-gray-500">{description}</p>
