@@ -15,7 +15,6 @@ import WorkflowTabs from './components/workflow-tabs';
 import AssignedWorkflowsTable from './components/assigned-workflows-table';
 import ActiveWorkflowsTable from './components/active-workflows-table';
 import ArchiveWorkflowModal from './components/archive-workflow-modal';
-import DeleteConfigModal from './components/delete-config-modal';
 
 interface WorkflowAssignment {
   id: string;
@@ -38,7 +37,7 @@ export default function ManageWorkflows() {
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [showUnassignModal, setShowUnassignModal] = useState(false);
   const [showArchiveModal, setShowArchiveModal] = useState(false);
-  const [showDeleteConfigModal, setShowDeleteConfigModal] = useState(false);
+
   const [unassignData, setUnassignData] = useState<{
     userId: string;
     workflowId: string;
@@ -49,15 +48,7 @@ export default function ManageWorkflows() {
     workflowId: string;
     workflowName: string;
   } | null>(null);
-  const [deleteConfigData, setDeleteConfigData] = useState<{
-    configs: Array<{
-      id: string;
-      type: string;
-      updatedAt: string;
-      externalConnection?: { name?: string; type?: string };
-    }>;
-    workflowName: string;
-  } | null>(null);
+
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [activeCurrentPage, setActiveCurrentPage] = useState(1);
@@ -178,19 +169,6 @@ export default function ManageWorkflows() {
     setShowArchiveModal(true);
   };
 
-  const handleDeleteConfig = (
-    configs: Array<{
-      id: string;
-      type: string;
-      updatedAt: string;
-      externalConnection?: { name?: string; type?: string };
-    }>,
-    workflowName: string
-  ) => {
-    setDeleteConfigData({ configs, workflowName });
-    setShowDeleteConfigModal(true);
-  };
-
   return (
     <div className="relative min-h-screen p-3 sm:p-6">
       <div className="w-full">
@@ -254,7 +232,6 @@ export default function ManageWorkflows() {
               workflows={currentActiveWorkflows}
               isLoading={workflowsLoading}
               onArchive={handleArchive}
-              onDeleteConfig={handleDeleteConfig}
             />
           )}
         </div>
@@ -376,18 +353,6 @@ export default function ManageWorkflows() {
           onClose={() => {
             setShowArchiveModal(false);
             setArchiveData(null);
-          }}
-        />
-      )}
-
-      {showDeleteConfigModal && deleteConfigData && (
-        <DeleteConfigModal
-          isOpen={showDeleteConfigModal}
-          configs={deleteConfigData.configs}
-          workflowName={deleteConfigData.workflowName}
-          onClose={() => {
-            setShowDeleteConfigModal(false);
-            setDeleteConfigData(null);
           }}
         />
       )}

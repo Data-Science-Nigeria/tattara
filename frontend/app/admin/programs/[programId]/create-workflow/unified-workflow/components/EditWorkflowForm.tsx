@@ -182,10 +182,13 @@ export default function EditWorkflowForm({
           | Record<string, unknown>
           | undefined;
         const connType = (externalConnection?.type as string) || 'dhis2';
+        // Determine type based on configuration properties
+        const configType = config?.dataSet ? 'dataset' : 'program';
+
         setExternalConfig({
           connectionId: (externalConnection?.id as string) || '',
           connectionType: connType,
-          type: (config?.type as string) || 'program',
+          type: configType,
           programId: ((config?.program || config?.programId) as string) || '',
           programStageId: (config?.programStage as string) || '',
           datasetId: (config?.dataSet as string) || '',
@@ -556,6 +559,7 @@ export default function EditWorkflowForm({
               <DHIS2ConfigurationStep
                 config={externalConfig}
                 onChange={handleExternalConfigChange}
+                isEditMode={true}
               />
             ))}
 
@@ -565,7 +569,7 @@ export default function EditWorkflowForm({
               fields={aiFields}
               setFields={setAiFields}
               externalConfig={externalConfig}
-              workflowId={workflowId}
+              isEditMode={true}
             />
           )}
 
@@ -587,6 +591,7 @@ export default function EditWorkflowForm({
               setFields={setManualFields}
               onSubmit={handleSubmit}
               isLoading={isLoading}
+              isEditMode={true}
             />
           )}
         </div>

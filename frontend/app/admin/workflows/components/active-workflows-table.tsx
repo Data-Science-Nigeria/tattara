@@ -1,13 +1,6 @@
 'use client';
 
-import {
-  Archive,
-  MoreHorizontal,
-  Link2,
-  Edit,
-  TestTube,
-  Trash2,
-} from 'lucide-react';
+import { Archive, MoreHorizontal, Link2, Edit, TestTube } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import type { Workflow } from '@/client/types.gen';
 import {
@@ -21,22 +14,12 @@ interface ActiveWorkflowsTableProps {
   workflows: Workflow[];
   isLoading: boolean;
   onArchive: (workflowId: string, workflowName: string) => void;
-  onDeleteConfig: (
-    configs: Array<{
-      id: string;
-      type: string;
-      updatedAt: string;
-      externalConnection?: { name?: string; type?: string };
-    }>,
-    workflowName: string
-  ) => void;
 }
 
 export default function ActiveWorkflowsTable({
   workflows,
   isLoading,
   onArchive,
-  onDeleteConfig,
 }: ActiveWorkflowsTableProps) {
   const router = useRouter();
 
@@ -151,17 +134,7 @@ export default function ActiveWorkflowsTable({
                               <Edit className="mr-2 h-4 w-4" />
                               Edit
                             </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() =>
-                                onDeleteConfig(
-                                  workflow.workflowConfigurations,
-                                  workflow.name
-                                )
-                              }
-                            >
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              Delete Config
-                            </DropdownMenuItem>
+
                             <DropdownMenuItem
                               onClick={() =>
                                 onArchive(workflow.id, workflow.name)

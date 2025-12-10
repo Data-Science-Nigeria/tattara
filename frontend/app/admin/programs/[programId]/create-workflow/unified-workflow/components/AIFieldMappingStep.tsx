@@ -2,12 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { Trash2, GripVertical, Eye } from 'lucide-react';
-import { useQuery, useMutation } from '@tanstack/react-query';
-import { toast } from 'sonner';
-import {
-  integrationControllerFetchSchemasOptions,
-  fieldControllerRemoveWorkflowFieldMutation,
-} from '@/client/@tanstack/react-query.gen';
+import { useQuery } from '@tanstack/react-query';
+import { integrationControllerFetchSchemasOptions } from '@/client/@tanstack/react-query.gen';
 import { _Object } from '@/client/types.gen';
 
 interface DataElement {
@@ -75,7 +71,7 @@ interface AIFieldMappingStepProps {
   fields: AIField[];
   setFields: (fields: AIField[]) => void;
   externalConfig: ExternalConfig;
-  workflowId?: string;
+  isEditMode?: boolean;
 }
 
 export default function AIFieldMappingStep({
@@ -83,24 +79,12 @@ export default function AIFieldMappingStep({
   fields,
   setFields,
   externalConfig,
-  workflowId,
+  isEditMode = false,
 }: AIFieldMappingStepProps) {
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [optionsInputs, setOptionsInputs] = useState<Record<string, string>>(
     {}
   );
-
-  const isEditMode = !!workflowId;
-
-  const deleteFieldMutation = useMutation({
-    ...fieldControllerRemoveWorkflowFieldMutation(),
-    onSuccess: () => {
-      toast.success('Field deleted successfully');
-    },
-    onError: () => {
-      toast.error('Failed to delete field');
-    },
-  });
 
   useEffect(() => {
     const newInputs: Record<string, string> = {};
@@ -213,9 +197,7 @@ export default function AIFieldMappingStep({
       .filter(
         (field) =>
           !fields.find(
-            (f) =>
-              f.externalDataElement === field.id ||
-              f.fieldName === field.name.toLowerCase().replace(/\s+/g, '_')
+            (f) => f.fieldName === field.name.toLowerCase().replace(/\s+/g, '_')
           )
       )
       .map((field, index) => ({
@@ -226,7 +208,7 @@ export default function AIFieldMappingStep({
         isRequired: field.mandatory || false,
         displayOrder: fields.length + index + 1,
         aiPrompt: getDefaultPrompt(field.name, inputType),
-        externalDataElement: field.id,
+        externalDataElement: '',
       }));
 
     setFields([...fields, ...newFields]);
@@ -322,18 +304,7 @@ export default function AIFieldMappingStep({
     );
   };
 
-  const isUUID = (id: string): boolean => {
-    const uuidRegex =
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    return uuidRegex.test(id);
-  };
-
-  const removeField = async (id: string) => {
-    if (isEditMode && isUUID(id)) {
-      await deleteFieldMutation.mutateAsync({
-        path: { fieldId: id },
-      });
-    }
+  const removeField = (id: string) => {
     setFields(fields.filter((field) => field.id !== id));
   };
 
@@ -361,9 +332,8 @@ export default function AIFieldMappingStep({
                 (field) =>
                   !fields.find(
                     (f) =>
-                      f.externalDataElement === field.id ||
                       f.fieldName ===
-                        field.name.toLowerCase().replace(/\s+/g, '_')
+                      field.name.toLowerCase().replace(/\s+/g, '_')
                   )
               ).length
             }{' '}
@@ -475,12 +445,14 @@ export default function AIFieldMappingStep({
                     />
                     <span className="text-sm text-gray-700">Required</span>
                   </label>
-                  <button
-                    onClick={() => removeField(field.id)}
-                    className="text-red-600 hover:text-red-800"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
+                  {!isEditMode && (
+                    <button
+                      onClick={() => removeField(field.id)}
+                      className="text-red-600 hover:text-red-800"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  )}
                 </div>
               </div>
 
