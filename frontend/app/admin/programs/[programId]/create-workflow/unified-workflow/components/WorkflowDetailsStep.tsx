@@ -15,7 +15,11 @@ interface WorkflowDetailsStepProps {
   workflowData: WorkflowData;
   setWorkflowData: (data: WorkflowData) => void;
   isExternalMode: boolean | null;
-  onExternalModeChange: (useExternal: boolean, connectionId?: string) => void;
+  onExternalModeChange: (
+    useExternal: boolean,
+    connectionId?: string,
+    connectionType?: string
+  ) => void;
   isEditMode?: boolean;
 }
 
@@ -70,9 +74,10 @@ export default function WorkflowDetailsStep({
 
   const handleExternalConfirm = (
     useExternal: boolean,
-    connectionId?: string
+    connectionId?: string,
+    connectionType?: string
   ) => {
-    onExternalModeChange(useExternal, connectionId);
+    onExternalModeChange(useExternal, connectionId, connectionType);
     setExternalStatus(useExternal ? 'selected' : 'not-selected');
   };
 
@@ -180,19 +185,19 @@ export default function WorkflowDetailsStep({
         </label>
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
           {[
-            { code: 'en', name: 'English' },
-            { code: 'yo', name: 'Yoruba' },
-            { code: 'ig', name: 'Igbo' },
-            { code: 'ha', name: 'Hausa' },
+            { name: 'English' },
+            { name: 'Yoruba' },
+            { name: 'Igbo' },
+            { name: 'Hausa' },
           ].map((lang) => (
-            <label key={lang.code} className="flex items-center space-x-2">
+            <label key={lang.name} className="flex items-center space-x-2">
               <input
                 type="radio"
                 name="language"
-                checked={workflowData.supportedLanguages[0] === lang.code}
+                checked={workflowData.supportedLanguages[0] === lang.name}
                 onChange={() => {
                   updateWorkflowData({
-                    supportedLanguages: [lang.code],
+                    supportedLanguages: [lang.name],
                   });
                 }}
                 className="border-gray-300 text-green-600 focus:ring-green-500"

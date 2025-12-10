@@ -3,7 +3,6 @@ import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useAuthStore } from '@/app/store/use-auth-store';
 import AiResponseDisplay from '../field-mapping/components/AiResponseDisplay';
-import { getLanguageForBackend, getLanguageName } from '@/lib/language-utils';
 
 interface TextAiReviewProps {
   workflowId: string;
@@ -16,11 +15,11 @@ export default function TextAiReview({
   workflowId,
   onReviewComplete,
   onAiTestStatusChange,
-  supportedLanguages = ['en'],
+  supportedLanguages = ['English'],
 }: TextAiReviewProps) {
   const [textInput, setTextInput] = useState('');
   const [selectedLanguage, setSelectedLanguage] = useState<string>(
-    supportedLanguages[0] || 'en'
+    supportedLanguages[0] || 'English'
   );
 
   const [isProcessing, setIsProcessing] = useState(false);
@@ -85,7 +84,7 @@ export default function TextAiReview({
           workflowId,
           processingType: 'text',
           text: textInput,
-          language: getLanguageForBackend(selectedLanguage),
+          language: selectedLanguage,
         },
       });
 
@@ -108,7 +107,7 @@ export default function TextAiReview({
         </h3>
         {supportedLanguages.length === 1 ? (
           <div className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-medium text-green-600 sm:px-4 sm:text-sm">
-            {getLanguageName(supportedLanguages[0])}
+            {supportedLanguages[0]}
           </div>
         ) : (
           <select
@@ -122,7 +121,7 @@ export default function TextAiReview({
                 value={lang}
                 className="bg-white text-gray-900"
               >
-                {getLanguageName(lang)}
+                {lang}
               </option>
             ))}
           </select>

@@ -13,7 +13,6 @@ import FormRenderer from './FormSaver';
 import { toast } from 'sonner';
 import { useQuery } from '@tanstack/react-query';
 import { workflowControllerFindWorkflowByIdOptions } from '@/client/@tanstack/react-query.gen';
-import { getLanguageName } from '@/lib/language-utils';
 
 interface ImageRendererProps {
   workflow: {
@@ -202,7 +201,7 @@ export default function ImageRenderer({
         </button>
         {supportedLanguages.length === 1 ? (
           <div className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-medium text-green-600 sm:px-4 sm:text-sm">
-            {getLanguageName(supportedLanguages[0])}
+            {supportedLanguages[0]}
           </div>
         ) : supportedLanguages.length > 1 ? (
           <select
@@ -216,7 +215,7 @@ export default function ImageRenderer({
                 value={lang}
                 className="bg-white text-gray-900"
               >
-                {getLanguageName(lang)}
+                {lang}
               </option>
             ))}
           </select>

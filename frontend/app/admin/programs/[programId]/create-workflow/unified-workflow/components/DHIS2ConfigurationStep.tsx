@@ -42,11 +42,13 @@ interface ExternalConfig {
 interface ExternalConfigurationStepProps {
   config: ExternalConfig;
   onChange: (updates: Partial<ExternalConfig>) => void;
+  isEditMode?: boolean;
 }
 
 export default function DHIS2ConfigurationStep({
   config,
   onChange,
+  isEditMode = false,
 }: ExternalConfigurationStepProps) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isOrgUnitDropdownOpen, setIsOrgUnitDropdownOpen] = useState(false);
@@ -165,104 +167,138 @@ export default function DHIS2ConfigurationStep({
           <label className="mb-2 block text-sm font-medium text-gray-700">
             Type *
           </label>
-          <select
-            value={config.type}
-            onChange={(e) =>
-              onChange({
-                type: e.target.value,
-                programId: '',
-                programStageId: '',
-                datasetId: '',
-                orgUnit: '',
-              })
-            }
-            disabled={!config.connectionId}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-green-500 focus:outline-none disabled:opacity-50"
-          >
-            <option value="">Select type...</option>
-            <option value="program">Program</option>
-            <option value="dataset">Dataset</option>
-          </select>
+          {isEditMode ? (
+            <input
+              type="text"
+              value={config.type === 'program' ? 'Program' : 'Dataset'}
+              readOnly
+              className="w-full cursor-not-allowed rounded-lg border border-gray-300 bg-gray-100 px-3 py-2"
+            />
+          ) : (
+            <select
+              value={config.type}
+              onChange={(e) =>
+                onChange({
+                  type: e.target.value,
+                  programId: '',
+                  programStageId: '',
+                  datasetId: '',
+                  orgUnit: '',
+                })
+              }
+              disabled={!config.connectionId}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-green-500 focus:outline-none disabled:opacity-50"
+            >
+              <option value="">Select type...</option>
+              <option value="program">Program</option>
+              <option value="dataset">Dataset</option>
+            </select>
+          )}
         </div>
 
         <div>
           <label className="mb-2 block text-sm font-medium text-gray-700">
             {config.type === 'dataset' ? 'Dataset' : 'Program'} *
           </label>
-          <div className="relative" ref={dropdownRef}>
-            <div
-              className={`flex w-full cursor-pointer items-center justify-between rounded-lg border border-gray-300 px-3 py-2 focus:border-green-500 ${
-                !config.connectionId || !config.type
-                  ? 'cursor-not-allowed opacity-50'
-                  : 'hover:border-green-400'
-              }`}
-              onClick={() => {
-                if (config.connectionId && config.type) {
-                  setIsDropdownOpen(!isDropdownOpen);
-                }
-              }}
-            >
-              <span
-                className={`truncate ${(config.type === 'dataset' ? config.datasetId : config.programId) ? 'text-gray-900' : 'text-gray-500'}`}
-              >
-                {(
-                  config.type === 'dataset'
-                    ? config.datasetId
-                    : config.programId
-                )
-                  ? (config.type === 'dataset' ? datasets : programs).find(
-                      (item) =>
-                        item.id ===
-                        (config.type === 'dataset'
-                          ? config.datasetId
-                          : config.programId)
-                    )?.displayName ||
-                    (config.type === 'dataset' ? datasets : programs).find(
-                      (item) =>
-                        item.id ===
-                        (config.type === 'dataset'
-                          ? config.datasetId
-                          : config.programId)
-                    )?.name
-                  : `Select ${config.type || 'item'}...`}
-              </span>
-              <ChevronDown
-                className={`h-4 w-4 transition-transform ${
-                  isDropdownOpen ? 'rotate-180' : ''
+          {isEditMode ? (
+            <input
+              type="text"
+              value={
+                (config.type === 'dataset' ? datasets : programs).find(
+                  (item) =>
+                    item.id ===
+                    (config.type === 'dataset'
+                      ? config.datasetId
+                      : config.programId)
+                )?.displayName ||
+                (config.type === 'dataset' ? datasets : programs).find(
+                  (item) =>
+                    item.id ===
+                    (config.type === 'dataset'
+                      ? config.datasetId
+                      : config.programId)
+                )?.name ||
+                ''
+              }
+              readOnly
+              className="w-full cursor-not-allowed rounded-lg border border-gray-300 bg-gray-100 px-3 py-2"
+            />
+          ) : (
+            <div className="relative" ref={dropdownRef}>
+              <div
+                className={`flex w-full cursor-pointer items-center justify-between rounded-lg border border-gray-300 px-3 py-2 focus:border-green-500 ${
+                  !config.connectionId || !config.type
+                    ? 'cursor-not-allowed opacity-50'
+                    : 'hover:border-green-400'
                 }`}
-              />
-            </div>
-            {isDropdownOpen && config.connectionId && config.type && (
-              <div className="absolute top-full z-50 mt-1 max-h-48 w-full overflow-y-auto rounded-lg border border-gray-300 bg-white shadow-lg">
-                {(config.type === 'dataset' ? datasets : programs).map(
-                  (item) => (
-                    <div
-                      key={item.id}
-                      className="cursor-pointer px-3 py-2 hover:bg-green-50"
-                      onClick={() => {
-                        if (config.type === 'dataset') {
-                          onChange({
-                            datasetId: item.id,
-                            programId: '',
-                            orgUnit: '',
-                          });
-                        } else {
-                          onChange({
-                            programId: item.id,
-                            datasetId: '',
-                            orgUnit: '',
-                          });
-                        }
-                        setIsDropdownOpen(false);
-                      }}
-                    >
-                      {item.displayName || item.name}
-                    </div>
+                onClick={() => {
+                  if (config.connectionId && config.type) {
+                    setIsDropdownOpen(!isDropdownOpen);
+                  }
+                }}
+              >
+                <span
+                  className={`truncate ${(config.type === 'dataset' ? config.datasetId : config.programId) ? 'text-gray-900' : 'text-gray-500'}`}
+                >
+                  {(
+                    config.type === 'dataset'
+                      ? config.datasetId
+                      : config.programId
                   )
-                )}
+                    ? (config.type === 'dataset' ? datasets : programs).find(
+                        (item) =>
+                          item.id ===
+                          (config.type === 'dataset'
+                            ? config.datasetId
+                            : config.programId)
+                      )?.displayName ||
+                      (config.type === 'dataset' ? datasets : programs).find(
+                        (item) =>
+                          item.id ===
+                          (config.type === 'dataset'
+                            ? config.datasetId
+                            : config.programId)
+                      )?.name
+                    : `Select ${config.type || 'item'}...`}
+                </span>
+                <ChevronDown
+                  className={`h-4 w-4 transition-transform ${
+                    isDropdownOpen ? 'rotate-180' : ''
+                  }`}
+                />
               </div>
-            )}
-          </div>
+              {isDropdownOpen && config.connectionId && config.type && (
+                <div className="absolute top-full z-50 mt-1 max-h-48 w-full overflow-y-auto rounded-lg border border-gray-300 bg-white shadow-lg">
+                  {(config.type === 'dataset' ? datasets : programs).map(
+                    (item) => (
+                      <div
+                        key={item.id}
+                        className="cursor-pointer px-3 py-2 hover:bg-green-50"
+                        onClick={() => {
+                          if (config.type === 'dataset') {
+                            onChange({
+                              datasetId: item.id,
+                              programId: '',
+                              orgUnit: '',
+                            });
+                          } else {
+                            onChange({
+                              programId: item.id,
+                              datasetId: '',
+                              orgUnit: '',
+                            });
+                          }
+                          setIsDropdownOpen(false);
+                        }}
+                      >
+                        {item.displayName || item.name}
+                      </div>
+                    )
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {config.type === 'program' && config.programId && (
@@ -270,18 +306,31 @@ export default function DHIS2ConfigurationStep({
             <label className="mb-2 block text-sm font-medium text-gray-700">
               Program Stage *
             </label>
-            <select
-              value={config.programStageId || ''}
-              onChange={(e) => onChange({ programStageId: e.target.value })}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-green-500 focus:outline-none"
-            >
-              <option value="">Select program stage...</option>
-              {programStages.map((stage) => (
-                <option key={stage.id} value={stage.id}>
-                  {stage.displayName}
-                </option>
-              ))}
-            </select>
+            {isEditMode ? (
+              <input
+                type="text"
+                value={
+                  programStages.find(
+                    (stage) => stage.id === config.programStageId
+                  )?.displayName || ''
+                }
+                readOnly
+                className="w-full cursor-not-allowed rounded-lg border border-gray-300 bg-gray-100 px-3 py-2"
+              />
+            ) : (
+              <select
+                value={config.programStageId || ''}
+                onChange={(e) => onChange({ programStageId: e.target.value })}
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-green-500 focus:outline-none"
+              >
+                <option value="">Select program stage...</option>
+                {programStages.map((stage) => (
+                  <option key={stage.id} value={stage.id}>
+                    {stage.displayName}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
         )}
       </div>

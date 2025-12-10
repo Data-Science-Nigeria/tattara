@@ -4,7 +4,6 @@ import { toast } from 'sonner';
 import { Mic, Square, X, Upload } from 'lucide-react';
 import { useAuthStore } from '@/app/store/use-auth-store';
 import AiResponseDisplay from '../field-mapping/components/AiResponseDisplay';
-import { getLanguageForBackend, getLanguageName } from '@/lib/language-utils';
 
 interface AudioAiReviewProps {
   workflowId: string;
@@ -17,13 +16,13 @@ export default function AudioAiReview({
   workflowId,
   onReviewComplete,
   onAiTestStatusChange,
-  supportedLanguages = ['en'],
+  supportedLanguages = ['English'],
 }: AudioAiReviewProps) {
   const [isRecording, setIsRecording] = useState(false);
   const [audioBlobs, setAudioBlobs] = useState<Blob[]>([]);
   const [audioUrls, setAudioUrls] = useState<string[]>([]);
   const [selectedLanguage, setSelectedLanguage] = useState<string>(
-    supportedLanguages[0] || 'en'
+    supportedLanguages[0] || 'English'
   );
 
   const [recordingTime, setRecordingTime] = useState(0);
@@ -130,7 +129,7 @@ export default function AudioAiReview({
       const formData = new FormData();
       formData.append('workflowId', workflowId);
       formData.append('processingType', 'audio');
-      formData.append('language', getLanguageForBackend(selectedLanguage));
+      formData.append('language', selectedLanguage);
       audioBlobs.forEach((blob, idx) =>
         formData.append('files', blob, `audio-${idx}.wav`)
       );
@@ -218,7 +217,7 @@ export default function AudioAiReview({
         </h3>
         {supportedLanguages.length === 1 ? (
           <div className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-medium text-green-600 sm:px-4 sm:text-sm">
-            {getLanguageName(supportedLanguages[0])}
+            {supportedLanguages[0]}
           </div>
         ) : (
           <select
@@ -232,7 +231,7 @@ export default function AudioAiReview({
                 value={lang}
                 className="bg-white text-gray-900"
               >
-                {getLanguageName(lang)}
+                {lang}
               </option>
             ))}
           </select>

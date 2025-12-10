@@ -441,7 +441,7 @@ export type UpsertWorkflowFieldsDto = {
 export type CreateFieldMappingDto = {
   workflowFieldId: string;
   targetType: 'dhis2' | 'postgres';
-  target?: {
+  target: {
     [key: string]: unknown;
   };
 };

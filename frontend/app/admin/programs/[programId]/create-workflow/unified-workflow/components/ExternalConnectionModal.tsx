@@ -13,7 +13,11 @@ interface Connection {
 interface ExternalConnectionModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: (useExternal: boolean, connectionId?: string) => void;
+  onConfirm: (
+    useExternal: boolean,
+    connectionId?: string,
+    connectionType?: string
+  ) => void;
 }
 
 export default function ExternalConnectionModal({
@@ -41,7 +45,14 @@ export default function ExternalConnectionModal({
 
   const handleConfirm = () => {
     if (useExternal === null) return;
-    onConfirm(useExternal, useExternal ? selectedConnection : undefined);
+    const connectionType = connections.find(
+      (c) => c.id === selectedConnection
+    )?.type;
+    onConfirm(
+      useExternal,
+      useExternal ? selectedConnection : undefined,
+      connectionType
+    );
     onClose();
   };
 
