@@ -10,19 +10,20 @@ import {
 import Link from 'next/link';
 import Header from './components/header';
 import Footer from './components/footer';
-import { Mic, Brain, Database } from 'lucide-react';
+import { Database, ArrowRight } from 'lucide-react';
+import Image from 'next/image';
 
 const page = () => {
   const features = [
     {
-      icon: Mic,
+      icon: '/capture.svg',
       title: 'Capture Data',
       description:
         'Record your conversations or\nupload  past records as audio or\nphotos — no manual entry\n needed.',
     },
 
     {
-      icon: Brain,
+      icon: '/ai.svg',
       title: 'AI Processing',
       description:
         ' Intelligent pipelines extract\ndetails and run checks for\naccuracy.',
@@ -36,29 +37,54 @@ const page = () => {
     },
   ];
   return (
-    <div className="flex min-h-screen flex-col bg-white">
+    <div className="mx-auto flex min-h-screen max-w-[1440px] flex-col bg-white px-4 sm:px-6 md:px-8">
       <Header />
-      <section className="mx-6 rounded-3xl border border-[#D2DDF5] bg-gradient-to-b from-[#F5F5FF] to-[#BAC7DF] py-16 shadow-sm">
-        <div className="mx-auto max-w-7xl px-4 text-center sm:px-6 lg:px-8">
-          <h1 className="mb-4 text-3xl font-bold text-[#494A58] md:text-5xl">
-            Tattara Data Collection and Entry App
-          </h1>
-          <p className="font-semibold text-[#494A58]">
-            Supercharge your data collection with AI. Simply record your voice,
-            or upload an <br /> audio file or photo — AI instantly extracts,
-            validates, and processes your data.{' '}
-          </p>
-          <p className="mb-8 text-[#707180]">
-            Keep your records clean, accurate, and effortless, all within your
-            app of choice.
-          </p>
-          <Link href={'/auth/login'}>
-            <Button size="lg" className="mb-8 bg-[#008647] px-8 py-3">
-              Get Started
-            </Button>
-          </Link>
-          <img src={'/landing page.svg'} alt="landingpage" className="" />
+      <section className="relative flex w-full flex-col overflow-hidden rounded-3xl border border-[#BAC7DF] bg-white lg:h-[840px] lg:flex-row">
+        <div className="relative z-10 flex flex-1 flex-col justify-center px-6 py-8 sm:px-8 sm:py-20">
+          <div className="z-20">
+            <h1 className="mb-4 text-4xl leading-tight font-bold text-[#494A58] sm:text-5xl md:text-5xl lg:text-6xl">
+              Tattara Data Collection <br />
+              and Entry App
+            </h1>
+            <p className="text-lg text-[#494A58]">
+              Supercharge your data collection with AI. Simply record your
+              voice, or upload an audio file or photo — AI instantly extracts,
+              validates, and processes your data.{' '}
+            </p>
+            <p className="mb-8 text-lg text-[#494A58]">
+              Keep your records clean, accurate, and effortless, all within your
+              app of choice.
+            </p>
+            <Link href={'/auth/login'}>
+              <Button size="lg" className="mb-8 h-12 w-48 bg-[#008647]">
+                Get Started
+                <ArrowRight className="h-5 w-5" />
+              </Button>
+            </Link>
+          </div>
+
+          <img
+            src={'/grid.svg'}
+            className="absolute inset-0 z-10 h-full w-full object-cover"
+          />
+          <div
+            className="absolute bottom-0 left-0 z-0 h-80 w-80 rounded-full opacity-50 blur-3xl"
+            style={{ background: 'radial-gradient(circle, #33B97A, #65BE95)' }}
+          />
+          <div
+            className="absolute bottom-0 left-72 z-0 h-[266px] w-[266px] rounded-full blur-2xl"
+            style={{ backgroundColor: '#0181DA3D' }}
+          />
         </div>
+        <div className="relative z-10 h-[400px] w-full rounded-b-3xl lg:h-full lg:w-[601px] lg:rounded-r-3xl lg:rounded-bl-none">
+          <Image
+            src={'/dhis.svg'}
+            className="absolute h-full w-full rounded-b-3xl object-cover lg:rounded-r-3xl lg:rounded-bl-none"
+            alt="hero image"
+            fill
+          />
+        </div>
+        <div className="absolute inset-0 top-0 w-full bg-gradient-to-r from-[#FCFCFC] to-[#B5CBF6] py-8 blur-2xl" />
       </section>
       <section className="bg-white py-16">
         <div className="mb-8 border border-[#D2DDF5] bg-[#FCFCFF] py-4 text-center">
@@ -71,11 +97,19 @@ const page = () => {
             {features.map((feature, index) => (
               <Card
                 key={index}
-                className={`border border-[#D2DDF5] bg-[#F8FAFC] shadow-sm ${index % 2 === 0 ? 'animate-[tilt-left_4s_ease-in-out_infinite]' : 'animate-[tilt-right_4s_ease-in-out_infinite]'}`}
+                className={`border border-[#D2DDF5] bg-[#F8FAFC] shadow-sm ${index % 2 === 0 ? 'lg:animate-[tilt-left_4s_ease-in-out_infinite]' : 'lg:animate-[tilt-right_4s_ease-in-out_infinite]'}`}
               >
                 <CardHeader>
                   <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-lg bg-green-100">
-                    <feature.icon className="h-8 w-8 text-[#008647]" />
+                    {typeof feature.icon === 'string' ? (
+                      <img
+                        src={feature.icon}
+                        className="h-8 w-8"
+                        alt={feature.title}
+                      />
+                    ) : (
+                      <feature.icon className="h-8 w-8 text-[#008647]" />
+                    )}
                   </div>
                   <CardTitle className="text-xl text-[#5C5D6C]">
                     {feature.title}
