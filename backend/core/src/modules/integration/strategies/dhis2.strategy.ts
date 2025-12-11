@@ -136,21 +136,21 @@ export class Dhis2Strategy extends ConnectorStrategy {
   ): Promise<SchemaProgramResponse[] | SchemaDatasetResponse[]> {
     let url: string;
 
+    if (type === 'program') {
+      const fields =
+        'id,name,programStages[id,displayName,programStageDataElements[dataElement[id,name,valueType,displayName]]]';
+      const encodedFields = encodeURIComponent(fields);
+      url = `programs/${id}.json?fields=${encodedFields}`;
+    } else {
+      const fields =
+        'id,name,dataSetElements[dataElement[id,name,valueType,displayName]]';
+      const encodedFields = encodeURIComponent(fields);
+      url = `dataSets/${id}.json?fields=${encodedFields}`;
+    }
+
+    url = `${config.baseUrl}/api/${url}`;
+
     try {
-      if (type === 'program') {
-        const fields =
-          'id,name,programStages[id,displayName,programStageDataElements[dataElement[id,name,valueType,displayName]]]';
-        const encodedFields = encodeURIComponent(fields);
-        url = `programs/${id}.json?fields=${encodedFields}`;
-      } else {
-        const fields =
-          'id,name,dataSetElements[dataElement[id,name,valueType,displayName]]';
-        const encodedFields = encodeURIComponent(fields);
-        url = `dataSets/${id}.json?fields=${encodedFields}`;
-      }
-
-      url = `${config.baseUrl}/api/${url}`;
-
       const response = await firstValueFrom(
         this.httpService.get<SchemaProgramResponse[] | SchemaDatasetResponse[]>(
           url,
@@ -172,7 +172,9 @@ export class Dhis2Strategy extends ConnectorStrategy {
         );
 
         throw new HttpException(
-          dhis2Error || 'Unknown error from DHIS2 API',
+          dhis2Error
+            ? { message: dhis2Error }
+            : { message: 'Unknown error from DHIS2 API' },
           status,
         );
       }
@@ -182,31 +184,32 @@ export class Dhis2Strategy extends ConnectorStrategy {
     }
   }
 
-  // Always expects array of events or a dataset payload
   async pushData(
     config: Dhis2ConnectionConfig,
     payload: EventPayload[] | DatasetPayload,
   ): Promise<Dhis2ImportSummary> {
+    let url: string;
+    let requestPayload: unknown;
+
+    if (Array.isArray(payload)) {
+      url = `${config.baseUrl}/api/tracker?async=false`;
+      requestPayload = {
+        events: payload.map(event => this.transformToTrackerEvent(event)),
+      };
+    } else if ('dataSet' in payload) {
+      url = `${config.baseUrl}/api/dataValueSets`;
+      requestPayload = payload;
+    } else {
+      throw new BadRequestException(
+        'Unknown DHIS2 payload type: expected EventPayload[] or DatasetPayload',
+      );
+    }
+
+    this.logger.log(
+      `Pushing data to DHIS2 at ${url} with payload: ${JSON.stringify(requestPayload)}`,
+    );
+
     try {
-      let url: string;
-      let requestPayload: unknown;
-
-      // Handle array of events
-      if (Array.isArray(payload)) {
-        url = `${config.baseUrl}/api/tracker?async=false`;
-        requestPayload = {
-          events: payload.map(event => this.transformToTrackerEvent(event)),
-        };
-      } else if ('dataSet' in payload) {
-        // Dataset - use dataValueSets endpoint
-        url = `${config.baseUrl}/api/dataValueSets`;
-        requestPayload = payload;
-      } else {
-        throw new Error(
-          'Unknown DHIS2 payload type: expected EventPayload[] or DatasetPayload',
-        );
-      }
-
       const response = await firstValueFrom(
         this.httpService.post<Dhis2ImportSummary>(url, requestPayload, {
           headers: {
@@ -227,7 +230,9 @@ export class Dhis2Strategy extends ConnectorStrategy {
         );
 
         throw new HttpException(
-          dhis2Error || 'Unknown error from DHIS2 API',
+          dhis2Error
+            ? { message: dhis2Error }
+            : { message: 'Unknown error from DHIS2 API' },
           status,
         );
       }
@@ -269,7 +274,6 @@ export class Dhis2Strategy extends ConnectorStrategy {
     if (value === null || value === undefined) {
       return '';
     }
-    // For objects, use JSON.stringify
     return JSON.stringify(value);
   }
 
@@ -277,9 +281,8 @@ export class Dhis2Strategy extends ConnectorStrategy {
     config: Dhis2ConnectionConfig,
     { page, pageSize }: Pagination,
   ): Promise<FetchProgramsResponse> {
+    const url = `${config.baseUrl}/api/programs?page=${page}&pageSize=${pageSize}`;
     try {
-      const url = `${config.baseUrl}/api/programs?page=${page}&pageSize=${pageSize}`;
-
       const response = await firstValueFrom(
         this.httpService.get<FetchProgramsResponse>(url, {
           headers: { Authorization: `ApiToken ${config.pat}` },
@@ -288,7 +291,6 @@ export class Dhis2Strategy extends ConnectorStrategy {
 
       return response.data;
     } catch (error: unknown) {
-      console.log(error);
       if (isAxiosError<Dhis2ErrorResponse>(error)) {
         const status = error.response?.status ?? 500;
         const dhis2Error = error.response?.data;
@@ -298,7 +300,9 @@ export class Dhis2Strategy extends ConnectorStrategy {
         );
 
         throw new HttpException(
-          dhis2Error || 'Unknown error from DHIS2 API',
+          dhis2Error
+            ? { message: dhis2Error }
+            : { message: 'Unknown error from DHIS2 API' },
           status,
         );
       }
@@ -312,9 +316,9 @@ export class Dhis2Strategy extends ConnectorStrategy {
     config: Dhis2ConnectionConfig,
     { page, pageSize }: Pagination,
   ): Promise<FetchDatasetsResponse> {
-    try {
-      const url = `${config.baseUrl}/api/dataSets?page=${page}&pageSize=${pageSize}`;
+    const url = `${config.baseUrl}/api/dataSets?page=${page}&pageSize=${pageSize}`;
 
+    try {
       const response = await firstValueFrom(
         this.httpService.get<FetchDatasetsResponse>(url, {
           headers: { Authorization: `ApiToken ${config.pat}` },
@@ -332,7 +336,9 @@ export class Dhis2Strategy extends ConnectorStrategy {
         );
 
         throw new HttpException(
-          dhis2Error ?? { message: 'Unknown error from DHIS2 API' },
+          dhis2Error
+            ? { message: dhis2Error }
+            : { message: 'Unknown error from DHIS2 API' },
           status,
         );
       }
@@ -346,15 +352,15 @@ export class Dhis2Strategy extends ConnectorStrategy {
     config: Dhis2ConnectionConfig,
     { id, type }: { id: string; type: 'program' | 'dataset' },
   ): Promise<OrgUnit[]> {
-    try {
-      const fieldsParam = encodeURIComponent(
-        'displayName,id,organisationUnits[id,displayName,parent[id,displayName]]',
-      );
-      const url =
-        type === 'program'
-          ? `${config.baseUrl}/api/programs/${id}.json?fields=${fieldsParam}`
-          : `${config.baseUrl}/api/dataSets/${id}.json?fields=${fieldsParam}`;
+    const fieldsParam = encodeURIComponent(
+      'displayName,id,organisationUnits[id,displayName,parent[id,displayName]]',
+    );
+    const url =
+      type === 'program'
+        ? `${config.baseUrl}/api/programs/${id}.json?fields=${fieldsParam}`
+        : `${config.baseUrl}/api/dataSets/${id}.json?fields=${fieldsParam}`;
 
+    try {
       const response = await firstValueFrom(
         this.httpService.get<{ organisationUnits: OrgUnit[] }>(url, {
           headers: { Authorization: `ApiToken ${config.pat}` },
@@ -372,7 +378,9 @@ export class Dhis2Strategy extends ConnectorStrategy {
         );
 
         throw new HttpException(
-          dhis2Error || 'Unknown error from DHIS2 API',
+          dhis2Error
+            ? { message: dhis2Error }
+            : { message: 'Unknown error from DHIS2 API' },
           status,
         );
       }

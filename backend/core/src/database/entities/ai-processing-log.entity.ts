@@ -14,6 +14,7 @@ export class AiProcessingLog {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
+  // TODO: AiProcessingLog need not to be deleted on user deletion, consider changing cascade behavior
   @ManyToOne(() => User, user => user.aiProcessingLogs, {
     onDelete: 'CASCADE',
     onUpdate: 'CASCADE',
@@ -21,7 +22,8 @@ export class AiProcessingLog {
   @JoinColumn({ name: 'user_id' })
   user: User;
 
-  @ManyToOne(() => Workflow, workflow => workflow.workflowFields, {
+  // TODO: AiProcessingLog need not to be deleted on workflow deletion, consider changing cascade behavior
+  @ManyToOne(() => Workflow, {
     onDelete: 'CASCADE',
     onUpdate: 'CASCADE',
   })

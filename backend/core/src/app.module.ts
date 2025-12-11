@@ -10,6 +10,8 @@ import { CacheableMemory } from 'cacheable';
 import basicAuth from 'express-basic-auth';
 import { Keyv } from 'keyv';
 import { ClsModule } from 'nestjs-cls';
+import { AppController } from './app.controller';
+import { PermissionsGuard, RolesGuard } from './common/guards';
 import { UserContextInterceptor } from './common/interceptors';
 import configuration from './config/configuration';
 import { DatabaseModule } from './database/database.module';
@@ -25,7 +27,6 @@ import { WorkflowModule } from './modules/workflow/workflow.module';
 import { MailModule } from './shared/mail/mail.module';
 import { QueueModule } from './shared/queue/queue.module';
 import { RequestContextModule } from './shared/request-context/request-context.module';
-import { PermissionsGuard, RolesGuard } from './common/guards';
 
 @Module({
   imports: [
@@ -109,5 +110,6 @@ import { PermissionsGuard, RolesGuard } from './common/guards';
       useClass: PermissionsGuard,
     },
   ],
+  controllers: [AppController],
 })
 export class AppModule {}
