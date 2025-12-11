@@ -21,6 +21,7 @@ export class Submission {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
+  // TODO: Submission need not to be deleted on user deletion, consider changing cascade behavior
   @ManyToOne(() => User, user => user.submissions, {
     onDelete: 'CASCADE',
     onUpdate: 'CASCADE',
@@ -28,6 +29,7 @@ export class Submission {
   @JoinColumn({ name: 'user_id' })
   user: User;
 
+  // TODO: Submission need not to be deleted on workflow deletion, consider changing cascade behavior
   @ManyToOne(() => Workflow, workflow => workflow.workflowFields, {
     onDelete: 'CASCADE',
     onUpdate: 'CASCADE',

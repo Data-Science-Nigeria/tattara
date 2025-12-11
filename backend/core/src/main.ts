@@ -40,7 +40,9 @@ async function bootstrap() {
     credentials: true,
   });
 
-  app.setGlobalPrefix('api/v1');
+  app.setGlobalPrefix('api/v1', {
+    exclude: ['health'],
+  });
 
   const configService = app.get(ConfigService);
   const port = configService.get<number>('port')!;
