@@ -124,17 +124,19 @@ export default function ManageWorkflows() {
     });
   });
 
-  // Filter assignments based on search term
-  const filteredAssignments = workflowAssignments.filter((assignment) => {
-    const userName =
-      `${assignment.user.firstName || ''} ${assignment.user.lastName || ''}`.trim();
-    const searchLower = searchTerm.toLowerCase();
-    return (
-      userName.toLowerCase().includes(searchLower) ||
-      assignment.workflow.name.toLowerCase().includes(searchLower) ||
-      assignment.user.email.toLowerCase().includes(searchLower)
-    );
-  });
+  // Filter and sort assignments based on search term
+  const filteredAssignments = workflowAssignments
+    .filter((assignment) => {
+      const userName =
+        `${assignment.user.firstName || ''} ${assignment.user.lastName || ''}`.trim();
+      const searchLower = searchTerm.toLowerCase();
+      return (
+        userName.toLowerCase().includes(searchLower) ||
+        assignment.workflow.name.toLowerCase().includes(searchLower) ||
+        assignment.user.email.toLowerCase().includes(searchLower)
+      );
+    })
+    .sort((a, b) => a.workflow.name.localeCompare(b.workflow.name));
 
   // Pagination logic for Assigned tab
   const totalPages = Math.ceil(filteredAssignments.length / itemsPerPage);
@@ -143,9 +145,9 @@ export default function ManageWorkflows() {
   const currentAssignments = filteredAssignments.slice(startIndex, endIndex);
 
   // Pagination logic for Active tab
-  const activeWorkflows = workflows.filter(
-    (w: Workflow) => w.status !== 'archived'
-  );
+  const activeWorkflows = workflows
+    .filter((w: Workflow) => w.status !== 'archived')
+    .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
   const activeTotalPages = Math.ceil(activeWorkflows.length / itemsPerPage);
   const activeStartIndex = (activeCurrentPage - 1) * itemsPerPage;
   const activeEndIndex = activeStartIndex + itemsPerPage;

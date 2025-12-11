@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { Plus, Trash2, GripVertical } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { Plus, Trash2, GripVertical, Download, Upload } from 'lucide-react';
 
 interface ManualField {
   id: string;
@@ -49,8 +49,12 @@ export default function ManualFieldStep({
     {}
   );
 
-  const getAiPromptPlaceholder = () => {
-    const labelLower = 'field';
+  const getAiPromptPlaceholder = (
+    fieldLabel: string,
+    fieldType?: string,
+    options?: string[]
+  ) => {
+    const labelLower = fieldLabel.toLowerCase();
     let basePrompt = '';
     switch (inputType) {
       case 'text':
@@ -64,6 +68,14 @@ export default function ManualFieldStep({
         break;
       default:
         basePrompt = `Extract ${labelLower} from the input`;
+    }
+
+    if (
+      (fieldType === 'select' || fieldType === 'multiselect') &&
+      options &&
+      options.length > 0
+    ) {
+      basePrompt += `. Only extract values that match these options: ${options.join(', ')}`;
     }
 
     return basePrompt;
@@ -95,6 +107,103 @@ export default function ManualFieldStep({
     );
   };
 
+  const downloadCSV = () => {
+    const headers = [
+      'name',
+      'label',
+      'type',
+      'required',
+      'options',
+      'description',
+    ];
+    const typeOptions = fieldTypes.map((t) => t.value).join(' or ');
+    const exampleRow = [
+      'patient_name',
+      'Patient Name',
+      typeOptions,
+      'TRUE OR FALSE, pick 1',
+      'Option1, OPTION2, option3',
+      '',
+    ];
+
+    const csvContent = [headers, exampleRow]
+      .map((row) => row.map((field) => `"${field}"`).join(','))
+      .join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'field-template.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const csv = e.target?.result as string;
+      const lines = csv.split('\n').filter((line) => line.trim());
+      if (lines.length < 2) return;
+
+      const newFields: ManualField[] = [];
+
+      for (let i = 1; i < lines.length; i++) {
+        // Parse CSV properly handling quoted fields
+        const line = lines[i];
+        const values: string[] = [];
+        let current = '';
+        let inQuotes = false;
+
+        for (let j = 0; j < line.length; j++) {
+          const char = line[j];
+          if (char === '"') {
+            inQuotes = !inQuotes;
+          } else if (char === ',' && !inQuotes) {
+            values.push(current.trim());
+            current = '';
+          } else {
+            current += char;
+          }
+        }
+        values.push(current.trim());
+
+        if (values.length >= 6) {
+          const field: ManualField = {
+            id: Date.now().toString() + i,
+            name: values[0] || 'field_' + i,
+            label: values[1] || 'Field ' + i,
+            type: values[2]?.split(' ')[0] || 'text',
+            required:
+              values[3].toLowerCase().includes('true') || values[3] === '1',
+            options: values[4]
+              ? values[4]
+                  .split(',')
+                  .map((o) => o.trim())
+                  .filter((o) => o)
+              : [],
+            description: values[5] || '',
+          };
+          newFields.push(field);
+        }
+      }
+
+      if (newFields.length > 0) {
+        setFields([...fields, ...newFields]);
+      }
+    };
+    reader.readAsText(file);
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -106,14 +215,41 @@ export default function ManualFieldStep({
         </p>
       </div>
 
-      <div className="flex gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row">
         <button
           onClick={addField}
-          className="flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-white hover:bg-green-700"
+          className="flex items-center justify-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-white hover:bg-green-700"
         >
           <Plus className="h-4 w-4" />
-          Add Field
+          <span className="hidden sm:inline">Add Field</span>
+          <span className="sm:hidden">Add</span>
         </button>
+
+        <button
+          onClick={downloadCSV}
+          className="flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
+        >
+          <Download className="h-4 w-4" />
+          <span className="hidden sm:inline">Download CSV Template</span>
+          <span className="sm:hidden">Download</span>
+        </button>
+
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          className="flex items-center justify-center gap-2 rounded-lg bg-purple-600 px-4 py-2 text-white hover:bg-purple-700"
+        >
+          <Upload className="h-4 w-4" />
+          <span className="hidden sm:inline">Upload CSV</span>
+          <span className="sm:hidden">Upload</span>
+        </button>
+
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".csv"
+          onChange={handleFileUpload}
+          className="hidden"
+        />
       </div>
 
       <div className="space-y-4">
@@ -255,7 +391,11 @@ export default function ManualFieldStep({
                   }
                   className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-green-500 focus:outline-none"
                   rows={3}
-                  placeholder={getAiPromptPlaceholder()}
+                  placeholder={getAiPromptPlaceholder(
+                    field.label,
+                    field.type,
+                    field.options
+                  )}
                 />
               </div>
             </div>
