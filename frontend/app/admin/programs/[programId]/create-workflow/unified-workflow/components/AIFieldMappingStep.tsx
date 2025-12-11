@@ -2,12 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { Trash2, GripVertical, Eye } from 'lucide-react';
-import { useQuery, useMutation } from '@tanstack/react-query';
-import { toast } from 'sonner';
-import {
-  integrationControllerFetchSchemasOptions,
-  fieldControllerRemoveWorkflowFieldMutation,
-} from '@/client/@tanstack/react-query.gen';
+import { useQuery } from '@tanstack/react-query';
+import { integrationControllerFetchSchemasOptions } from '@/client/@tanstack/react-query.gen';
 import { _Object } from '@/client/types.gen';
 
 interface DataElement {
@@ -60,11 +56,14 @@ interface AIField {
 
 interface ExternalConfig {
   connectionId: string;
+  connectionType?: string;
   type: string;
   programId: string;
   programStageId?: string;
   datasetId?: string;
   orgUnit: string;
+  schema?: string;
+  table?: string;
 }
 
 interface AIFieldMappingStepProps {
@@ -72,7 +71,7 @@ interface AIFieldMappingStepProps {
   fields: AIField[];
   setFields: (fields: AIField[]) => void;
   externalConfig: ExternalConfig;
-  workflowId?: string;
+  isEditMode?: boolean;
 }
 
 export default function AIFieldMappingStep({
@@ -80,24 +79,12 @@ export default function AIFieldMappingStep({
   fields,
   setFields,
   externalConfig,
-  workflowId,
+  isEditMode = false,
 }: AIFieldMappingStepProps) {
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [optionsInputs, setOptionsInputs] = useState<Record<string, string>>(
     {}
   );
-
-  const isEditMode = !!workflowId;
-
-  const deleteFieldMutation = useMutation({
-    ...fieldControllerRemoveWorkflowFieldMutation(),
-    onSuccess: () => {
-      toast.success('Field deleted successfully');
-    },
-    onError: () => {
-      toast.error('Failed to delete field');
-    },
-  });
 
   useEffect(() => {
     const newInputs: Record<string, string> = {};
@@ -112,30 +99,72 @@ export default function AIFieldMappingStep({
     setOptionsInputs(newInputs);
   }, [fields.length]);
 
+  const isPostgres = externalConfig.connectionType === 'postgres';
+
   const { data: schemaData } = useQuery({
     ...integrationControllerFetchSchemasOptions({
       path: { connectionId: externalConfig.connectionId },
-      query: {
-        type: externalConfig.type as unknown as _Object,
-        id:
-          (externalConfig.type === 'dataset'
-            ? externalConfig.datasetId
-            : externalConfig.programId) || '',
-      },
+      query: isPostgres
+        ? {}
+        : {
+            type: externalConfig.type as unknown as _Object,
+            id:
+              (externalConfig.type === 'dataset'
+                ? externalConfig.datasetId
+                : externalConfig.programId) || '',
+          },
     }),
-    enabled:
-      !!externalConfig.connectionId &&
-      !!(externalConfig.type === 'dataset'
-        ? externalConfig.datasetId
-        : externalConfig.programId) &&
-      !!externalConfig.type,
+    enabled: isPostgres
+      ? !!externalConfig.connectionId &&
+        !!externalConfig.schema &&
+        !!externalConfig.table
+      : !!externalConfig.connectionId &&
+        !!(externalConfig.type === 'dataset'
+          ? externalConfig.datasetId
+          : externalConfig.programId) &&
+        !!externalConfig.type,
   });
 
   // Extract available fields from schema
   const availableFields: AvailableField[] = [];
   const schema = (schemaData as { data?: SchemaData })?.data;
 
-  if (externalConfig.type === 'program' && schema?.programStages) {
+  if (isPostgres && externalConfig.schema && externalConfig.table) {
+    // PostgreSQL: Extract columns from table
+    const tableSchema = (
+      schemaData as {
+        data?: Record<
+          string,
+          {
+            tables?: Record<
+              string,
+              {
+                columns?: Array<{
+                  name: string;
+                  type: string;
+                  nullable: boolean;
+                }>;
+              }
+            >;
+          }
+        >;
+      }
+    )?.data;
+    const columns =
+      tableSchema?.[externalConfig.schema]?.tables?.[externalConfig.table]
+        ?.columns || [];
+    columns.forEach((column) => {
+      availableFields.push({
+        id: column.name,
+        name: column.name,
+        displayName: column.name,
+        valueType: column.type,
+        description: undefined,
+        mandatory: !column.nullable,
+      });
+    });
+  } else if (externalConfig.type === 'program' && schema?.programStages) {
+    // DHIS2 Program
     schema.programStages.forEach((stage) => {
       stage.programStageDataElements?.forEach((element) => {
         availableFields.push({
@@ -150,6 +179,7 @@ export default function AIFieldMappingStep({
       });
     });
   } else if (externalConfig.type === 'dataset' && schema?.dataSetElements) {
+    // DHIS2 Dataset
     schema.dataSetElements.forEach((element) => {
       availableFields.push({
         id: element.dataElement.id,
@@ -167,9 +197,7 @@ export default function AIFieldMappingStep({
       .filter(
         (field) =>
           !fields.find(
-            (f) =>
-              f.externalDataElement === field.id ||
-              f.fieldName === field.name.toLowerCase().replace(/\s+/g, '_')
+            (f) => f.fieldName === field.name.toLowerCase().replace(/\s+/g, '_')
           )
       )
       .map((field, index) => ({
@@ -180,14 +208,42 @@ export default function AIFieldMappingStep({
         isRequired: field.mandatory || false,
         displayOrder: fields.length + index + 1,
         aiPrompt: getDefaultPrompt(field.name, inputType),
-        externalDataElement: field.id,
+        externalDataElement: '',
       }));
 
     setFields([...fields, ...newFields]);
   };
 
   const mapValueTypeToFieldType = (valueType: string): string => {
-    switch (valueType) {
+    const type = valueType.toUpperCase();
+    // PostgreSQL types
+    if (
+      type.includes('INT') ||
+      type.includes('SERIAL') ||
+      type.includes('NUMERIC') ||
+      type.includes('DECIMAL') ||
+      type.includes('FLOAT') ||
+      type.includes('DOUBLE')
+    ) {
+      return 'number';
+    }
+    if (type.includes('DATE') && !type.includes('TIME')) {
+      return 'date';
+    }
+    if (type.includes('TIMESTAMP') || type.includes('DATETIME')) {
+      return 'datetime';
+    }
+    if (type.includes('BOOL')) {
+      return 'boolean';
+    }
+    if (
+      type.includes('TEXT') ||
+      (type.includes('VARCHAR') && valueType.length > 255)
+    ) {
+      return 'textarea';
+    }
+    // DHIS2 types
+    switch (type) {
       case 'NUMBER':
       case 'INTEGER':
       case 'INTEGER_ZERO_OR_POSITIVE':
@@ -248,18 +304,7 @@ export default function AIFieldMappingStep({
     );
   };
 
-  const isUUID = (id: string): boolean => {
-    const uuidRegex =
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    return uuidRegex.test(id);
-  };
-
-  const removeField = async (id: string) => {
-    if (isEditMode && isUUID(id)) {
-      await deleteFieldMutation.mutateAsync({
-        path: { fieldId: id },
-      });
-    }
+  const removeField = (id: string) => {
     setFields(fields.filter((field) => field.id !== id));
   };
 
@@ -287,9 +332,8 @@ export default function AIFieldMappingStep({
                 (field) =>
                   !fields.find(
                     (f) =>
-                      f.externalDataElement === field.id ||
                       f.fieldName ===
-                        field.name.toLowerCase().replace(/\s+/g, '_')
+                      field.name.toLowerCase().replace(/\s+/g, '_')
                   )
               ).length
             }{' '}
@@ -401,12 +445,14 @@ export default function AIFieldMappingStep({
                     />
                     <span className="text-sm text-gray-700">Required</span>
                   </label>
-                  <button
-                    onClick={() => removeField(field.id)}
-                    className="text-red-600 hover:text-red-800"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
+                  {!isEditMode && (
+                    <button
+                      onClick={() => removeField(field.id)}
+                      className="text-red-600 hover:text-red-800"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  )}
                 </div>
               </div>
 

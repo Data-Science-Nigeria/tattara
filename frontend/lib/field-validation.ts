@@ -80,11 +80,7 @@ export function validateFieldValue(
 
     case 'text':
     case 'textarea':
-      // Text fields should not be purely numeric
-      const isOnlyNumbers = /^\d+$/.test(stringValue.trim());
-      return isOnlyNumbers
-        ? { isValid: false, error: 'Text field cannot contain only numbers' }
-        : { isValid: true };
+      return { isValid: true };
 
     case 'select':
       if (options && options.length > 0) {

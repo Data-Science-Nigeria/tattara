@@ -1,23 +1,21 @@
 'use client';
 
-import { useSearchParams, useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
+import { ArrowLeft } from 'lucide-react';
 import { workflowControllerFindWorkflowByIdOptions } from '@/client/@tanstack/react-query.gen';
-import TextAiReview from '../components/TextAiReview';
-import AudioAiReview from '../components/AudioAiReview';
-import ImageAiReview from '../components/ImageAiReview';
+import TextAiReview from '@/app/admin/programs/[programId]/create-workflow/components/TextAiReview';
+import AudioAiReview from '@/app/admin/programs/[programId]/create-workflow/components/AudioAiReview';
+import ImageAiReview from '@/app/admin/programs/[programId]/create-workflow/components/ImageAiReview';
 
-export default function ManualTestPage() {
-  const searchParams = useSearchParams();
+export default function StandaloneManualTest() {
   const params = useParams();
   const router = useRouter();
-  const programId = params.programId as string;
-  const workflowId = searchParams.get('workflowId');
-  const inputType = searchParams.get('inputType') || 'text';
+  const workflowId = params.workflowId as string;
 
   const { data: workflowData, isLoading } = useQuery({
     ...workflowControllerFindWorkflowByIdOptions({
-      path: { workflowId: workflowId || '' },
+      path: { workflowId },
     }),
     enabled: !!workflowId,
   });
@@ -27,9 +25,8 @@ export default function ManualTestPage() {
       data?: Record<string, unknown> & { supportedLanguages?: string[] };
     }
   )?.data;
-  const supportedLanguages = (workflow?.supportedLanguages as string[]) || [
-    'English',
-  ];
+  const inputType = (workflow?.enabledModes as string[])?.[0] || 'text';
+  const supportedLanguages = workflow?.supportedLanguages || ['English'];
 
   if (isLoading) {
     return (
@@ -49,19 +46,13 @@ export default function ManualTestPage() {
 
   const renderTestComponent = () => {
     const testProps = {
-      workflowId: workflowId!,
+      workflowId,
       supportedLanguages,
-      onReviewComplete: () => {
-        // No automatic redirect - user decides when to leave
-      },
-      onAiTestStatusChange: () => {
-        // Handle status change if needed
-      },
+      onReviewComplete: () => {},
+      onAiTestStatusChange: () => {},
     };
 
     switch (inputType) {
-      case 'text':
-        return <TextAiReview {...testProps} />;
       case 'audio':
         return <AudioAiReview {...testProps} />;
       case 'image':
@@ -75,6 +66,13 @@ export default function ManualTestPage() {
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="mb-8">
+          <button
+            onClick={() => router.push('/admin/workflows')}
+            className="mb-4 flex items-center gap-2 text-gray-600 hover:text-gray-900"
+          >
+            <ArrowLeft size={20} />
+            Back to Workflows
+          </button>
           <h1 className="text-2xl font-bold text-gray-900">
             Test Manual Workflow
           </h1>
@@ -97,9 +95,7 @@ export default function ManualTestPage() {
 
           <div className="mt-8 flex justify-end">
             <button
-              onClick={() =>
-                router.push(`/admin/programs/${programId}/create-workflow`)
-              }
+              onClick={() => router.push('/admin/workflows')}
               className="rounded-lg bg-green-600 px-6 py-2 text-sm font-medium text-white hover:bg-green-700"
             >
               Done
