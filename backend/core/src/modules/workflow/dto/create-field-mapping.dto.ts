@@ -28,7 +28,15 @@ class TargetValidator implements ValidatorConstraintInterface {
       );
     }
 
-    if (dto.targetType === IntegrationType.POSTGRES) {
+    const sqlDatabaseTypes = [
+      IntegrationType.POSTGRES,
+      IntegrationType.MYSQL,
+      IntegrationType.SQLITE,
+      IntegrationType.MSSQL,
+      IntegrationType.ORACLE,
+    ];
+
+    if (sqlDatabaseTypes.includes(dto.targetType)) {
       return (
         'column' in target &&
         typeof target.column === 'string' &&
@@ -46,8 +54,16 @@ class TargetValidator implements ValidatorConstraintInterface {
       return 'For DHIS2, target must contain a non-empty "dataElement" property';
     }
 
-    if (dto.targetType === IntegrationType.POSTGRES) {
-      return 'For POSTGRES, target must contain a non-empty "column" property';
+    const sqlDatabaseTypes = [
+      IntegrationType.POSTGRES,
+      IntegrationType.MYSQL,
+      IntegrationType.SQLITE,
+      IntegrationType.MSSQL,
+      IntegrationType.ORACLE,
+    ];
+
+    if (sqlDatabaseTypes.includes(dto.targetType)) {
+      return `For ${dto.targetType.toUpperCase()}, target must contain non-empty "table" and "column" properties`;
     }
 
     return 'Invalid target for the specified targetType';

@@ -1,15 +1,19 @@
-import { Injectable } from '@nestjs/common';
 import { IntegrationType } from '@/common/enums';
 import type {
   Dhis2ConnectionConfig,
   ExternalConnectionConfiguration,
 } from '@/common/interfaces';
 import { WorkflowConfiguration } from '@/database/entities';
+import { Injectable } from '@nestjs/common';
 import { ExternalConnectionService } from '.';
+import { Pagination } from '../interfaces';
 import { ConnectorStrategy } from '../interfaces/connector.strategy';
 import { Dhis2Strategy } from '../strategies/dhis2.strategy';
+import { MssqlStrategy } from '../strategies/mssql.strategy';
+import { MysqlStrategy } from '../strategies/mysql.strategy';
+import { OracleStrategy } from '../strategies/oracle.strategy';
 import { PostgresStrategy } from '../strategies/postgres.strategy';
-import { Pagination } from '../interfaces';
+import { SqliteStrategy } from '../strategies/sqlite.strategy';
 
 @Injectable()
 export class IntegrationService {
@@ -17,11 +21,20 @@ export class IntegrationService {
 
   constructor(
     private readonly postgres: PostgresStrategy,
+    private readonly mysql: MysqlStrategy,
+    private readonly sqlite: SqliteStrategy,
+    private readonly mssql: MssqlStrategy,
+    private readonly oracle: OracleStrategy,
     private readonly dhis2: Dhis2Strategy,
     private readonly externalConnService: ExternalConnectionService,
   ) {
     this.strategies = {
       postgres: this.postgres,
+      mysql: this.mysql,
+      mysql2: this.mysql,
+      sqlite3: this.sqlite,
+      mssql: this.mssql,
+      oracledb: this.oracle,
       dhis2: this.dhis2,
     };
   }
@@ -57,6 +70,8 @@ export class IntegrationService {
   }
 
   async pushData(config: WorkflowConfiguration, payload: unknown) {
+    console.log('Pushing data with config:', config);
+    console.log('Payload:', payload);
     const conn = await this.externalConnService.findOne(
       config.externalConnection.id,
     );
