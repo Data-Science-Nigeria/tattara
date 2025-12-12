@@ -10,7 +10,7 @@ import {
 import type { Cache } from 'cache-manager';
 import knex, { Knex } from 'knex';
 import { DatabaseError } from 'pg';
-import type { PostgresConnectionConfig } from '@/common/interfaces';
+import type { SqlConnectionConfig } from '@/common/interfaces';
 import type {
   ColumnValue,
   PushPayload,
@@ -29,7 +29,7 @@ export class PostgresStrategy extends ConnectorStrategy {
   }
 
   async testConnection(
-    connectionConfig: PostgresConnectionConfig,
+    connectionConfig: SqlConnectionConfig,
   ): Promise<boolean> {
     const { host, port, username, password, database } = connectionConfig;
 
@@ -75,9 +75,7 @@ export class PostgresStrategy extends ConnectorStrategy {
     }
   }
 
-  async fetchSchemas(
-    config: PostgresConnectionConfig,
-  ): Promise<SchemaMetadata[]> {
+  async fetchSchemas(config: SqlConnectionConfig): Promise<SchemaMetadata[]> {
     const cacheKey = `schemas:${config.host}:${config.port}:${config.database}`;
 
     const cached = await this.cache.get<SchemaMetadata[]>(cacheKey);
@@ -168,7 +166,7 @@ export class PostgresStrategy extends ConnectorStrategy {
   }
 
   async pushData<R = Record<string, any>>(
-    connectionConfig: PostgresConnectionConfig,
+    connectionConfig: SqlConnectionConfig,
     payload: PushPayload,
   ): Promise<R[]> {
     const db = knex({

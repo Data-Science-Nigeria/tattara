@@ -6,7 +6,15 @@ import {
   ExternalConnectionsController,
   IntegrationController,
 } from './controllers';
-import { PostgresStrategy, Dhis2Strategy } from './strategies';
+import {
+  PostgresStrategy,
+  Dhis2Strategy,
+  SqlDatabaseStrategy,
+  MysqlStrategy,
+  SqliteStrategy,
+  MssqlStrategy,
+  OracleStrategy,
+} from './strategies';
 import { HttpModule } from '@nestjs/axios';
 
 @Module({
@@ -16,6 +24,11 @@ import { HttpModule } from '@nestjs/axios';
     ExternalConnectionService,
     PostgresStrategy,
     Dhis2Strategy,
+    SqlDatabaseStrategy,
+    MysqlStrategy,
+    SqliteStrategy,
+    MssqlStrategy,
+    OracleStrategy,
   ],
   controllers: [IntegrationController, ExternalConnectionsController],
   exports: [IntegrationService, ExternalConnectionService],

@@ -1,9 +1,19 @@
 import { IntegrationType } from '../enums';
 
-export type Dhis2Mapping = { dataElement: string; value: string };
-export type PostgresMapping = { table: string; column: string; value: string };
-
-export type ExtractedData = {
-  [IntegrationType.DHIS2]?: Dhis2Mapping[];
-  [IntegrationType.POSTGRES]?: PostgresMapping[];
+export type Mapping = {
+  dataElement?: string;
+  table?: string;
+  column?: string;
+  value: string;
+  type?: string;
+  isNullable?: boolean;
 };
+
+export type ExtractedData = Partial<{
+  [IntegrationType.DHIS2]: Mapping[];
+  [IntegrationType.POSTGRES]: Mapping[];
+  [IntegrationType.MYSQL]: Mapping[];
+  [IntegrationType.SQLITE]: Mapping[];
+  [IntegrationType.MSSQL]: Mapping[];
+  [IntegrationType.ORACLE]: Mapping[];
+}>;

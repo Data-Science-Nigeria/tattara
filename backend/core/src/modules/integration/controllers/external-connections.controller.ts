@@ -1,16 +1,16 @@
-import {
-  Controller,
-  Post,
-  Body,
-  Param,
-  Get,
-  Patch,
-  Delete,
-} from '@nestjs/common';
-import { ExternalConnectionService } from '../services/external-connections.service';
-import { ExternalConnection, User } from '@/database/entities';
 import { CurrentUser, Roles } from '@/common/decorators';
-import { CreateConnectionDto } from '../dto';
+import { User } from '@/database/entities';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+} from '@nestjs/common';
+import { CreateConnectionDto, UpdateExternalConnDto } from '../dto';
+import { ExternalConnectionService } from '../services/external-connections.service';
 
 @Controller('external-connections')
 export class ExternalConnectionsController {
@@ -55,7 +55,7 @@ export class ExternalConnectionsController {
   async update(
     @Param('id') id: string,
     @CurrentUser() currentUser: User,
-    @Body() data: Partial<ExternalConnection>,
+    @Body() data: UpdateExternalConnDto,
   ) {
     return this.externalConnService.update(id, currentUser, data);
   }

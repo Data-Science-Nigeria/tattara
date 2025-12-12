@@ -6,3 +6,4 @@ export * from './processing-type.enum';
 export * from './processing-status.enum';
 export * from './submission-status.enum';
 export * from './ai-provider-type.enum';
+export * from './sql-database-type.enum';

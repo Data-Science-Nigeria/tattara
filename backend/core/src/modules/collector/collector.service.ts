@@ -199,17 +199,14 @@ export class CollectorService {
           throw new BadRequestException('Field Mappings not set');
         }
 
-        // Normalize to array of data entries
         const dataEntries = submitData.dataEntries ?? [submitData.data!];
 
-        // Extract integration data for each entry
         const allExtractedData = dataEntries.map(data =>
           this.extractIntegrationData(workflow.workflowFields, data),
         );
 
         for (const config of workflow.workflowConfigurations) {
           if (config.type === IntegrationType.DHIS2) {
-            // Validate all entries have proper field mappings
             for (const extractedData of allExtractedData) {
               if (
                 workflow.workflowFields.length !==
@@ -225,14 +222,12 @@ export class CollectorService {
               'program' in config.configuration &&
               !('schema' in config.configuration)
             ) {
-              // Cast to access program-specific properties
               const programConfig = config.configuration as {
                 program: string;
                 programStage: string;
                 orgUnit: string;
               };
 
-              // Build array of event payloads - always send as array
               const eventPayloads = allExtractedData.map(extractedData => ({
                 ...programConfig,
                 program: programConfig.program,
@@ -244,7 +239,6 @@ export class CollectorService {
 
               await this.integrationService.pushData(config, eventPayloads);
             } else if ('dataset' in config.configuration) {
-              // For datasets, merge all data values into one payload
               const allDataValues = allExtractedData.flatMap(
                 extractedData => extractedData[IntegrationType.DHIS2] ?? [],
               );
@@ -260,34 +254,43 @@ export class CollectorService {
             }
           }
 
-          if (config.type === IntegrationType.POSTGRES) {
+          const sqlDatabaseTypes = [
+            IntegrationType.POSTGRES,
+            IntegrationType.MYSQL,
+            IntegrationType.SQLITE,
+            IntegrationType.MSSQL,
+            IntegrationType.ORACLE,
+          ];
+
+          if (sqlDatabaseTypes.includes(config.type)) {
+            const configType = config.type;
             for (const extractedData of allExtractedData) {
-              if (
-                workflow.workflowFields.length !==
-                extractedData[IntegrationType.POSTGRES]?.length
-              ) {
+              const extractedDataRecord = extractedData;
+              const fieldData = (extractedDataRecord[configType] ??
+                []) as any[];
+              if (workflow.workflowFields.length !== fieldData.length) {
                 throw new BadRequestException(
-                  `Field mappings for ${IntegrationType.POSTGRES} missing`,
+                  `Field mappings for ${configType} missing`,
                 );
               }
             }
 
-            if ('schema' in config.configuration) {
-              const rows = allExtractedData.map(
-                extractedData => extractedData[IntegrationType.POSTGRES] ?? [],
-              );
+            const rows = allExtractedData.map(extractedData => {
+              const extractedDataRecord = extractedData as Record<string, any>;
+              return (extractedDataRecord[configType] ?? []) as Array<
+                Record<string, any>
+              >;
+            });
 
-              const payload = {
-                ...config.configuration,
-                rows,
-              };
+            const payload = {
+              ...config.configuration,
+              rows,
+            };
 
-              await this.integrationService.pushData(config, payload);
-            }
+            await this.integrationService.pushData(config, payload);
           }
         }
 
-        // Create submission record(s)
         const submissions = dataEntries.map(data =>
           manager.create(Submission, {
             status: SubmissionStatus.COMPLETED,
@@ -478,7 +481,15 @@ export class CollectorService {
           ];
         }
 
-        if (m.targetType === IntegrationType.POSTGRES) {
+        const sqlDatabaseTypes = [
+          IntegrationType.POSTGRES,
+          IntegrationType.MYSQL,
+          IntegrationType.SQLITE,
+          IntegrationType.MSSQL,
+          IntegrationType.ORACLE,
+        ];
+
+        if (sqlDatabaseTypes.includes(m.targetType)) {
           const entry = {
             table: m.target.table as string,
             column: m.target.column as string,
@@ -486,10 +497,9 @@ export class CollectorService {
             type: f.fieldType,
             isNullable: f.isRequired ? false : true,
           };
-          extractedData[m.targetType] = [
-            ...(extractedData[m.targetType] || []),
-            entry,
-          ];
+          const existingEntries =
+            (extractedData[m.targetType] as (typeof entry)[] | undefined) || [];
+          extractedData[m.targetType] = [...existingEntries, entry];
         }
       });
     });

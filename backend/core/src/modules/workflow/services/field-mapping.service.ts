@@ -5,19 +5,26 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { FieldMapping, Workflow, WorkflowField } from '@/database/entities';
-import { DataSource, In, Repository } from 'typeorm';
+import { DataSource, In } from 'typeorm';
 import { CreateFieldMappingDto } from '../dto';
-import { InjectRepository } from '@nestjs/typeorm';
+import { RequestContext } from '@/shared/request-context/request-context.service';
+import { BaseRepository } from '@/common/repositories/base.repository';
 
 @Injectable()
 export class FieldMappingService {
   private readonly logger = new Logger(FieldMappingService.name);
+  private readonly workflowRepository: BaseRepository<Workflow>;
 
   constructor(
     private dataSource: DataSource,
-    @InjectRepository(Workflow)
-    private workflowRepository: Repository<Workflow>,
-  ) {}
+    private readonly requestContext: RequestContext,
+  ) {
+    this.workflowRepository = new BaseRepository<Workflow>(
+      Workflow,
+      this.dataSource,
+      this.requestContext,
+    );
+  }
 
   async getWorkflowFieldMappings(workflowId: string): Promise<FieldMapping[]> {
     const workflow = await this.workflowRepository.findOne({
@@ -41,7 +48,25 @@ export class FieldMappingService {
     }
 
     return this.dataSource.transaction(async manager => {
-      const workflow = await manager.findOne(Workflow, {
+      const workflowRepo = BaseRepository.fromManager(
+        Workflow,
+        manager,
+        this.requestContext,
+      );
+
+      const fieldRepo = BaseRepository.fromManager(
+        WorkflowField,
+        manager,
+        this.requestContext,
+      );
+
+      const fieldMappingRepo = BaseRepository.fromManager(
+        FieldMapping,
+        manager,
+        this.requestContext,
+      );
+
+      const workflow = await workflowRepo.findOne({
         where: { id: workflowId },
       });
 
@@ -54,7 +79,8 @@ export class FieldMappingService {
       const workflowFieldIds = fieldMappingsData.map(
         mapping => mapping.workflowFieldId,
       );
-      const existingFields = await manager.find(WorkflowField, {
+
+      const existingFields = await fieldRepo.find({
         where: {
           id: In(workflowFieldIds),
           workflow: { id: workflowId },
@@ -79,7 +105,7 @@ export class FieldMappingService {
           field => field.id === mappingData.workflowFieldId,
         )!;
 
-        const existingMapping = await manager.findOne(FieldMapping, {
+        const existingMapping = await fieldMappingRepo.findOne({
           where: {
             workflowField: { id: mappingData.workflowFieldId },
             targetType: mappingData.targetType,
@@ -89,22 +115,22 @@ export class FieldMappingService {
 
         if (existingMapping) {
           existingMapping.target = mappingData.target ?? {};
-          const savedMapping = await manager.save(existingMapping);
+          const savedMapping = await fieldMappingRepo.save(existingMapping);
           savedMappings.push(savedMapping);
         } else {
-          const newMapping = manager.create(FieldMapping, {
+          const newMapping = fieldMappingRepo.create({
             target: mappingData.target,
             targetType: mappingData.targetType,
             workflow,
             workflowField,
           });
-          const savedMapping = await manager.save(newMapping);
+          const savedMapping = await fieldMappingRepo.save(newMapping);
           savedMappings.push(savedMapping);
         }
       }
 
       this.logger.log(
-        `Upserted ${savedMappings.length} field mappings for workflow '${workflowId}'`,
+        `Upsert ${savedMappings.length} field mappings for workflow '${workflowId}'`,
       );
       return savedMappings;
     });
