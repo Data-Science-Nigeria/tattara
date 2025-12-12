@@ -79,17 +79,19 @@ export default function CreateWorkflow() {
     ? responseData.data
     : [];
 
-  // Filter workflows based on search term and view mode
-  const filteredWorkflows = allWorkflows.filter((workflow: Workflow) => {
-    const matchesSearch =
-      workflow.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      workflow.description?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesViewMode =
-      viewMode === 'active'
-        ? workflow.status === 'active'
-        : workflow.status === 'archived';
-    return matchesSearch && matchesViewMode;
-  });
+  // Filter and sort workflows based on search term and view mode
+  const filteredWorkflows = allWorkflows
+    .filter((workflow: Workflow) => {
+      const matchesSearch =
+        workflow.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        workflow.description?.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesViewMode =
+        viewMode === 'active'
+          ? workflow.status === 'active'
+          : workflow.status === 'archived';
+      return matchesSearch && matchesViewMode;
+    })
+    .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
 
   // Client-side pagination
   const totalWorkflows = filteredWorkflows.length;

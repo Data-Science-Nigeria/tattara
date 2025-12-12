@@ -77,11 +77,13 @@ export default function Workflows() {
     return '/document-text.svg';
   };
 
-  // Extract workflows from API response
+  // Extract and sort workflows from API response
   const allUserWorkflows =
     (workflowsData as WorkflowsResponse)?.data?.workflows || [];
   const activeWorkflows = allUserWorkflows.filter((w) => w.status === 'active');
-  const finalWorkflows = activeWorkflows;
+  const finalWorkflows = activeWorkflows.sort((a, b) =>
+    a.name.localeCompare(b.name)
+  );
 
   // Pagination logic
   const totalWorkflows = finalWorkflows.length;

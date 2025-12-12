@@ -176,16 +176,29 @@ export default function FormRenderer({
         const value = normalized[field.fieldName];
 
         if (Array.isArray(value)) {
-          const optionsLower = field.options.map((o) => o.toLowerCase());
           normalized[field.fieldName] = value
             .map((v) => {
-              const idx = optionsLower.indexOf(String(v).toLowerCase());
-              return idx >= 0 ? field.options![idx] : null;
+              const strValue = String(v);
+              // Try case-sensitive exact match first
+              let idx = field.options!.indexOf(strValue);
+              // If not found, try case-insensitive match
+              if (idx === -1) {
+                const optionsLower = field.options!.map((o) => o.toLowerCase());
+                idx = optionsLower.indexOf(strValue.toLowerCase());
+                return idx >= 0 ? field.options![idx] : null;
+              }
+              return field.options![idx];
             })
             .filter((v) => v !== null);
         } else if (value) {
-          const optionsLower = field.options.map((o) => o.toLowerCase());
-          const idx = optionsLower.indexOf(String(value).toLowerCase());
+          const strValue = String(value);
+          // Try case-sensitive exact match first
+          let idx = field.options.indexOf(strValue);
+          // If not found, try case-insensitive match
+          if (idx === -1) {
+            const optionsLower = field.options.map((o) => o.toLowerCase());
+            idx = optionsLower.indexOf(strValue.toLowerCase());
+          }
           normalized[field.fieldName] = idx >= 0 ? field.options[idx] : '';
         }
       }
@@ -442,13 +455,22 @@ export default function FormRenderer({
           />
         );
       case 'select':
+        const currentValue =
+          typeof formData[field.fieldName] === 'string'
+            ? (formData[field.fieldName] as string)
+            : '';
+
+        // Find the exact option that matches (case-sensitive first, then case-insensitive)
+        const matchedOption =
+          field.options?.find((opt) => opt === currentValue) ||
+          field.options?.find(
+            (opt) => opt.toLowerCase() === currentValue.toLowerCase()
+          ) ||
+          currentValue;
+
         return (
           <select
-            value={
-              typeof formData[field.fieldName] === 'string'
-                ? (formData[field.fieldName] as string)
-                : ''
-            }
+            value={matchedOption}
             onChange={(e) => handleInputChange(field.fieldName, e.target.value)}
             className={`w-full rounded-lg border bg-white px-3 py-2.5 transition-colors focus:ring-2 focus:outline-none ${
               fieldErrors[field.fieldName]
@@ -476,22 +498,38 @@ export default function FormRenderer({
                 : 'border-gray-300 focus-within:border-blue-500 focus-within:ring-blue-100 hover:border-gray-400'
             }`}
           >
-            {field.options?.map((option) => (
-              <label key={option} className="flex items-center gap-2 py-1">
-                <input
-                  type="checkbox"
-                  checked={selectedValues.includes(option)}
-                  onChange={(e) => {
-                    const newValues = e.target.checked
-                      ? [...selectedValues, option]
-                      : selectedValues.filter((v) => v !== option);
-                    handleInputChange(field.fieldName, newValues);
-                  }}
-                  className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500"
-                />
-                <span className="text-sm text-gray-700">{option}</span>
-              </label>
-            ))}
+            {field.options?.map((option) => {
+              // Check if option is selected (case-sensitive first, then case-insensitive)
+              const isSelected =
+                selectedValues.includes(option) ||
+                selectedValues.some(
+                  (v) => v.toLowerCase() === option.toLowerCase()
+                );
+
+              return (
+                <label key={option} className="flex items-center gap-2 py-1">
+                  <input
+                    type="checkbox"
+                    checked={isSelected}
+                    onChange={(e) => {
+                      const newValues = e.target.checked
+                        ? [
+                            ...selectedValues.filter(
+                              (v) => v.toLowerCase() !== option.toLowerCase()
+                            ),
+                            option,
+                          ]
+                        : selectedValues.filter(
+                            (v) => v.toLowerCase() !== option.toLowerCase()
+                          );
+                      handleInputChange(field.fieldName, newValues);
+                    }}
+                    className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500"
+                  />
+                  <span className="text-sm text-gray-700">{option}</span>
+                </label>
+              );
+            })}
           </div>
         );
       case 'boolean':
