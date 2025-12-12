@@ -85,7 +85,7 @@ const Sidebar = ({ isOpen = false, onToggle = () => {} }: SidebarProps) => {
 
         {/* Menu Items */}
         <div
-          className={`mt-6 flex-1 space-y-3 md:mt-6 ${
+          className={`custom-scrollbar mt-6 flex-1 space-y-3 overflow-y-auto md:mt-6 ${
             isOpen
               ? 'px-4 md:px-0'
               : 'flex flex-col items-center px-2 lg:block lg:space-y-3 lg:px-4'

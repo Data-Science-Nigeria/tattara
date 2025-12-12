@@ -7,10 +7,11 @@ import {
   ArrowUp,
   ArrowDown,
   Calendar,
+  Eye,
 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import SearchInput from './search-input';
 import { exportToJSON, exportToCSV, exportToPDF } from '../utils/export-utils';
-import UserProfileModal from './user-profile-modal';
 
 interface UserData {
   id?: string;
@@ -52,6 +53,7 @@ export default function UserTable({
   data = [],
   isLoading = false,
 }: UserTableProps) {
+  const router = useRouter();
   const [search, setSearch] = useState('');
   const [showLimit, setShowLimit] = useState(10);
 
@@ -381,7 +383,15 @@ export default function UserTable({
                   </td>
                   <td className="sticky right-0 border-l bg-white px-3 py-4 text-sm text-gray-700 sm:px-6">
                     {item.id && (
-                      <UserProfileModal userId={item.id} userName={item.name} />
+                      <button
+                        onClick={() =>
+                          router.push(`/admin/manage-users/${item.id}`)
+                        }
+                        className="inline-flex items-center gap-1 rounded-md bg-green-100 px-2 py-1 text-xs text-green-700 transition-colors hover:bg-green-200"
+                      >
+                        <Eye className="h-3 w-3" />
+                        View Profile
+                      </button>
                     )}
                   </td>
                 </tr>

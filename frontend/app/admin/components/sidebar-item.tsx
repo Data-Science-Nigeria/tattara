@@ -36,6 +36,16 @@ export const SidebarItem = ({
       return pathname === href || pathname.startsWith('/admin/workflows/');
     }
 
+    // For manage-users, match exact path and sub-routes (including user profile pages)
+    if (href === '/admin/manage-users') {
+      return pathname === href || pathname.startsWith('/admin/manage-users/');
+    }
+
+    // For submissions, match exact path and sub-routes
+    if (href === '/admin/submissions') {
+      return pathname === href || pathname.startsWith('/admin/submissions/');
+    }
+
     // For program-specific routes, match the base path
     if (href.includes('/admin/programs/')) {
       return pathname === href || pathname.startsWith(href + '/');

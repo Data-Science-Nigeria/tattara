@@ -6,6 +6,7 @@ import {
   User,
   UserCog,
   Users,
+  FileText,
 } from 'lucide-react';
 
 // Initial admin sidebar (after signup)
@@ -33,6 +34,12 @@ export const dashboardSidebarItems = [
     href: `/admin/manage-users`,
     icon: Users,
     alt: 'User icon',
+  },
+  {
+    name: 'Submissions',
+    href: `/admin/submissions`,
+    icon: FileText,
+    alt: 'Submissions icon',
   },
   {
     name: 'DHIS2 Auth',
