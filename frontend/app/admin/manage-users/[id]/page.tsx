@@ -81,14 +81,14 @@ export default function UserProfilePage({
             <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gray-300">
               <User className="h-8 w-8 text-gray-600" />
             </div>
-            <div>
+            <div className="min-w-0 flex-1">
               <h1 className="text-2xl font-semibold text-gray-800">
                 {user ? `${user.firstName} ${user.lastName}` : 'Loading...'}
               </h1>
               {user && (
                 <div className="flex items-center gap-1 text-gray-600">
-                  <Mail className="h-4 w-4" />
-                  <span>{user.email}</span>
+                  <Mail className="h-4 w-4 flex-shrink-0" />
+                  <span className="truncate">{user.email}</span>
                 </div>
               )}
             </div>
@@ -107,15 +107,15 @@ export default function UserProfilePage({
             </div>
           ) : (
             <>
-              <div className="mb-6 flex items-center justify-between">
+              <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-0">
                 <h2 className="text-lg font-semibold text-gray-800">
                   {showSubmissions ? 'User Submissions' : 'User Information'}
                 </h2>
                 <button
                   onClick={() => setShowSubmissions(!showSubmissions)}
-                  className="flex items-center gap-2 rounded-md bg-[#008647] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#006635]"
+                  className="flex items-center gap-1 rounded-md bg-[#008647] px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-[#006635] sm:gap-2 sm:px-4 sm:py-2 sm:text-sm"
                 >
-                  <FileText className="h-4 w-4" />
+                  <FileText className="h-3 w-3 sm:h-4 sm:w-4" />
                   {showSubmissions ? 'User Info' : 'User Submissions'}
                 </button>
               </div>

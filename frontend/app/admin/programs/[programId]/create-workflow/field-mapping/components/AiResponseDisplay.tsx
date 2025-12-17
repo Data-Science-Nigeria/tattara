@@ -52,11 +52,11 @@ export default function AiResponseDisplay({
 }: AiResponseDisplayProps) {
   return (
     <div className="rounded-lg border border-gray-300 bg-white p-4">
-      <div className="mb-3 flex items-start justify-between">
+      <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <h3 className="text-lg font-semibold">AI Processing Results</h3>
         <button
           onClick={onReset}
-          className="rounded-lg bg-gray-100 px-3 py-1 text-sm text-gray-600 hover:bg-gray-200"
+          className="self-start rounded-lg bg-gray-100 px-3 py-1 text-sm text-gray-600 hover:bg-gray-200"
         >
           <RotateCcw className="mr-1 inline h-3 w-3" />
           Reset All
@@ -88,9 +88,12 @@ export default function AiResponseDisplay({
                 )}
                 <div className="space-y-1">
                   {Object.entries(row.extracted).map(([key, value]) => (
-                    <div key={key} className="flex justify-between text-sm">
+                    <div
+                      key={key}
+                      className="flex flex-col gap-1 text-sm sm:flex-row sm:justify-between"
+                    >
                       <span className="font-medium">{key}:</span>
-                      <span className="text-right">
+                      <span className="break-words sm:text-right">
                         {Array.isArray(value)
                           ? value.join(', ')
                           : String(value)}
@@ -114,7 +117,10 @@ export default function AiResponseDisplay({
             <div className="mt-2 space-y-1">
               {Object.entries(responseData.data.aiData.confidence).map(
                 ([key, value]) => (
-                  <div key={key} className="flex justify-between">
+                  <div
+                    key={key}
+                    className="flex flex-col gap-1 text-sm sm:flex-row sm:justify-between"
+                  >
                     <span className="font-medium">{key}:</span>
                     <span>{(value * 100).toFixed(1)}%</span>
                   </div>
@@ -127,7 +133,7 @@ export default function AiResponseDisplay({
         {responseData.data?.aiData?.meta && (
           <div>
             <strong>Processing Info:</strong>
-            <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
+            <div className="mt-2 grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
               {responseData.data.aiData.meta.language && (
                 <div>Language: {responseData.data.aiData.meta.language}</div>
               )}
@@ -147,7 +153,7 @@ export default function AiResponseDisplay({
         {responseData.data?.aiData?.metrics && (
           <div>
             <strong>Performance Metrics:</strong>
-            <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
+            <div className="mt-2 grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
               <div>
                 Total:{' '}
                 {responseData.data.aiData.metrics.total_seconds?.toFixed(2)}s

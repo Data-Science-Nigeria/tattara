@@ -253,35 +253,58 @@ export default function AdminSubmissionsTable({
             </select>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 overflow-x-auto px-4 sm:gap-2">
             <button
               onClick={() => onPageChange(Math.max(1, currentPage - 1))}
               disabled={currentPage === 1}
-              className="flex items-center gap-1 px-3 py-2 text-sm text-gray-600 hover:text-gray-900 disabled:opacity-50"
+              className="flex items-center gap-1 px-2 py-2 text-xs whitespace-nowrap text-gray-600 hover:text-gray-900 disabled:opacity-50 sm:px-3 sm:text-sm"
             >
-              &lt; Previous
+              &lt; Prev
             </button>
 
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-              <button
-                key={page}
-                onClick={() => onPageChange(page)}
-                className={`h-8 w-8 rounded border text-sm ${
-                  currentPage === page
-                    ? 'border-[#008647] bg-[#008647] text-white'
-                    : 'border-gray-300 bg-white text-gray-600 hover:bg-gray-50'
-                }`}
-              >
-                {page}
-              </button>
-            ))}
+            {(() => {
+              const maxVisible = window.innerWidth < 640 ? 3 : 7;
+              const pages = [];
+
+              if (totalPages <= maxVisible) {
+                for (let i = 1; i <= totalPages; i++) {
+                  pages.push(i);
+                }
+              } else {
+                const half = Math.floor(maxVisible / 2);
+                let start = Math.max(1, currentPage - half);
+                const end = Math.min(totalPages, start + maxVisible - 1);
+
+                if (end - start + 1 < maxVisible) {
+                  start = Math.max(1, end - maxVisible + 1);
+                }
+
+                for (let i = start; i <= end; i++) {
+                  pages.push(i);
+                }
+              }
+
+              return pages.map((page) => (
+                <button
+                  key={page}
+                  onClick={() => onPageChange(page)}
+                  className={`h-7 w-7 flex-shrink-0 rounded border text-xs sm:h-8 sm:w-8 sm:text-sm ${
+                    currentPage === page
+                      ? 'border-[#008647] bg-[#008647] text-white'
+                      : 'border-gray-300 bg-white text-gray-600 hover:bg-gray-50'
+                  }`}
+                >
+                  {page}
+                </button>
+              ));
+            })()}
 
             <button
               onClick={() =>
                 onPageChange(Math.min(totalPages, currentPage + 1))
               }
               disabled={currentPage === totalPages}
-              className="flex items-center gap-1 px-3 py-2 text-sm text-gray-600 hover:text-gray-900 disabled:opacity-50"
+              className="flex items-center gap-1 px-2 py-2 text-xs whitespace-nowrap text-gray-600 hover:text-gray-900 disabled:opacity-50 sm:px-3 sm:text-sm"
             >
               Next &gt;
             </button>

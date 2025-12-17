@@ -201,22 +201,42 @@ export default function UserSubmissionsTab({
             </select>
           </div>
 
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 overflow-x-auto px-2">
             <button
               onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
               disabled={currentPage === 1}
-              className="px-2 py-1 text-sm text-gray-600 hover:text-gray-900 disabled:opacity-50"
+              className="px-2 py-1 text-sm whitespace-nowrap text-gray-600 hover:text-gray-900 disabled:opacity-50"
             >
               &lt;
             </button>
 
-            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-              const page = i + 1;
-              return (
+            {(() => {
+              const maxVisible = window.innerWidth < 640 ? 3 : 5;
+              const pages = [];
+
+              if (totalPages <= maxVisible) {
+                for (let i = 1; i <= totalPages; i++) {
+                  pages.push(i);
+                }
+              } else {
+                const half = Math.floor(maxVisible / 2);
+                let start = Math.max(1, currentPage - half);
+                const end = Math.min(totalPages, start + maxVisible - 1);
+
+                if (end - start + 1 < maxVisible) {
+                  start = Math.max(1, end - maxVisible + 1);
+                }
+
+                for (let i = start; i <= end; i++) {
+                  pages.push(i);
+                }
+              }
+
+              return pages.map((page) => (
                 <button
                   key={page}
                   onClick={() => setCurrentPage(page)}
-                  className={`h-7 w-7 rounded text-sm ${
+                  className={`h-6 w-6 flex-shrink-0 rounded text-xs sm:h-7 sm:w-7 sm:text-sm ${
                     currentPage === page
                       ? 'bg-[#008647] text-white'
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -224,15 +244,15 @@ export default function UserSubmissionsTab({
                 >
                   {page}
                 </button>
-              );
-            })}
+              ));
+            })()}
 
             <button
               onClick={() =>
                 setCurrentPage(Math.min(totalPages, currentPage + 1))
               }
               disabled={currentPage === totalPages}
-              className="px-2 py-1 text-sm text-gray-600 hover:text-gray-900 disabled:opacity-50"
+              className="px-2 py-1 text-sm whitespace-nowrap text-gray-600 hover:text-gray-900 disabled:opacity-50"
             >
               &gt;
             </button>

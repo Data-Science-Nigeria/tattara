@@ -211,7 +211,7 @@ export default function AudioAiReview({
 
   return (
     <div className="space-y-6">
-      <div className="mb-4 flex items-center justify-between">
+      <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <h3 className="text-lg font-semibold text-gray-900">
           Test Audio Processing
         </h3>
@@ -249,7 +249,7 @@ export default function AudioAiReview({
               {formatTime(recordingTime)}
             </div>
           </div>
-          <div className="flex justify-center gap-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:justify-center sm:gap-4">
             {!isRecording && audioBlobs.length === 0 && (
               <>
                 <button
@@ -298,7 +298,7 @@ export default function AudioAiReview({
                   <audio key={idx} src={url} controls className="w-full" />
                 ))}
               </div>
-              <div className="mt-3 flex justify-center gap-2">
+              <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:justify-center">
                 <button
                   onClick={startRecording}
                   disabled={isRecording}

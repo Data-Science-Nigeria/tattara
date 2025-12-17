@@ -314,17 +314,18 @@ const Dashboard = () => {
             )}
 
             {totalPages > 1 && (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1 sm:gap-2">
                 <button
                   onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                   disabled={currentPage === 1}
-                  className="rounded border border-gray-300 px-3 py-1 hover:bg-gray-50 disabled:opacity-50"
+                  className="rounded border border-gray-300 px-2 py-1 text-xs hover:bg-gray-50 disabled:opacity-50 sm:px-3 sm:text-sm"
                 >
-                  Previous
+                  <span className="sm:hidden">Prev</span>
+                  <span className="hidden sm:inline">Previous</span>
                 </button>
 
-                <span className="text-sm text-gray-600">
-                  Page {currentPage} of {totalPages}
+                <span className="text-xs whitespace-nowrap text-gray-600 sm:text-sm">
+                  {currentPage}/{totalPages}
                 </span>
 
                 <button
@@ -332,7 +333,7 @@ const Dashboard = () => {
                     setCurrentPage(Math.min(totalPages, currentPage + 1))
                   }
                   disabled={currentPage === totalPages}
-                  className="rounded border border-gray-300 px-3 py-1 hover:bg-gray-50 disabled:opacity-50"
+                  className="rounded border border-gray-300 px-2 py-1 text-xs hover:bg-gray-50 disabled:opacity-50 sm:px-3 sm:text-sm"
                 >
                   Next
                 </button>

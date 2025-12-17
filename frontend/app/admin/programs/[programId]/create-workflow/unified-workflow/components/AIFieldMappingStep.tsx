@@ -319,13 +319,13 @@ export default function AIFieldMappingStep({
         </p>
       </div>
 
-      <div className="flex gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
         {availableFields.length > 0 && (
           <button
             onClick={addFieldsFromExternal}
             className="flex items-center gap-2 rounded-lg border border-green-600 px-4 py-2 text-green-600 hover:bg-green-50"
           >
-            <Eye className="h-4 w-4" />
+            <Eye className="hidden h-4 w-4 sm:inline" />
             Add External Fields (
             {
               availableFields.filter(
@@ -379,7 +379,7 @@ export default function AIFieldMappingStep({
             </div>
 
             <div className="ml-6 space-y-4">
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 <div>
                   <label className="mb-1 block text-sm font-medium text-gray-700">
                     Field Name

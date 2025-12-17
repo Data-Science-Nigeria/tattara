@@ -10,7 +10,7 @@ import {
 import Link from 'next/link';
 import Header from './components/header';
 import Footer from './components/footer';
-import { Database, ArrowRight } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import Image from 'next/image';
 
 const page = () => {
@@ -30,7 +30,7 @@ const page = () => {
     },
 
     {
-      icon: Database,
+      icon: '/integration.svg',
       title: 'Instant Integration',
       description:
         'Your clean data flows directly into\nyour database, DHIS2 database,\nor any data storage of your\nchoice.',
@@ -101,15 +101,11 @@ const page = () => {
               >
                 <CardHeader>
                   <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-lg bg-green-100">
-                    {typeof feature.icon === 'string' ? (
-                      <img
-                        src={feature.icon}
-                        className="h-8 w-8"
-                        alt={feature.title}
-                      />
-                    ) : (
-                      <feature.icon className="h-8 w-8 text-[#008647]" />
-                    )}
+                    <img
+                      src={feature.icon}
+                      className="h-8 w-8"
+                      alt={feature.title}
+                    />
                   </div>
                   <CardTitle className="text-xl text-[#5C5D6C]">
                     {feature.title}
