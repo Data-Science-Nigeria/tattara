@@ -52,11 +52,11 @@ export default function AiResponseDisplay({
 }: AiResponseDisplayProps) {
   return (
     <div className="rounded-lg border border-gray-300 bg-white p-4">
-      <div className="mb-3 flex items-start justify-between">
+      <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <h3 className="text-lg font-semibold">AI Processing Results</h3>
         <button
           onClick={onReset}
-          className="rounded-lg bg-gray-100 px-3 py-1 text-sm text-gray-600 hover:bg-gray-200"
+          className="self-start rounded-lg bg-gray-100 px-3 py-1 text-sm text-gray-600 hover:bg-gray-200"
         >
           <RotateCcw className="mr-1 inline h-3 w-3" />
           Reset All
@@ -65,7 +65,7 @@ export default function AiResponseDisplay({
 
       <div className="space-y-4">
         <div className="rounded-lg border border-blue-200 bg-blue-50 p-3">
-          <pre className="overflow-auto text-xs text-blue-800">
+          <pre className="overflow-auto text-xs break-all text-blue-800">
             {JSON.stringify(responseData, null, 2)}
           </pre>
         </div>
@@ -88,9 +88,12 @@ export default function AiResponseDisplay({
                 )}
                 <div className="space-y-1">
                   {Object.entries(row.extracted).map(([key, value]) => (
-                    <div key={key} className="flex justify-between text-sm">
-                      <span className="font-medium">{key}:</span>
-                      <span className="text-right">
+                    <div
+                      key={key}
+                      className="flex flex-col gap-1 text-sm sm:flex-row sm:justify-between"
+                    >
+                      <span className="font-medium break-words">{key}:</span>
+                      <span className="min-w-0 break-words sm:text-right">
                         {Array.isArray(value)
                           ? value.join(', ')
                           : String(value)}
@@ -99,7 +102,7 @@ export default function AiResponseDisplay({
                   ))}
                 </div>
                 {row.missing_required.length > 0 && (
-                  <div className="mt-2 text-xs text-red-600">
+                  <div className="mt-2 text-xs break-words text-red-600">
                     Missing: {row.missing_required.join(', ')}
                   </div>
                 )}
@@ -114,9 +117,14 @@ export default function AiResponseDisplay({
             <div className="mt-2 space-y-1">
               {Object.entries(responseData.data.aiData.confidence).map(
                 ([key, value]) => (
-                  <div key={key} className="flex justify-between">
-                    <span className="font-medium">{key}:</span>
-                    <span>{(value * 100).toFixed(1)}%</span>
+                  <div
+                    key={key}
+                    className="flex flex-col gap-1 text-sm sm:flex-row sm:justify-between"
+                  >
+                    <span className="font-medium break-words">{key}:</span>
+                    <span className="break-words">
+                      {(value * 100).toFixed(1)}%
+                    </span>
                   </div>
                 )
               )}
@@ -127,15 +135,19 @@ export default function AiResponseDisplay({
         {responseData.data?.aiData?.meta && (
           <div>
             <strong>Processing Info:</strong>
-            <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
+            <div className="mt-2 grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
               {responseData.data.aiData.meta.language && (
-                <div>Language: {responseData.data.aiData.meta.language}</div>
+                <div className="break-words">
+                  Language: {responseData.data.aiData.meta.language}
+                </div>
               )}
               {responseData.data.aiData.meta.asr_provider && (
-                <div>ASR: {responseData.data.aiData.meta.asr_provider}</div>
+                <div className="break-words">
+                  ASR: {responseData.data.aiData.meta.asr_provider}
+                </div>
               )}
               {responseData.data.aiData.meta.transcript_length && (
-                <div>
+                <div className="break-words">
                   Transcript: {responseData.data.aiData.meta.transcript_length}{' '}
                   chars
                 </div>
@@ -147,26 +159,28 @@ export default function AiResponseDisplay({
         {responseData.data?.aiData?.metrics && (
           <div>
             <strong>Performance Metrics:</strong>
-            <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
-              <div>
+            <div className="mt-2 grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
+              <div className="break-words">
                 Total:{' '}
                 {responseData.data.aiData.metrics.total_seconds?.toFixed(2)}s
               </div>
-              <div>
+              <div className="break-words">
                 Cost: ${responseData.data.aiData.metrics.cost_usd?.toFixed(6)}
               </div>
-              <div>Model: {responseData.data.aiData.metrics.model}</div>
-              <div>
+              <div className="break-words">
+                Model: {responseData.data.aiData.metrics.model}
+              </div>
+              <div className="break-words">
                 Tokens: {responseData.data.aiData.metrics.tokens_in}/
                 {responseData.data.aiData.metrics.tokens_out}
               </div>
               {(responseData.data?.aiData?.metrics?.asr_seconds ?? 0) > 0 && (
-                <div>
+                <div className="break-words">
                   ASR:{' '}
                   {responseData.data.aiData.metrics.asr_seconds?.toFixed(2)}s
                 </div>
               )}
-              <div>
+              <div className="break-words">
                 LLM: {responseData.data.aiData.metrics.llm_seconds?.toFixed(2)}s
               </div>
             </div>
@@ -176,7 +190,7 @@ export default function AiResponseDisplay({
         {!responseData.success && responseData.error && (
           <div className="text-sm text-red-600">
             <strong>Error:</strong>
-            <div className="mt-1">{responseData.error}</div>
+            <div className="mt-1 break-words">{responseData.error}</div>
           </div>
         )}
       </div>

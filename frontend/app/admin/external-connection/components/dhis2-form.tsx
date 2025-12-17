@@ -77,7 +77,7 @@ export default function DHIS2Form({
 
       {/* Test Connection Section */}
       <div className="rounded-lg border border-[#D2DDF5] bg-gray-50 p-4">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-sm font-medium text-gray-700">Test Connection</p>
             <p className="text-xs text-gray-500">
@@ -87,7 +87,7 @@ export default function DHIS2Form({
           <Button
             onClick={onTestConnection}
             disabled={!name || !pat || !baseUrl || isTestingConnection}
-            className="bg-blue-600 hover:bg-blue-700"
+            className="w-full bg-blue-600 hover:bg-blue-700 sm:w-auto"
           >
             {isTestingConnection && (
               <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />

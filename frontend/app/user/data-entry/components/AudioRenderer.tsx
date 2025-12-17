@@ -226,7 +226,7 @@ export default function AudioRenderer({
 
   return (
     <div className="rounded-2xl border border-[#D2DDF5] bg-white p-6">
-      <div className="mb-4 flex justify-end gap-2">
+      <div className="mb-4 flex flex-wrap justify-end gap-2">
         {audioBlobs.length > 0 && (
           <button
             type="button"
@@ -281,7 +281,7 @@ export default function AudioRenderer({
             </div>
           </div>
 
-          <div className="flex justify-center gap-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:justify-center sm:gap-4">
             {!isRecording && audioBlobs.length === 0 && (
               <>
                 <button
@@ -323,7 +323,7 @@ export default function AudioRenderer({
 
         {audioUrls.length > 0 && (
           <div className="rounded-lg bg-gray-50 p-4">
-            <div className="mb-4 flex items-center justify-between">
+            <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <h3 className="font-medium text-gray-900">
                 {audioUrls.length} Audio File(s)
               </h3>

@@ -2,7 +2,8 @@
 
 import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Layers, CheckCircle2, Search, X } from 'lucide-react';
+import { Layers, CheckCircle2, Search, X, Eye, Calendar } from 'lucide-react';
+import SubmissionModal from '@/components/shared/SubmissionModal';
 import {
   collectorControllerGetSubmissionHistoryOptions,
   workflowControllerGetWorkflowsOptions,
@@ -82,6 +83,11 @@ export default function MySubmissions() {
   const [search, setSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [selectedSubmissionId, setSelectedSubmissionId] = useState<
+    string | null
+  >(null);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [selectedDate, setSelectedDate] = useState('');
 
   const { data: profileData } = useQuery(authControllerGetProfileOptions());
   const userProfile = (profileData as { data?: { id: string } })?.data;
@@ -89,7 +95,7 @@ export default function MySubmissions() {
 
   const { data: workflowsData } = useQuery({
     ...workflowControllerGetWorkflowsOptions({
-      query: { page: 1, limit: 1000000, userId },
+      query: { page: 1, limit: 100, userId },
     }),
     enabled: !!userId,
   });
@@ -130,7 +136,11 @@ export default function MySubmissions() {
       submission.workflow?.description
         ?.toLowerCase()
         .includes(search.toLowerCase());
-    return matchesSearch;
+    const matchesDate =
+      !selectedDate ||
+      new Date(submission.submittedAt).toISOString().split('T')[0] ===
+        selectedDate;
+    return matchesSearch && matchesDate;
   });
 
   const totalPages = Math.ceil(filteredSubmissions.length / itemsPerPage);
@@ -217,7 +227,45 @@ export default function MySubmissions() {
                   <span className="text-sm sm:text-base">Status</span>
                 </th>
                 <th className="px-3 py-4 text-left font-semibold text-gray-700 sm:px-6">
-                  <span className="text-sm sm:text-base">Submitted At</span>
+                  <div className="flex items-center gap-2 whitespace-nowrap">
+                    <span className="text-sm sm:text-base">Date</span>
+                    <div className="relative">
+                      <Calendar
+                        className="h-4 w-4 cursor-pointer"
+                        onClick={() => setShowDatePicker(!showDatePicker)}
+                      />
+                      {showDatePicker && (
+                        <div className="absolute top-6 right-0 z-20 w-40 rounded border bg-white p-2 shadow-lg">
+                          <input
+                            type="date"
+                            value={selectedDate}
+                            onChange={(e) => setSelectedDate(e.target.value)}
+                            className="mb-1 w-full rounded border px-1 py-1 text-xs"
+                          />
+                          <div className="flex gap-1">
+                            <button
+                              onClick={() => {
+                                setSelectedDate('');
+                                setShowDatePicker(false);
+                              }}
+                              className="flex-1 rounded bg-gray-100 px-2 py-1 text-xs hover:bg-gray-200"
+                            >
+                              Clear
+                            </button>
+                            <button
+                              onClick={() => setShowDatePicker(false)}
+                              className="flex-1 rounded bg-green-600 px-2 py-1 text-xs text-white hover:bg-green-700"
+                            >
+                              Apply
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </th>
+                <th className="sticky right-0 bg-[#F2F3FF] px-3 py-4 text-left font-semibold text-gray-700 sm:px-6">
+                  <span className="text-sm sm:text-base">Actions</span>
                 </th>
               </tr>
             </thead>
@@ -225,7 +273,7 @@ export default function MySubmissions() {
               {isLoading ? (
                 <tr>
                   <td
-                    colSpan={5}
+                    colSpan={6}
                     className="px-3 py-4 text-center text-gray-500 sm:px-6"
                   >
                     <div className="flex items-center justify-center py-4">
@@ -239,7 +287,7 @@ export default function MySubmissions() {
               ) : currentSubmissions.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={5}
+                    colSpan={6}
                     className="px-3 py-4 text-center text-sm text-gray-500 sm:px-6"
                   >
                     {search
@@ -267,6 +315,15 @@ export default function MySubmissions() {
                     <td className="px-3 py-4 text-sm text-gray-700 sm:px-6">
                       {formatDate(submission.submittedAt)}
                     </td>
+                    <td className="sticky right-0 bg-white px-3 py-4 sm:px-6">
+                      <button
+                        onClick={() => setSelectedSubmissionId(submission.id)}
+                        className="flex items-center gap-2 rounded-md bg-[#008647] px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-[#006635]"
+                      >
+                        <Eye className="h-4 w-4" />
+                        View
+                      </button>
+                    </td>
                   </tr>
                 ))
               )}
@@ -293,21 +350,42 @@ export default function MySubmissions() {
               </select>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 overflow-x-auto px-4 sm:gap-2">
               <button
                 onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                 disabled={currentPage === 1}
-                className="flex items-center gap-1 px-3 py-2 text-sm text-gray-600 hover:text-gray-900 disabled:opacity-50"
+                className="flex items-center gap-1 px-2 py-2 text-xs whitespace-nowrap text-gray-600 hover:text-gray-900 disabled:opacity-50 sm:px-3 sm:text-sm"
               >
-                &lt; Previous
+                &lt; Prev
               </button>
 
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map(
-                (page) => (
+              {(() => {
+                const maxVisible = window.innerWidth < 640 ? 3 : 7;
+                const pages = [];
+
+                if (totalPages <= maxVisible) {
+                  for (let i = 1; i <= totalPages; i++) {
+                    pages.push(i);
+                  }
+                } else {
+                  const half = Math.floor(maxVisible / 2);
+                  let start = Math.max(1, currentPage - half);
+                  const end = Math.min(totalPages, start + maxVisible - 1);
+
+                  if (end - start + 1 < maxVisible) {
+                    start = Math.max(1, end - maxVisible + 1);
+                  }
+
+                  for (let i = start; i <= end; i++) {
+                    pages.push(i);
+                  }
+                }
+
+                return pages.map((page) => (
                   <button
                     key={page}
                     onClick={() => setCurrentPage(page)}
-                    className={`h-8 w-8 rounded border text-sm ${
+                    className={`h-7 w-7 flex-shrink-0 rounded border text-xs sm:h-8 sm:w-8 sm:text-sm ${
                       currentPage === page
                         ? 'border-[#008647] bg-[#008647] text-white'
                         : 'border-gray-300 bg-white text-gray-600 hover:bg-gray-50'
@@ -315,20 +393,29 @@ export default function MySubmissions() {
                   >
                     {page}
                   </button>
-                )
-              )}
+                ));
+              })()}
 
               <button
                 onClick={() =>
                   setCurrentPage(Math.min(totalPages, currentPage + 1))
                 }
                 disabled={currentPage === totalPages}
-                className="flex items-center gap-1 px-3 py-2 text-sm text-gray-600 hover:text-gray-900 disabled:opacity-50"
+                className="flex items-center gap-1 px-2 py-2 text-xs whitespace-nowrap text-gray-600 hover:text-gray-900 disabled:opacity-50 sm:px-3 sm:text-sm"
               >
                 Next &gt;
               </button>
             </div>
           </div>
+        )}
+
+        {/* Submission Modal */}
+        {selectedSubmissionId && (
+          <SubmissionModal
+            submissionId={selectedSubmissionId}
+            isOpen={!!selectedSubmissionId}
+            onClose={() => setSelectedSubmissionId(null)}
+          />
         )}
       </div>
     </div>

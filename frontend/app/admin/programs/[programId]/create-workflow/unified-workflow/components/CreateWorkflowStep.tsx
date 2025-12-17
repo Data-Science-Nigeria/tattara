@@ -49,7 +49,8 @@ export default function CreateWorkflowStep({
   isLoading,
   isEditMode = false,
 }: CreateWorkflowStepProps) {
-  const IconComponent = getIconForWorkflow([workflowData.inputType]);
+  const IconComponent: React.ComponentType<{ className?: string }> =
+    getIconForWorkflow([workflowData.inputType]);
 
   return (
     <div className="space-y-6">
@@ -85,13 +86,13 @@ export default function CreateWorkflowStep({
           <div className="space-y-3">
             <div>
               <span className="text-sm font-medium text-gray-500">Name:</span>
-              <p className="text-gray-900">{workflowData.name}</p>
+              <p className="break-words text-gray-900">{workflowData.name}</p>
             </div>
             <div>
               <span className="text-sm font-medium text-gray-500">
                 Description:
               </span>
-              <p className="text-gray-900">
+              <p className="break-words text-gray-900">
                 {workflowData.description || 'No description'}
               </p>
             </div>
@@ -128,7 +129,7 @@ export default function CreateWorkflowStep({
               <span className="text-sm font-medium text-gray-500">
                 Connection:
               </span>
-              <p className="text-gray-900">
+              <p className="break-words text-gray-900">
                 {externalConfig.connectionId || 'Not configured'}
               </p>
             </div>
@@ -136,7 +137,7 @@ export default function CreateWorkflowStep({
               <span className="text-sm font-medium text-gray-500">
                 Connection Type:
               </span>
-              <p className="text-gray-900 uppercase">
+              <p className="break-words text-gray-900 uppercase">
                 {externalConfig.connectionType || 'Not selected'}
               </p>
             </div>
@@ -205,33 +206,37 @@ export default function CreateWorkflowStep({
             {aiFields.map((field, index) => (
               <div
                 key={field.id}
-                className="flex items-start justify-between rounded-lg border border-gray-100 p-3"
+                className="flex flex-col gap-2 rounded-lg border border-gray-100 p-3 sm:flex-row sm:items-start sm:justify-between"
               >
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-gray-900">
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-sm font-medium break-words text-gray-900">
                       {field.label}
                     </span>
                     {field.isRequired && (
-                      <span className="rounded bg-red-100 px-2 py-1 text-xs text-red-800">
+                      <span className="rounded bg-red-100 px-2 py-1 text-xs whitespace-nowrap text-red-800">
                         Required
                       </span>
                     )}
-                    <span className="rounded bg-blue-100 px-2 py-1 text-xs text-blue-800">
+                    <span className="rounded bg-blue-100 px-2 py-1 text-xs whitespace-nowrap text-blue-800">
                       {field.fieldType}
                     </span>
                   </div>
-                  <p className="mt-1 text-xs text-gray-500">
+                  <p className="mt-1 text-xs break-words text-gray-500">
                     {field.fieldName}
                   </p>
-                  <p className="mt-1 text-sm text-gray-600">{field.aiPrompt}</p>
+                  <p className="mt-1 text-sm break-words text-gray-600">
+                    {field.aiPrompt}
+                  </p>
                   {field.externalDataElement && (
-                    <p className="mt-1 text-xs text-blue-600">
+                    <p className="mt-1 text-xs break-words text-blue-600">
                       External: {field.externalDataElement}
                     </p>
                   )}
                 </div>
-                <span className="text-xs text-gray-400">#{index + 1}</span>
+                <span className="self-start text-xs whitespace-nowrap text-gray-400">
+                  #{index + 1}
+                </span>
               </div>
             ))}
           </div>
