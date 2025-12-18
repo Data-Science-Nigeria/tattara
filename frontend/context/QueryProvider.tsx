@@ -1,12 +1,12 @@
 'use client';
 
-import { useQueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { client } from '@/client/client.gen';
 import { AuthConfigProvider } from './AuthConfigProvider';
 
 export const QueryProvider = ({ children }: { children: React.ReactNode }) => {
-  const queryClient = useQueryClient({
+  const queryClient = new QueryClient({
     defaultOptions: {
       queries: {
         retry: 3,
