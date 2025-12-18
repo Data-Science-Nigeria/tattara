@@ -67,7 +67,7 @@ export default function PostgresConfigurationStep({
 
   const connections =
     (connectionsData as { data?: Connection[] })?.data?.filter(
-      (conn) => conn.type === 'postgres'
+      (conn) => conn.type === 'postgres' || conn.type === 'mysql'
     ) || [];
 
   const schemas = schemasData
@@ -85,10 +85,10 @@ export default function PostgresConfigurationStep({
     <div className="space-y-6">
       <div>
         <h2 className="mb-2 text-xl font-semibold text-gray-900">
-          PostgreSQL Configuration
+          Database Configuration
         </h2>
         <p className="text-gray-600">
-          Configure your PostgreSQL connection and select the target schema and
+          Configure your database connection and select the target schema and
           table
         </p>
       </div>
@@ -199,21 +199,14 @@ export default function PostgresConfigurationStep({
                   </div>
                 )}
               </div>
-              <button
-                type="button"
-                onClick={() => onChange({ table: '' })}
-                className="text-xs text-blue-600 hover:text-blue-800"
-              >
-                Or enter table name manually
-              </button>
-              {!config.table && (
-                <input
-                  type="text"
-                  value={config.table}
-                  onChange={(e) => onChange({ table: e.target.value })}
-                  placeholder="Enter table name"
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-green-500 focus:outline-none"
-                />
+              {config.table && (
+                <button
+                  type="button"
+                  onClick={() => onChange({ table: '' })}
+                  className="text-xs text-blue-600 hover:text-blue-800"
+                >
+                  Clear and enter manually
+                </button>
               )}
             </div>
           ) : (
@@ -226,6 +219,17 @@ export default function PostgresConfigurationStep({
                 value={config.table}
                 onChange={(e) => onChange({ table: e.target.value })}
                 placeholder="Enter table name"
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-green-500 focus:outline-none"
+              />
+            </div>
+          )}
+          {!config.table && tables.length > 0 && (
+            <div className="mt-2">
+              <input
+                type="text"
+                value=""
+                onChange={(e) => onChange({ table: e.target.value })}
+                placeholder="Or enter table name manually"
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-green-500 focus:outline-none"
               />
             </div>

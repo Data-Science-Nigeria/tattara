@@ -9,7 +9,7 @@ interface FormError {
 
 interface EditFormModalProps {
   isOpen: boolean;
-  connectionType: 'dhis2' | 'postgres';
+  connectionType: 'dhis2' | 'postgres' | 'mysql';
   name: string;
   setName: (name: string) => void;
   // DHIS2 fields

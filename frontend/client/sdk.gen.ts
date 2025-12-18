@@ -7,6 +7,8 @@ import {
   formDataBodySerializer,
 } from './client';
 import type {
+  AppControllerHealthData,
+  AppControllerHealthResponses,
   AuthControllerRegisterData,
   AuthControllerRegisterResponses,
   AuthControllerLoginData,
@@ -140,6 +142,19 @@ export type Options<
    * used to access values that aren't defined as part of the SDK function.
    */
   meta?: Record<string, unknown>;
+};
+
+export const appControllerHealth = <ThrowOnError extends boolean = false>(
+  options?: Options<AppControllerHealthData, ThrowOnError>
+) => {
+  return (options?.client ?? _heyApiClient).get<
+    AppControllerHealthResponses,
+    unknown,
+    ThrowOnError
+  >({
+    url: '/health',
+    ...options,
+  });
 };
 
 /**
@@ -1160,5 +1175,9 @@ export const externalConnectionsControllerUpdate = <
   >({
     url: '/api/v1/external-connections/{id}',
     ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
   });
 };

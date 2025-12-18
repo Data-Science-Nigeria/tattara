@@ -53,7 +53,7 @@ export type FieldMapping = {
   id: string;
   workflow: Workflow;
   workflowField: WorkflowField;
-  targetType: 'dhis2' | 'postgres';
+  targetType: 'dhis2' | 'postgres' | 'mysql' | 'sqlite' | 'mssql' | 'oracle';
   target: {
     [key: string]: unknown;
   };
@@ -96,7 +96,7 @@ export type WorkflowField = {
 export type ExternalConnection = {
   id: string;
   name: string;
-  type: 'dhis2' | 'postgres';
+  type: 'dhis2' | 'postgres' | 'mysql' | 'sqlite' | 'mssql' | 'oracle';
   configuration: {
     [key: string]: unknown;
   };
@@ -114,7 +114,7 @@ export type ExternalConnection = {
 export type WorkflowConfiguration = {
   id: string;
   workflow: Workflow;
-  type: 'dhis2' | 'postgres';
+  type: 'dhis2' | 'postgres' | 'mysql' | 'sqlite' | 'mssql' | 'oracle';
   externalConnection: ExternalConnection;
   configuration: {
     [key: string]: unknown;
@@ -385,7 +385,7 @@ export type CreateWorkflowFieldDto = {
 };
 
 export type CreateWorkflowConfigurationDto = {
-  type: 'dhis2' | 'postgres';
+  type: 'dhis2' | 'postgres' | 'mysql' | 'sqlite' | 'mssql' | 'oracle';
   configuration: {
     [key: string]: unknown;
   };
@@ -440,7 +440,7 @@ export type UpsertWorkflowFieldsDto = {
 
 export type CreateFieldMappingDto = {
   workflowFieldId: string;
-  targetType: 'dhis2' | 'postgres';
+  targetType: 'dhis2' | 'postgres' | 'mysql' | 'sqlite' | 'mssql' | 'oracle';
   target: {
     [key: string]: unknown;
   };
@@ -490,7 +490,7 @@ export type SubmitDto = {
 };
 
 export type ConnectionDto = {
-  type: 'dhis2' | 'postgres';
+  type: 'dhis2' | 'postgres' | 'mysql' | 'sqlite' | 'mssql' | 'oracle';
   config: {
     [key: string]: unknown;
   };
@@ -502,10 +502,25 @@ export type _Object = {
 
 export type CreateConnectionDto = {
   name: string;
-  type: 'dhis2' | 'postgres';
+  type: 'dhis2' | 'postgres' | 'mysql' | 'sqlite' | 'mssql' | 'oracle';
   configuration: {
     [key: string]: unknown;
   };
+};
+
+export type UpdateExternalConnDto = {
+  [key: string]: unknown;
+};
+
+export type AppControllerHealthData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/health';
+};
+
+export type AppControllerHealthResponses = {
+  200: unknown;
 };
 
 export type AuthControllerRegisterData = {
@@ -1381,7 +1396,7 @@ export type ExternalConnectionsControllerFindOneResponse =
   ExternalConnectionsControllerFindOneResponses[keyof ExternalConnectionsControllerFindOneResponses];
 
 export type ExternalConnectionsControllerUpdateData = {
-  body?: never;
+  body: UpdateExternalConnDto;
   path: {
     id: string;
   };

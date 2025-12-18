@@ -70,7 +70,7 @@ export default function AddConnectionPage() {
 
       await testConnectionMutation.mutateAsync({
         body: {
-          type: type as 'dhis2' | 'postgres',
+          type: type as 'dhis2' | 'postgres' | 'mysql',
           config,
         },
       });
@@ -99,7 +99,7 @@ export default function AddConnectionPage() {
 
     const createPayload = {
       name,
-      type: type as 'dhis2' | 'postgres',
+      type: type as 'dhis2' | 'postgres' | 'mysql',
       configuration,
     };
     createMutation.mutate({ body: createPayload });
@@ -159,6 +159,7 @@ export default function AddConnectionPage() {
             >
               <option value="dhis2">DHIS2</option>
               <option value="postgres">PostgreSQL</option>
+              <option value="mysql">MySQL</option>
             </select>
           </div>
 

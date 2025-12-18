@@ -40,6 +40,26 @@ interface SchemaData {
   dataSetElements?: DataSetElement[];
 }
 
+interface PostgresColumn {
+  name: string;
+  type: string;
+  nullable: boolean;
+}
+
+interface PostgresTable {
+  name: string;
+  columns?: PostgresColumn[];
+}
+
+interface PostgresSchema {
+  name: string;
+  tables?: PostgresTable[];
+}
+
+interface PostgresSchemaData {
+  data?: PostgresSchema[] | { columns?: PostgresColumn[] };
+}
+
 interface AvailableField {
   id: string;
   name: string;
@@ -139,28 +159,25 @@ export default function AIFieldMappingStep({
 
   if (isPostgres && externalConfig.schema && externalConfig.table) {
     // PostgreSQL: Extract columns from table
-    const tableSchema = (
-      schemaData as {
-        data?: Record<
-          string,
-          {
-            tables?: Record<
-              string,
-              {
-                columns?: Array<{
-                  name: string;
-                  type: string;
-                  nullable: boolean;
-                }>;
-              }
-            >;
-          }
-        >;
-      }
-    )?.data;
-    const columns =
-      tableSchema?.[externalConfig.schema]?.tables?.[externalConfig.table]
-        ?.columns || [];
+    let columns: Array<{ name: string; type: string; nullable: boolean }> = [];
+
+    const postgresData = schemaData as PostgresSchemaData;
+
+    // Handle direct table columns response (manual entry)
+    if (postgresData?.data && 'columns' in postgresData.data) {
+      columns = postgresData.data.columns || [];
+    }
+    // Handle schema list response (dropdown selection)
+    else if (postgresData?.data && Array.isArray(postgresData.data)) {
+      const schema = postgresData.data.find(
+        (s) => s.name === externalConfig.schema
+      );
+      const table = schema?.tables?.find(
+        (t) => t.name === externalConfig.table
+      );
+      columns = table?.columns || [];
+    }
+
     columns.forEach((column) => {
       availableFields.push({
         id: column.name,
@@ -244,10 +261,10 @@ export default function AIFieldMappingStep({
     if (type.includes('BOOL')) {
       return 'boolean';
     }
-    if (
-      type.includes('TEXT') ||
-      (type.includes('VARCHAR') && valueType.length > 255)
-    ) {
+    if (type === 'TEXT') {
+      return 'text';
+    }
+    if (type.includes('VARCHAR') && valueType.length > 255) {
       return 'textarea';
     }
     // DHIS2 types
@@ -269,6 +286,8 @@ export default function AIFieldMappingStep({
         return 'phone';
       case 'URL':
         return 'url';
+      case 'TEXT':
+        return 'text';
       case 'LONG_TEXT':
         return 'textarea';
       default:

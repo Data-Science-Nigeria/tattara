@@ -202,8 +202,11 @@ function CreateWorkflowContent({ programId }: { programId: string }) {
       newConfig.connectionType !== undefined &&
       newConfig.connectionType !== externalConfig.connectionType
     ) {
-      if (newConfig.connectionType === 'postgres') {
-        // Switching to PostgreSQL - clear DHIS2 fields
+      if (
+        newConfig.connectionType === 'postgres' ||
+        newConfig.connectionType === 'mysql'
+      ) {
+        // Switching to database - clear DHIS2 fields
         updatedConfig = {
           ...updatedConfig,
           type: '',
@@ -213,7 +216,7 @@ function CreateWorkflowContent({ programId }: { programId: string }) {
           orgUnit: '',
         };
       } else {
-        // Switching to DHIS2 - clear PostgreSQL fields
+        // Switching to DHIS2 - clear database fields
         updatedConfig = {
           ...updatedConfig,
           schema: '',
@@ -222,13 +225,15 @@ function CreateWorkflowContent({ programId }: { programId: string }) {
       }
     }
 
-    // Clear AI fields if connection, type, program, or dataset changes
+    // Clear AI fields if connection, type, program, dataset, schema, or table changes
     if (
       newConfig.connectionId !== undefined ||
       newConfig.connectionType !== undefined ||
       newConfig.type !== undefined ||
       newConfig.programId !== undefined ||
-      newConfig.datasetId !== undefined
+      newConfig.datasetId !== undefined ||
+      newConfig.schema !== undefined ||
+      newConfig.table !== undefined
     ) {
       setAiFields([]);
     }
@@ -266,7 +271,10 @@ function CreateWorkflowContent({ programId }: { programId: string }) {
       case 3:
         if (isExternalMode !== true || !externalConfig.connectionId)
           return false;
-        if (externalConfig.connectionType === 'postgres') {
+        if (
+          externalConfig.connectionType === 'postgres' ||
+          externalConfig.connectionType === 'mysql'
+        ) {
           return !!externalConfig.schema && !!externalConfig.table;
         }
         return (
@@ -283,8 +291,10 @@ function CreateWorkflowContent({ programId }: { programId: string }) {
 
   const handleSubmit = async () => {
     if (isExternalMode) {
-      // External workflow creation (DHIS2 or Postgres)
-      const isPostgres = externalConfig.connectionType === 'postgres';
+      // External workflow creation (DHIS2, Postgres, or MySQL)
+      const isDatabase =
+        externalConfig.connectionType === 'postgres' ||
+        externalConfig.connectionType === 'mysql';
       await createWorkflowMutation.mutateAsync({
         body: {
           programId: programId || undefined,
@@ -314,12 +324,14 @@ function CreateWorkflowContent({ programId }: { programId: string }) {
           })),
           workflowConfigurations: [
             {
-              type: isPostgres ? ('postgres' as const) : ('dhis2' as const),
+              type: isDatabase
+                ? (externalConfig.connectionType as 'postgres' | 'mysql')
+                : ('dhis2' as const),
               externalConnectionId: externalConfig.connectionId,
-              configuration: isPostgres
+              configuration: isDatabase
                 ? {
-                    schema: externalConfig.schema,
-                    table: externalConfig.table,
+                    schema: externalConfig.schema || '',
+                    table: externalConfig.table || '',
                   }
                 : externalConfig.type === 'program'
                   ? {
@@ -420,7 +432,8 @@ function CreateWorkflowContent({ programId }: { programId: string }) {
 
           {isExternalMode === true &&
             currentStep === 2 &&
-            (externalConfig.connectionType === 'postgres' ? (
+            (externalConfig.connectionType === 'postgres' ||
+            externalConfig.connectionType === 'mysql' ? (
               <PostgresConfigurationStep
                 config={{
                   connectionId: externalConfig.connectionId,

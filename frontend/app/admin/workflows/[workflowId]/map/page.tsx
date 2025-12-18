@@ -176,6 +176,15 @@ export default function StandaloneFieldMapping() {
   const handleSave = async () => {
     if (!workflowId) return;
 
+    // Validate workflow data exists
+    const workflowFields =
+      (workflowData as { data?: { workflowFields?: { id: string }[] } })?.data
+        ?.workflowFields || [];
+    if (workflowFields.length === 0) {
+      toast.error('No workflow fields found. Please refresh and try again.');
+      return;
+    }
+
     const mappings = fields
       .filter((field) =>
         connectionType === 'dhis2'
@@ -184,15 +193,12 @@ export default function StandaloneFieldMapping() {
       )
       .map((field) => ({
         workflowFieldId: field.id,
-        targetType:
-          connectionType === 'dhis2'
-            ? ('dhis2' as const)
-            : ('postgres' as const),
+        targetType: connectionType as 'dhis2' | 'postgres' | 'mysql',
         target:
           connectionType === 'dhis2'
-            ? { dataElement: field.dhis2DataElement }
+            ? { dataElement: field.dhis2DataElement! }
             : {
-                column: field.databaseMapping?.column,
+                column: field.databaseMapping!.column,
               },
       }));
 

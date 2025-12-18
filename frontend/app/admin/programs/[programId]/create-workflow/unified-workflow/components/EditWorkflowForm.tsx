@@ -150,10 +150,10 @@ export default function EditWorkflowForm({
       const externalConfiguration = Array.isArray(
         workflow.workflowConfigurations
       )
-        ? (workflow.workflowConfigurations.find(
-            (config: unknown) =>
-              (config as Record<string, unknown>)?.type === 'dhis2'
-          ) as Record<string, unknown> | undefined)
+        ? (workflow.workflowConfigurations.find((config: unknown) => {
+            const configType = (config as Record<string, unknown>)?.type;
+            return configType === 'dhis2' || configType === 'postgres';
+          }) as Record<string, unknown> | undefined)
         : undefined;
 
       // Build field mappings lookup from fieldMappings array
@@ -348,7 +348,10 @@ export default function EditWorkflowForm({
       case 3:
         if (isExternalMode !== true || !externalConfig.connectionId)
           return false;
-        if (externalConfig.connectionType === 'postgres') {
+        if (
+          externalConfig.connectionType === 'postgres' ||
+          externalConfig.connectionType === 'mysql'
+        ) {
           return !!externalConfig.schema && !!externalConfig.table;
         }
         return (
@@ -412,34 +415,8 @@ export default function EditWorkflowForm({
         });
 
         // Step 3: Upsert external configurations (DHIS2 or Postgres)
-        const isPostgres = externalConfig.connectionType === 'postgres';
         await upsertConfigurationsMutation.mutateAsync({
           path: { workflowId },
-          body: {
-            configurations: [
-              {
-                ...(existingConfigId ? { id: existingConfigId } : {}),
-                type: isPostgres ? ('postgres' as const) : ('dhis2' as const),
-                externalConnectionId: externalConfig.connectionId,
-                configuration: isPostgres
-                  ? {
-                      schema: externalConfig.schema,
-                      table: externalConfig.table,
-                    }
-                  : externalConfig.type === 'program'
-                    ? {
-                        program: externalConfig.programId,
-                        programStage: externalConfig.programStageId,
-                        orgUnit: externalConfig.orgUnit,
-                      }
-                    : {
-                        dataSet: externalConfig.datasetId,
-                        orgUnit: externalConfig.orgUnit,
-                      },
-                isActive: true,
-              },
-            ],
-          } as unknown as undefined,
         });
       } else {
         const fieldsToUpsert = manualFields.map((field, index) => ({
@@ -546,7 +523,8 @@ export default function EditWorkflowForm({
 
           {isExternalMode === true &&
             currentStep === 2 &&
-            (externalConfig.connectionType === 'postgres' ? (
+            (externalConfig.connectionType === 'postgres' ||
+            externalConfig.connectionType === 'mysql' ? (
               <PostgresConfigurationStep
                 config={{
                   connectionId: externalConfig.connectionId,

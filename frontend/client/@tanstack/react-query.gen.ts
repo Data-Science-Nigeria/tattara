@@ -2,6 +2,7 @@
 
 import {
   type Options,
+  appControllerHealth,
   authControllerRegister,
   authControllerLogin,
   authControllerLogout,
@@ -61,13 +62,14 @@ import {
   externalConnectionsControllerUpdate,
 } from '../sdk.gen';
 import {
+  queryOptions,
   type UseMutationOptions,
   type DefaultError,
-  queryOptions,
   infiniteQueryOptions,
   type InfiniteData,
 } from '@tanstack/react-query';
 import type {
+  AppControllerHealthData,
   AuthControllerRegisterData,
   AuthControllerRegisterResponse,
   AuthControllerLoginData,
@@ -146,6 +148,68 @@ import type {
   ExternalConnectionsControllerUpdateResponse,
 } from '../types.gen';
 import { client as _heyApiClient } from '../client.gen';
+
+export type QueryKey<TOptions extends Options> = [
+  Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
+    _id: string;
+    _infinite?: boolean;
+    tags?: ReadonlyArray<string>;
+  },
+];
+
+const createQueryKey = <TOptions extends Options>(
+  id: string,
+  options?: TOptions,
+  infinite?: boolean,
+  tags?: ReadonlyArray<string>
+): [QueryKey<TOptions>[0]] => {
+  const params: QueryKey<TOptions>[0] = {
+    _id: id,
+    baseUrl:
+      options?.baseUrl ||
+      (options?.client ?? _heyApiClient).getConfig().baseUrl,
+  } as QueryKey<TOptions>[0];
+  if (infinite) {
+    params._infinite = infinite;
+  }
+  if (tags) {
+    params.tags = tags;
+  }
+  if (options?.body) {
+    params.body = options.body;
+  }
+  if (options?.headers) {
+    params.headers = options.headers;
+  }
+  if (options?.path) {
+    params.path = options.path;
+  }
+  if (options?.query) {
+    params.query = options.query;
+  }
+  return [params];
+};
+
+export const appControllerHealthQueryKey = (
+  options?: Options<AppControllerHealthData>
+) => createQueryKey('appControllerHealth', options);
+
+export const appControllerHealthOptions = (
+  options?: Options<AppControllerHealthData>
+) => {
+  return queryOptions({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await appControllerHealth({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: appControllerHealthQueryKey(options),
+  });
+};
 
 /**
  * Register a new user
@@ -334,47 +398,6 @@ export const authControllerResetPasswordMutation = (
     },
   };
   return mutationOptions;
-};
-
-export type QueryKey<TOptions extends Options> = [
-  Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
-    _id: string;
-    _infinite?: boolean;
-    tags?: ReadonlyArray<string>;
-  },
-];
-
-const createQueryKey = <TOptions extends Options>(
-  id: string,
-  options?: TOptions,
-  infinite?: boolean,
-  tags?: ReadonlyArray<string>
-): [QueryKey<TOptions>[0]] => {
-  const params: QueryKey<TOptions>[0] = {
-    _id: id,
-    baseUrl:
-      options?.baseUrl ||
-      (options?.client ?? _heyApiClient).getConfig().baseUrl,
-  } as QueryKey<TOptions>[0];
-  if (infinite) {
-    params._infinite = infinite;
-  }
-  if (tags) {
-    params.tags = tags;
-  }
-  if (options?.body) {
-    params.body = options.body;
-  }
-  if (options?.headers) {
-    params.headers = options.headers;
-  }
-  if (options?.path) {
-    params.path = options.path;
-  }
-  if (options?.query) {
-    params.query = options.query;
-  }
-  return [params];
 };
 
 export const authControllerGetProfileQueryKey = (
