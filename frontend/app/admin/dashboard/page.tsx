@@ -86,7 +86,6 @@ const Dashboard = () => {
     timestamp: string;
   }
 
-  // Extract programs from API response
   const apiData = (programsData as unknown as ApiResponse)?.data;
   const programsArray = apiData?.programs || [];
 
