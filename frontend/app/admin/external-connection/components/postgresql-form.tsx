@@ -17,6 +17,8 @@ interface PostgreSQLFormProps {
   setPassword: (value: string) => void;
   ssl: boolean;
   setSsl: (value: boolean) => void;
+  client: string;
+  setClient: (value: string) => void;
   onTestConnection: () => void;
   isTestingConnection: boolean;
   connectionTested: boolean;
@@ -37,6 +39,8 @@ export default function PostgreSQLForm({
   setPassword,
   ssl,
   setSsl,
+  client,
+  setClient,
   onTestConnection,
   isTestingConnection,
   connectionTested,
@@ -47,6 +51,21 @@ export default function PostgreSQLForm({
 
   return (
     <>
+      {/* Database Client */}
+      <div>
+        <label className="mb-2 block text-sm font-medium text-gray-700">
+          Database Client
+        </label>
+        <select
+          value={client}
+          onChange={(e) => setClient(e.target.value)}
+          className="w-full rounded-lg border border-[#D2DDF5] bg-white px-3 py-2 focus:border-[#008647] focus:ring-2 focus:ring-green-500 focus:outline-none"
+        >
+          <option value="pg">PostgreSQL (pg)</option>
+          <option value="mysql">MySQL</option>
+        </select>
+      </div>
+
       {/* PostgreSQL Configuration */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         {/* Host */}

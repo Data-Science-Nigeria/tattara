@@ -689,7 +689,7 @@ export default function FormRenderer({
                 ) : isBulkMode ? (
                   `Submit ${bulkFormData.length} Entries`
                 ) : (
-                  'Submit Data to DHIS2'
+                  'Submit Data'
                 )}
               </button>
             )}

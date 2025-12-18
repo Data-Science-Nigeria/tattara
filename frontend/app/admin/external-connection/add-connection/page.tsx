@@ -26,6 +26,7 @@ export default function AddConnectionPage() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [ssl, setSsl] = useState(false);
+  const [client, setClient] = useState('pg');
   const [isTestingConnection, setIsTestingConnection] = useState(false);
   const [connectionTested, setConnectionTested] = useState(false);
   const [testError, setTestError] = useState<string>();
@@ -57,7 +58,15 @@ export default function AddConnectionPage() {
       const config =
         type === 'dhis2'
           ? { baseUrl, pat }
-          : { host, port: parseInt(port), database, username, password, ssl };
+          : {
+              client,
+              host,
+              port: parseInt(port),
+              database,
+              username,
+              password,
+              ssl,
+            };
 
       await testConnectionMutation.mutateAsync({
         body: {
@@ -78,7 +87,15 @@ export default function AddConnectionPage() {
     const configuration =
       type === 'dhis2'
         ? { baseUrl, pat }
-        : { host, port: parseInt(port), database, username, password, ssl };
+        : {
+            client,
+            host,
+            port: parseInt(port),
+            database,
+            username,
+            password,
+            ssl,
+          };
 
     const createPayload = {
       name,
@@ -172,6 +189,8 @@ export default function AddConnectionPage() {
               setPassword={setPassword}
               ssl={ssl}
               setSsl={setSsl}
+              client={client}
+              setClient={setClient}
               onTestConnection={handleTestConnection}
               isTestingConnection={isTestingConnection}
               connectionTested={connectionTested}

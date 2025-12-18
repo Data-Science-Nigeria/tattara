@@ -152,18 +152,31 @@ function CreateWorkflowContent({ programId }: { programId: string }) {
     connectionId?: string,
     connectionType?: string
   ) => {
-    if (isExternalMode !== useExternal) {
+    if (
+      isExternalMode !== useExternal ||
+      (useExternal &&
+        connectionId &&
+        connectionId !== externalConfig.connectionId)
+    ) {
       setIsExternalMode(useExternal);
-      // Clear data when switching modes
+      // Clear data when switching modes or connections
       if (useExternal) {
         setManualFields([]);
         if (connectionId) {
-          setExternalConfig((prev) => ({
-            ...prev,
+          setExternalConfig({
             connectionId,
             connectionType,
-          }));
+            type: '',
+            programId: '',
+            programStageId: '',
+            datasetId: '',
+            orgUnit: '',
+            schema: '',
+            table: '',
+          });
         }
+        // Clear AI fields when connection changes
+        setAiFields([]);
       } else {
         setExternalConfig({
           connectionId: '',
@@ -182,11 +195,37 @@ function CreateWorkflowContent({ programId }: { programId: string }) {
   };
 
   const handleExternalConfigChange = (newConfig: Partial<ExternalConfig>) => {
-    const updatedConfig = { ...externalConfig, ...newConfig };
+    let updatedConfig = { ...externalConfig, ...newConfig };
+
+    // Clear connection-type-specific fields when connectionType changes
+    if (
+      newConfig.connectionType !== undefined &&
+      newConfig.connectionType !== externalConfig.connectionType
+    ) {
+      if (newConfig.connectionType === 'postgres') {
+        // Switching to PostgreSQL - clear DHIS2 fields
+        updatedConfig = {
+          ...updatedConfig,
+          type: '',
+          programId: '',
+          programStageId: '',
+          datasetId: '',
+          orgUnit: '',
+        };
+      } else {
+        // Switching to DHIS2 - clear PostgreSQL fields
+        updatedConfig = {
+          ...updatedConfig,
+          schema: '',
+          table: '',
+        };
+      }
+    }
 
     // Clear AI fields if connection, type, program, or dataset changes
     if (
       newConfig.connectionId !== undefined ||
+      newConfig.connectionType !== undefined ||
       newConfig.type !== undefined ||
       newConfig.programId !== undefined ||
       newConfig.datasetId !== undefined

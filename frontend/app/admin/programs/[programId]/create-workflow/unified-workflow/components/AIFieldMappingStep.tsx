@@ -1,7 +1,14 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Trash2, GripVertical, Eye } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import {
+  Trash2,
+  GripVertical,
+  Eye,
+  Plus,
+  Download,
+  Upload,
+} from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { integrationControllerFetchSchemasOptions } from '@/client/@tanstack/react-query.gen';
 import { _Object } from '@/client/types.gen';
@@ -85,6 +92,7 @@ export default function AIFieldMappingStep({
   const [optionsInputs, setOptionsInputs] = useState<Record<string, string>>(
     {}
   );
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const newInputs: Record<string, string> = {};
@@ -308,6 +316,135 @@ export default function AIFieldMappingStep({
     setFields(fields.filter((field) => field.id !== id));
   };
 
+  const addManualField = () => {
+    const field: AIField = {
+      id: Date.now().toString(),
+      fieldName: 'new_field',
+      label: 'New Field',
+      fieldType: 'text',
+      isRequired: false,
+      displayOrder: fields.length + 1,
+      aiPrompt: getDefaultPrompt('New Field', inputType),
+      externalDataElement: '',
+      options: [],
+    };
+    setFields([...fields, field]);
+  };
+
+  const downloadCSV = () => {
+    const headers = [
+      'fieldName',
+      'label',
+      'fieldType',
+      'isRequired',
+      'options',
+      'aiPrompt',
+    ];
+    const fieldTypes = [
+      'text',
+      'number',
+      'date',
+      'datetime',
+      'boolean',
+      'email',
+      'phone',
+      'url',
+      'textarea',
+      'select',
+      'multiselect',
+    ];
+    const exampleRow = [
+      'patient_name',
+      'Patient Name',
+      fieldTypes.join(' or '),
+      'TRUE OR FALSE, pick 1',
+      'Option1, OPTION2, option3',
+      'Extract patient name from the input',
+    ];
+
+    const csvContent = [headers, exampleRow]
+      .map((row) => row.map((field) => `"${field}"`).join(','))
+      .join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'ai-field-template.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const csv = e.target?.result as string;
+      const lines = csv.split('\n').filter((line) => line.trim());
+      if (lines.length < 2) return;
+
+      const newFields: AIField[] = [];
+
+      for (let i = 1; i < lines.length; i++) {
+        const line = lines[i];
+        const values: string[] = [];
+        let current = '';
+        let inQuotes = false;
+
+        for (let j = 0; j < line.length; j++) {
+          const char = line[j];
+          if (char === '"') {
+            inQuotes = !inQuotes;
+          } else if (char === ',' && !inQuotes) {
+            values.push(current.trim());
+            current = '';
+          } else {
+            current += char;
+          }
+        }
+        values.push(current.trim());
+
+        if (values.length >= 6) {
+          const options = values[4]
+            ? values[4]
+                .split(',')
+                .map((o) => o.trim())
+                .filter((o) => o)
+            : [];
+          const fieldName = values[0] || 'field_' + i;
+          const label = values[1] || 'Field ' + i;
+          const fieldType = values[2]?.split(' ')[0] || 'text';
+
+          const field: AIField = {
+            id: Date.now().toString() + i,
+            fieldName,
+            label,
+            fieldType,
+            isRequired:
+              values[3].toLowerCase().includes('true') || values[3] === '1',
+            displayOrder: fields.length + i,
+            aiPrompt:
+              values[5] || getDefaultPrompt(fieldName, inputType, options),
+            externalDataElement: '',
+            options,
+          };
+          newFields.push(field);
+        }
+      }
+
+      if (newFields.length > 0) {
+        setFields([...fields, ...newFields]);
+      }
+    };
+    reader.readAsText(file);
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -339,6 +476,42 @@ export default function AIFieldMappingStep({
             }{' '}
             available)
           </button>
+        )}
+        {(availableFields.length === 0 ||
+          (isPostgres && !externalConfig.table)) && (
+          <>
+            <button
+              onClick={addManualField}
+              className="flex items-center justify-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-white hover:bg-green-700"
+            >
+              <Plus className="h-4 w-4" />
+              <span className="hidden sm:inline">Add Field</span>
+              <span className="sm:hidden">Add</span>
+            </button>
+            <button
+              onClick={downloadCSV}
+              className="flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
+            >
+              <Download className="h-4 w-4" />
+              <span className="hidden sm:inline">Download CSV Template</span>
+              <span className="sm:hidden">Download</span>
+            </button>
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="flex items-center justify-center gap-2 rounded-lg bg-purple-600 px-4 py-2 text-white hover:bg-purple-700"
+            >
+              <Upload className="h-4 w-4" />
+              <span className="hidden sm:inline">Upload CSV</span>
+              <span className="sm:hidden">Upload</span>
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".csv"
+              onChange={handleFileUpload}
+              className="hidden"
+            />
+          </>
         )}
         {!isEditMode && fields.length > 0 && (
           <button
@@ -464,7 +637,10 @@ export default function AIFieldMappingStep({
                   </label>
                   <input
                     type="text"
-                    value={optionsInputs[field.id] || ''}
+                    value={
+                      optionsInputs[field.id] ||
+                      (field.options ? field.options.join(', ') : '')
+                    }
                     onChange={(e) => {
                       setOptionsInputs((prev) => ({
                         ...prev,

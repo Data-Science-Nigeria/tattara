@@ -74,8 +74,11 @@ export default function ConnectionCard({
               </span>
             </div>
             <div className="mt-1 truncate text-xs text-gray-600 sm:text-sm">
-              {(connection.configuration as { baseUrl?: string })?.baseUrl ||
-                'No URL configured'}
+              {connection.type === 'dhis2'
+                ? (connection.configuration as { baseUrl?: string })?.baseUrl ||
+                  'No URL configured'
+                : (connection.configuration as { host?: string })?.host ||
+                  'No host configured'}
             </div>
           </div>
         </div>
