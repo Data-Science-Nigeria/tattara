@@ -60,6 +60,14 @@ export default function ConnectionCard({
                 height={20}
                 className="h-4 w-4 sm:h-5 sm:w-5"
               />
+            ) : connection.type === 'mysql' ? (
+              <Image
+                src="/mysql-official.svg"
+                alt="MySQL"
+                width={20}
+                height={20}
+                className="h-4 w-4 sm:h-5 sm:w-5"
+              />
             ) : (
               <Database className="h-4 w-4 text-blue-600 sm:h-5 sm:w-5" />
             )}
@@ -74,8 +82,11 @@ export default function ConnectionCard({
               </span>
             </div>
             <div className="mt-1 truncate text-xs text-gray-600 sm:text-sm">
-              {(connection.configuration as { baseUrl?: string })?.baseUrl ||
-                'No URL configured'}
+              {connection.type === 'dhis2'
+                ? (connection.configuration as { baseUrl?: string })?.baseUrl ||
+                  'No URL configured'
+                : (connection.configuration as { host?: string })?.host ||
+                  'No host configured'}
             </div>
           </div>
         </div>

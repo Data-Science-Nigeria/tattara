@@ -9,7 +9,7 @@ interface FormError {
 
 interface EditFormModalProps {
   isOpen: boolean;
-  connectionType: 'dhis2' | 'postgres';
+  connectionType: 'dhis2' | 'postgres' | 'mysql';
   name: string;
   setName: (name: string) => void;
   // DHIS2 fields
@@ -30,6 +30,8 @@ interface EditFormModalProps {
   setPassword?: (password: string) => void;
   ssl?: boolean;
   setSsl?: (ssl: boolean) => void;
+  client?: string;
+  setClient?: (client: string) => void;
   onSubmit: () => void;
   onCancel: () => void;
   onTestConnection: () => void;
@@ -61,6 +63,8 @@ export default function EditFormModal({
   setPassword = () => {},
   ssl = false,
   setSsl = () => {},
+  client = 'pg',
+  setClient = () => {},
   onSubmit,
   onCancel,
   onTestConnection,
@@ -118,6 +122,8 @@ export default function EditFormModal({
               setPassword={setPassword}
               ssl={ssl}
               setSsl={setSsl}
+              client={client}
+              setClient={setClient}
               onTestConnection={onTestConnection}
               isTestingConnection={isTestingConnection}
               connectionTested={connectionTested}

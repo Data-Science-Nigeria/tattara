@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import {
   workflowControllerUpdateWorkflowBasicInfoMutation,
   fieldControllerUpsertWorkflowFieldsMutation,
+  fieldControllerRemoveWorkflowFieldMutation,
   configurationControllerUpsertWorkflowConfigurationsMutation,
   programControllerFindWorkflowsByProgramQueryKey,
   workflowControllerFindWorkflowByIdQueryKey,
@@ -130,6 +131,17 @@ export default function EditWorkflowForm({
     },
   });
 
+  const deleteFieldMutation = useMutation({
+    ...fieldControllerRemoveWorkflowFieldMutation(),
+    onSuccess: () => {
+      toast.success('Field deleted successfully');
+    },
+    onError: (error) => {
+      console.error('Failed to delete field:', error);
+      toast.error('Failed to delete field');
+    },
+  });
+
   // Load existing workflow data
   useEffect(() => {
     const workflow = (existingWorkflow as { data?: Record<string, unknown> })
@@ -150,10 +162,14 @@ export default function EditWorkflowForm({
       const externalConfiguration = Array.isArray(
         workflow.workflowConfigurations
       )
-        ? (workflow.workflowConfigurations.find(
-            (config: unknown) =>
-              (config as Record<string, unknown>)?.type === 'dhis2'
-          ) as Record<string, unknown> | undefined)
+        ? (workflow.workflowConfigurations.find((config: unknown) => {
+            const configType = (config as Record<string, unknown>)?.type;
+            return (
+              configType === 'dhis2' ||
+              configType === 'postgres' ||
+              configType === 'mysql'
+            );
+          }) as Record<string, unknown> | undefined)
         : undefined;
 
       // Build field mappings lookup from fieldMappings array
@@ -181,9 +197,18 @@ export default function EditWorkflowForm({
         const externalConnection = externalConfiguration.externalConnection as
           | Record<string, unknown>
           | undefined;
-        const connType = (externalConnection?.type as string) || 'dhis2';
+        const connType =
+          (externalConfiguration.type as string) ||
+          (externalConnection?.type as string) ||
+          'dhis2';
         // Determine type based on configuration properties
-        const configType = config?.dataSet ? 'dataset' : 'program';
+        const configType = config?.dataSet
+          ? 'dataset'
+          : config?.schema
+            ? connType === 'mysql'
+              ? 'mysql'
+              : 'postgres'
+            : 'program';
 
         setExternalConfig({
           connectionId: (externalConnection?.id as string) || '',
@@ -348,7 +373,10 @@ export default function EditWorkflowForm({
       case 3:
         if (isExternalMode !== true || !externalConfig.connectionId)
           return false;
-        if (externalConfig.connectionType === 'postgres') {
+        if (
+          externalConfig.connectionType === 'postgres' ||
+          externalConfig.connectionType === 'mysql'
+        ) {
           return !!externalConfig.schema && !!externalConfig.table;
         }
         return (
@@ -412,34 +440,8 @@ export default function EditWorkflowForm({
         });
 
         // Step 3: Upsert external configurations (DHIS2 or Postgres)
-        const isPostgres = externalConfig.connectionType === 'postgres';
         await upsertConfigurationsMutation.mutateAsync({
           path: { workflowId },
-          body: {
-            configurations: [
-              {
-                ...(existingConfigId ? { id: existingConfigId } : {}),
-                type: isPostgres ? ('postgres' as const) : ('dhis2' as const),
-                externalConnectionId: externalConfig.connectionId,
-                configuration: isPostgres
-                  ? {
-                      schema: externalConfig.schema,
-                      table: externalConfig.table,
-                    }
-                  : externalConfig.type === 'program'
-                    ? {
-                        program: externalConfig.programId,
-                        programStage: externalConfig.programStageId,
-                        orgUnit: externalConfig.orgUnit,
-                      }
-                    : {
-                        dataSet: externalConfig.datasetId,
-                        orgUnit: externalConfig.orgUnit,
-                      },
-                isActive: true,
-              },
-            ],
-          } as unknown as undefined,
         });
       } else {
         const fieldsToUpsert = manualFields.map((field, index) => ({
@@ -497,10 +499,38 @@ export default function EditWorkflowForm({
     }
   };
 
+  const handleDeleteField = async (fieldId: string) => {
+    if (!isUUID(fieldId)) {
+      // For new fields (non-UUID), just remove from state
+      if (isExternalMode) {
+        setAiFields((prev) => prev.filter((f) => f.id !== fieldId));
+      } else {
+        setManualFields((prev) => prev.filter((f) => f.id !== fieldId));
+      }
+      return;
+    }
+
+    try {
+      await deleteFieldMutation.mutateAsync({
+        path: { fieldId },
+      });
+
+      // Remove from state after successful deletion
+      if (isExternalMode) {
+        setAiFields((prev) => prev.filter((f) => f.id !== fieldId));
+      } else {
+        setManualFields((prev) => prev.filter((f) => f.id !== fieldId));
+      }
+    } catch (error) {
+      console.error('Failed to delete field:', error);
+    }
+  };
+
   const isLoading =
     updateBasicInfoMutation.isPending ||
     upsertFieldsMutation.isPending ||
-    upsertConfigurationsMutation.isPending;
+    upsertConfigurationsMutation.isPending ||
+    deleteFieldMutation.isPending;
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -546,7 +576,8 @@ export default function EditWorkflowForm({
 
           {isExternalMode === true &&
             currentStep === 2 &&
-            (externalConfig.connectionType === 'postgres' ? (
+            (externalConfig.connectionType === 'postgres' ||
+            externalConfig.connectionType === 'mysql' ? (
               <PostgresConfigurationStep
                 config={{
                   connectionId: externalConfig.connectionId,
@@ -554,6 +585,7 @@ export default function EditWorkflowForm({
                   table: externalConfig.table || '',
                 }}
                 onChange={handleExternalConfigChange}
+                isEditMode={true}
               />
             ) : (
               <DHIS2ConfigurationStep
@@ -570,6 +602,7 @@ export default function EditWorkflowForm({
               setFields={setAiFields}
               externalConfig={externalConfig}
               isEditMode={true}
+              onDeleteField={handleDeleteField}
             />
           )}
 
@@ -592,6 +625,7 @@ export default function EditWorkflowForm({
               onSubmit={handleSubmit}
               isLoading={isLoading}
               isEditMode={true}
+              onDeleteField={handleDeleteField}
             />
           )}
         </div>

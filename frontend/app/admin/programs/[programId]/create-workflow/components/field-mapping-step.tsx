@@ -5,6 +5,7 @@ import { integrationControllerFetchSchemasOptions } from '@/client/@tanstack/rea
 import { _Object } from '@/client/types.gen';
 import { useEffect, useState, useRef } from 'react';
 import { ChevronDown } from 'lucide-react';
+import DatabaseFieldMapper from '@/app/admin/workflows/components/database-field-mapper';
 
 interface Field {
   id: string;
@@ -12,6 +13,9 @@ interface Field {
   fieldName?: string;
   fieldType: string;
   dhis2DataElement?: string;
+  databaseMapping?: {
+    column: string;
+  };
 }
 
 interface DataElement {
@@ -46,6 +50,13 @@ interface FieldMappingStepProps {
   fields: Field[];
   updateField: (id: string, updates: Partial<Field>) => void;
   onValidationChange?: (hasErrors: boolean) => void;
+  connectionType?: 'dhis2' | 'postgres' | 'mysql';
+  workflowConfiguration?: {
+    configuration?: {
+      schema?: string;
+      table?: string;
+    };
+  };
 }
 
 export default function FieldMappingStep({
@@ -55,6 +66,8 @@ export default function FieldMappingStep({
   fields,
   updateField,
   onValidationChange,
+  connectionType = 'dhis2',
+  workflowConfiguration,
 }: FieldMappingStepProps) {
   const [dhis2DataElements, setDhis2DataElements] = useState<DataElement[]>([]);
   const [openDropdowns, setOpenDropdowns] = useState<Record<string, boolean>>(
@@ -187,6 +200,50 @@ export default function FieldMappingStep({
     }
   }, [schemaData, error, isLoading]);
 
+  // Database mapping for PostgreSQL/MySQL
+  if (connectionType === 'postgres' || connectionType === 'mysql') {
+    return (
+      <div className="space-y-6">
+        <div className="mb-6 rounded-lg border border-blue-200 bg-blue-50 p-4">
+          <h3 className="mb-2 text-sm font-medium text-blue-900">
+            {connectionType.toUpperCase()} Field Mapping
+          </h3>
+          <p className="text-sm text-blue-700">
+            Map workflow fields to database table columns.
+          </p>
+          {workflowConfiguration?.configuration?.schema &&
+            workflowConfiguration?.configuration?.table && (
+              <div className="mt-3 rounded border bg-white p-2 text-sm">
+                <span className="font-medium text-blue-900">
+                  Target: {workflowConfiguration.configuration.schema}.
+                  {workflowConfiguration.configuration.table}
+                </span>
+              </div>
+            )}
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          {fields.map((field) => (
+            <DatabaseFieldMapper
+              key={field.id}
+              field={field}
+              onMapping={(mapping) =>
+                updateField(field.id, { databaseMapping: mapping })
+              }
+            />
+          ))}
+        </div>
+
+        {fields.length === 0 && (
+          <div className="py-8 text-center text-gray-500">
+            No fields created yet. Go back to create fields first.
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // DHIS2 mapping (existing code)
   return (
     <div className="space-y-6">
       {error && (

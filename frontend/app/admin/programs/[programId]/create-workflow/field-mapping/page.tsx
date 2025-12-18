@@ -21,6 +21,9 @@ interface WorkflowField {
   label?: string;
   fieldType: string;
   dhis2DataElement?: string;
+  databaseMapping?: {
+    column: string;
+  };
   isRequired?: boolean;
   options?: string[];
 }
@@ -109,7 +112,9 @@ export default function FieldMapping() {
     ...fieldMappingControllerUpsertFieldMappingsMutation(),
   });
 
-  const [connectionType, setConnectionType] = useState<string>('');
+  const [connectionType, setConnectionType] = useState<
+    'dhis2' | 'postgres' | 'mysql'
+  >('dhis2');
 
   useEffect(() => {
     if (workflowData) {
@@ -119,10 +124,14 @@ export default function FieldMapping() {
       setFields(workflow?.workflowFields || []);
       setSupportedLanguages(workflow?.supportedLanguages || ['English']);
 
-      // Check if workflow uses PostgreSQL
+      // Set connection type based on workflow configuration
       const config = workflow?.workflowConfigurations?.[0];
       if (config?.type === 'postgres') {
         setConnectionType('postgres');
+      } else if (config?.type === 'mysql') {
+        setConnectionType('mysql');
+      } else {
+        setConnectionType('dhis2');
       }
 
       // Determine workflow type from enabledModes
@@ -200,7 +209,12 @@ export default function FieldMapping() {
 
   // Check if all fields are mapped
   const allFieldsMapped =
-    fields.length > 0 && fields.every((field) => field.dhis2DataElement);
+    fields.length > 0 &&
+    fields.every((field) =>
+      connectionType === 'dhis2'
+        ? field.dhis2DataElement
+        : field.databaseMapping?.column
+    );
 
   const [showAiReview, setShowAiReview] = useState(false);
   const [testCompleted, setTestCompleted] = useState(false);
@@ -217,14 +231,30 @@ export default function FieldMapping() {
   const handleSave = async () => {
     if (!workflowId) return;
 
+    // Validate workflow data exists
+    const workflowFields =
+      (workflowData as { data?: { workflowFields?: { id: string }[] } })?.data
+        ?.workflowFields || [];
+    if (workflowFields.length === 0) {
+      toast.error('No workflow fields found. Please refresh and try again.');
+      return;
+    }
+
     const mappings = fields
-      .filter((field) => field.dhis2DataElement)
+      .filter((field) =>
+        connectionType === 'dhis2'
+          ? field.dhis2DataElement
+          : field.databaseMapping?.column
+      )
       .map((field) => ({
         workflowFieldId: field.id,
-        targetType: 'dhis2' as const,
-        target: {
-          dataElement: field.dhis2DataElement,
-        },
+        targetType: connectionType as 'dhis2' | 'postgres' | 'mysql',
+        target:
+          connectionType === 'dhis2'
+            ? { dataElement: field.dhis2DataElement! }
+            : {
+                column: field.databaseMapping!.column,
+              },
       }));
 
     if (mappings.length > 0) {
@@ -258,51 +288,6 @@ export default function FieldMapping() {
     );
   }
 
-  // PostgreSQL workflows don't need field mapping
-  if (connectionType === 'postgres') {
-    return (
-      <div className="space-y-8 p-8">
-        <div>
-          <button
-            onClick={() =>
-              router.push(`/admin/programs/${programId}/create-workflow`)
-            }
-            className="mb-4 flex items-center gap-2 text-gray-600 hover:text-gray-900"
-          >
-            <ArrowLeft size={20} />
-            Back to Workflows
-          </button>
-          <h1 className="mb-2 text-3xl font-semibold text-gray-900">
-            Field Mapping Not Required
-          </h1>
-          <p className="text-gray-600">
-            PostgreSQL workflows use direct column mapping and don&apos;t
-            require additional field mapping.
-          </p>
-        </div>
-        <div className="max-w-4xl rounded-lg border border-blue-200 bg-blue-50 p-6">
-          <h3 className="mb-2 text-lg font-medium text-blue-900">
-            PostgreSQL Direct Mapping
-          </h3>
-          <p className="text-blue-700">
-            Your workflow fields are automatically mapped to PostgreSQL table
-            columns using the column names specified during field configuration.
-          </p>
-        </div>
-        <div className="flex justify-end">
-          <button
-            onClick={() =>
-              router.push(`/admin/programs/${programId}/create-workflow`)
-            }
-            className="rounded-lg bg-green-600 px-6 py-2 text-white hover:bg-green-700"
-          >
-            Back to Workflows
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-8 p-8">
       <div>
@@ -316,15 +301,19 @@ export default function FieldMapping() {
           Back to Workflows
         </button>
         <h1 className="mb-2 text-3xl font-semibold text-gray-900">
-          Map Fields to DHIS2
+          {connectionType === 'dhis2'
+            ? 'Map Fields to DHIS2'
+            : `Map Fields to ${connectionType.toUpperCase()}`}
         </h1>
         <p className="text-gray-600">
-          Map workflow fields to DHIS2 data elements
+          {connectionType === 'dhis2'
+            ? 'Map workflow fields to DHIS2 data elements'
+            : `Map workflow fields to ${connectionType.toUpperCase()} table columns`}
         </p>
       </div>
 
       <div className="max-w-4xl">
-        {availableConnections.length > 0 && (
+        {connectionType === 'dhis2' && availableConnections.length > 0 && (
           <div className="mb-6 rounded-lg border border-yellow-200 bg-yellow-50 p-4">
             <h3 className="mb-2 text-sm font-medium text-yellow-900">
               Select DHIS2 Connection
@@ -365,6 +354,14 @@ export default function FieldMapping() {
           selectedType={selectedType}
           fields={fields}
           updateField={updateField}
+          connectionType={connectionType}
+          workflowConfiguration={
+            (
+              workflowData as {
+                data?: { workflowConfigurations?: Record<string, unknown>[] };
+              }
+            )?.data?.workflowConfigurations?.[0]
+          }
         />
 
         {showAiReview && (

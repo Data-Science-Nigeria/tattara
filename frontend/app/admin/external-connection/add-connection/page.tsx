@@ -26,6 +26,7 @@ export default function AddConnectionPage() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [ssl, setSsl] = useState(false);
+  const [client, setClient] = useState('pg');
   const [isTestingConnection, setIsTestingConnection] = useState(false);
   const [connectionTested, setConnectionTested] = useState(false);
   const [testError, setTestError] = useState<string>();
@@ -57,11 +58,19 @@ export default function AddConnectionPage() {
       const config =
         type === 'dhis2'
           ? { baseUrl, pat }
-          : { host, port: parseInt(port), database, username, password, ssl };
+          : {
+              client,
+              host,
+              port: parseInt(port),
+              database,
+              username,
+              password,
+              ssl,
+            };
 
       await testConnectionMutation.mutateAsync({
         body: {
-          type: type as 'dhis2' | 'postgres',
+          type: type as 'dhis2' | 'postgres' | 'mysql',
           config,
         },
       });
@@ -78,11 +87,19 @@ export default function AddConnectionPage() {
     const configuration =
       type === 'dhis2'
         ? { baseUrl, pat }
-        : { host, port: parseInt(port), database, username, password, ssl };
+        : {
+            client,
+            host,
+            port: parseInt(port),
+            database,
+            username,
+            password,
+            ssl,
+          };
 
     const createPayload = {
       name,
-      type: type as 'dhis2' | 'postgres',
+      type: type as 'dhis2' | 'postgres' | 'mysql',
       configuration,
     };
     createMutation.mutate({ body: createPayload });
@@ -142,6 +159,7 @@ export default function AddConnectionPage() {
             >
               <option value="dhis2">DHIS2</option>
               <option value="postgres">PostgreSQL</option>
+              <option value="mysql">MySQL</option>
             </select>
           </div>
 
@@ -172,6 +190,8 @@ export default function AddConnectionPage() {
               setPassword={setPassword}
               ssl={ssl}
               setSsl={setSsl}
+              client={client}
+              setClient={setClient}
               onTestConnection={handleTestConnection}
               isTestingConnection={isTestingConnection}
               connectionTested={connectionTested}

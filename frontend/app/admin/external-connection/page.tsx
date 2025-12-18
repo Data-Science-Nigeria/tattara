@@ -136,7 +136,9 @@ export default function ExternalConnections() {
 
       await testConnectionMutation.mutateAsync({
         body: {
-          type: (editingConnection?.type as 'dhis2' | 'postgres') || 'dhis2',
+          type:
+            (editingConnection?.type as 'dhis2' | 'postgres' | 'mysql') ||
+            'dhis2',
           config,
         },
       });
@@ -229,7 +231,9 @@ export default function ExternalConnections() {
       {editingConnection && (
         <EditFormModal
           isOpen={true}
-          connectionType={editingConnection.type as 'dhis2' | 'postgres'}
+          connectionType={
+            editingConnection.type as 'dhis2' | 'postgres' | 'mysql'
+          }
           name={name}
           setName={setName}
           baseUrl={baseUrl}
