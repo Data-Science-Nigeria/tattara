@@ -99,6 +99,7 @@ interface AIFieldMappingStepProps {
   setFields: (fields: AIField[]) => void;
   externalConfig: ExternalConfig;
   isEditMode?: boolean;
+  onDeleteField?: (fieldId: string) => void;
 }
 
 export default function AIFieldMappingStep({
@@ -107,6 +108,7 @@ export default function AIFieldMappingStep({
   setFields,
   externalConfig,
   isEditMode = false,
+  onDeleteField,
 }: AIFieldMappingStepProps) {
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [optionsInputs, setOptionsInputs] = useState<Record<string, string>>(
@@ -535,7 +537,7 @@ export default function AIFieldMappingStep({
         {!isEditMode && fields.length > 0 && (
           <button
             onClick={() => setFields([])}
-            className="flex items-center gap-2 rounded-lg border border-red-600 px-4 py-2 text-red-600 hover:bg-red-50"
+            className="flex items-center justify-center gap-2 rounded-lg border border-red-600 px-4 py-2 text-red-600 hover:bg-red-50"
           >
             <Trash2 className="h-4 w-4" />
             Clear All
@@ -637,14 +639,16 @@ export default function AIFieldMappingStep({
                     />
                     <span className="text-sm text-gray-700">Required</span>
                   </label>
-                  {!isEditMode && (
-                    <button
-                      onClick={() => removeField(field.id)}
-                      className="text-red-600 hover:text-red-800"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  )}
+                  <button
+                    onClick={() =>
+                      onDeleteField
+                        ? onDeleteField(field.id)
+                        : removeField(field.id)
+                    }
+                    className="text-red-600 hover:text-red-800"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
                 </div>
               </div>
 

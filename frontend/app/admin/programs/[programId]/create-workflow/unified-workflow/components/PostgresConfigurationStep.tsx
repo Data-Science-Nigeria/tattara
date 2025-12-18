@@ -23,11 +23,13 @@ interface PostgresConfig {
 interface PostgresConfigurationStepProps {
   config: PostgresConfig;
   onChange: (updates: Partial<PostgresConfig>) => void;
+  isEditMode?: boolean;
 }
 
 export default function PostgresConfigurationStep({
   config,
   onChange,
+  isEditMode = false,
 }: PostgresConfigurationStepProps) {
   const [isSchemaDropdownOpen, setIsSchemaDropdownOpen] = useState(false);
   const [isTableDropdownOpen, setIsTableDropdownOpen] = useState(false);
@@ -113,54 +115,70 @@ export default function PostgresConfigurationStep({
           <label className="mb-2 block text-sm font-medium text-gray-700">
             Schema *
           </label>
-          <div className="relative" ref={schemaDropdownRef}>
-            <div
-              className={`flex w-full cursor-pointer items-center justify-between rounded-lg border border-gray-300 px-3 py-2 focus:border-green-500 ${
-                !config.connectionId
-                  ? 'cursor-not-allowed opacity-50'
-                  : 'hover:border-green-400'
-              }`}
-              onClick={() => {
-                if (config.connectionId) {
-                  setIsSchemaDropdownOpen(!isSchemaDropdownOpen);
-                }
-              }}
-            >
-              <span
-                className={`truncate ${config.schema ? 'text-gray-900' : 'text-gray-500'}`}
-              >
-                {config.schema || 'Select schema...'}
-              </span>
-              <ChevronDown
-                className={`h-4 w-4 transition-transform ${
-                  isSchemaDropdownOpen ? 'rotate-180' : ''
+          {isEditMode ? (
+            <input
+              type="text"
+              value={config.schema || ''}
+              readOnly
+              className="w-full cursor-not-allowed rounded-lg border border-gray-300 bg-gray-100 px-3 py-2"
+            />
+          ) : (
+            <div className="relative" ref={schemaDropdownRef}>
+              <div
+                className={`flex w-full cursor-pointer items-center justify-between rounded-lg border border-gray-300 px-3 py-2 focus:border-green-500 ${
+                  !config.connectionId
+                    ? 'cursor-not-allowed opacity-50'
+                    : 'hover:border-green-400'
                 }`}
-              />
-            </div>
-            {isSchemaDropdownOpen && config.connectionId && (
-              <div className="absolute top-full z-50 mt-1 max-h-48 w-full overflow-y-auto rounded-lg border border-gray-300 bg-white shadow-lg">
-                {schemas.map((schema) => (
-                  <div
-                    key={schema.name}
-                    className="cursor-pointer px-3 py-2 hover:bg-green-50"
-                    onClick={() => {
-                      onChange({ schema: schema.name, table: '' });
-                      setIsSchemaDropdownOpen(false);
-                    }}
-                  >
-                    {schema.name}
-                  </div>
-                ))}
+                onClick={() => {
+                  if (config.connectionId) {
+                    setIsSchemaDropdownOpen(!isSchemaDropdownOpen);
+                  }
+                }}
+              >
+                <span
+                  className={`truncate ${config.schema ? 'text-gray-900' : 'text-gray-500'}`}
+                >
+                  {config.schema || 'Select schema...'}
+                </span>
+                <ChevronDown
+                  className={`h-4 w-4 transition-transform ${
+                    isSchemaDropdownOpen ? 'rotate-180' : ''
+                  }`}
+                />
               </div>
-            )}
-          </div>
+              {isSchemaDropdownOpen && config.connectionId && (
+                <div className="absolute top-full z-50 mt-1 max-h-48 w-full overflow-y-auto rounded-lg border border-gray-300 bg-white shadow-lg">
+                  {schemas.map((schema) => (
+                    <div
+                      key={schema.name}
+                      className="cursor-pointer px-3 py-2 hover:bg-green-50"
+                      onClick={() => {
+                        onChange({ schema: schema.name, table: '' });
+                        setIsSchemaDropdownOpen(false);
+                      }}
+                    >
+                      {schema.name}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         <div>
           <label className="mb-2 block text-sm font-medium text-gray-700">
             Table *
           </label>
-          {!config.schema ? (
+          {isEditMode ? (
+            <input
+              type="text"
+              value={config.table || ''}
+              readOnly
+              className="w-full cursor-not-allowed rounded-lg border border-gray-300 bg-gray-100 px-3 py-2"
+            />
+          ) : !config.schema ? (
             <div className="w-full rounded-lg border border-gray-300 bg-gray-100 px-3 py-2 text-gray-500">
               Select a schema first
             </div>
@@ -208,6 +226,15 @@ export default function PostgresConfigurationStep({
                   Clear and enter manually
                 </button>
               )}
+              <div className="mt-2">
+                <input
+                  type="text"
+                  value={config.table}
+                  onChange={(e) => onChange({ table: e.target.value })}
+                  placeholder="Or enter table name manually"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-green-500 focus:outline-none"
+                />
+              </div>
             </div>
           ) : (
             <div className="space-y-2">
@@ -219,17 +246,6 @@ export default function PostgresConfigurationStep({
                 value={config.table}
                 onChange={(e) => onChange({ table: e.target.value })}
                 placeholder="Enter table name"
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-green-500 focus:outline-none"
-              />
-            </div>
-          )}
-          {!config.table && tables.length > 0 && (
-            <div className="mt-2">
-              <input
-                type="text"
-                value=""
-                onChange={(e) => onChange({ table: e.target.value })}
-                placeholder="Or enter table name manually"
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-green-500 focus:outline-none"
               />
             </div>

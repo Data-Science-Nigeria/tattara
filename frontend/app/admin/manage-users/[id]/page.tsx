@@ -2,10 +2,11 @@
 
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, User, Mail, FileText } from 'lucide-react';
+import { ArrowLeft, User, Mail, FileText, Shield } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { userControllerFindAllForLoggedInUserOptions } from '@/client/@tanstack/react-query.gen';
 import UserSubmissionsTab from '@/components/admin/UserSubmissionsTab';
+import RoleAssignmentModal from '../components/role-assignment-modal';
 
 interface User {
   id: string;
@@ -46,9 +47,14 @@ export default function UserProfilePage({
 }) {
   const router = useRouter();
   const [showSubmissions, setShowSubmissions] = useState(false);
+  const [showRoleModal, setShowRoleModal] = useState(false);
   const { id } = React.use(params);
 
-  const { data: usersData, isLoading } = useQuery({
+  const {
+    data: usersData,
+    isLoading,
+    refetch,
+  } = useQuery({
     ...userControllerFindAllForLoggedInUserOptions({
       query: { page: 1, limit: 100 },
     }),
@@ -174,11 +180,39 @@ export default function UserProfilePage({
                       })}
                     </div>
                   </div>
+
+                  <div className="md:col-span-2">
+                    <label className="mb-2 block text-sm font-medium text-gray-700">
+                      Role
+                    </label>
+                    <div className="flex items-center justify-between rounded-lg border border-gray-300 bg-gray-50 px-3 py-2">
+                      <span className="text-gray-800 capitalize">
+                        {user.roles?.[0] || 'user'}
+                      </span>
+                      <button
+                        onClick={() => setShowRoleModal(true)}
+                        className="flex items-center gap-1 rounded-md bg-blue-600 px-3 py-1 text-xs text-white hover:bg-blue-700"
+                      >
+                        <Shield className="h-3 w-3" />
+                        Change Role
+                      </button>
+                    </div>
+                  </div>
                 </div>
               )}
             </>
           )}
         </div>
+
+        {/* Role Assignment Modal */}
+        {user && (
+          <RoleAssignmentModal
+            isOpen={showRoleModal}
+            onClose={() => setShowRoleModal(false)}
+            user={user}
+            onRoleChanged={() => refetch()}
+          />
+        )}
       </div>
     </div>
   );

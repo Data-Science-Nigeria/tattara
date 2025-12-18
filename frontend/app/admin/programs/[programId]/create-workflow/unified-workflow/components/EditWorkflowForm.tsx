@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import {
   workflowControllerUpdateWorkflowBasicInfoMutation,
   fieldControllerUpsertWorkflowFieldsMutation,
+  fieldControllerRemoveWorkflowFieldMutation,
   configurationControllerUpsertWorkflowConfigurationsMutation,
   programControllerFindWorkflowsByProgramQueryKey,
   workflowControllerFindWorkflowByIdQueryKey,
@@ -130,6 +131,17 @@ export default function EditWorkflowForm({
     },
   });
 
+  const deleteFieldMutation = useMutation({
+    ...fieldControllerRemoveWorkflowFieldMutation(),
+    onSuccess: () => {
+      toast.success('Field deleted successfully');
+    },
+    onError: (error) => {
+      console.error('Failed to delete field:', error);
+      toast.error('Failed to delete field');
+    },
+  });
+
   // Load existing workflow data
   useEffect(() => {
     const workflow = (existingWorkflow as { data?: Record<string, unknown> })
@@ -152,7 +164,11 @@ export default function EditWorkflowForm({
       )
         ? (workflow.workflowConfigurations.find((config: unknown) => {
             const configType = (config as Record<string, unknown>)?.type;
-            return configType === 'dhis2' || configType === 'postgres';
+            return (
+              configType === 'dhis2' ||
+              configType === 'postgres' ||
+              configType === 'mysql'
+            );
           }) as Record<string, unknown> | undefined)
         : undefined;
 
@@ -181,9 +197,18 @@ export default function EditWorkflowForm({
         const externalConnection = externalConfiguration.externalConnection as
           | Record<string, unknown>
           | undefined;
-        const connType = (externalConnection?.type as string) || 'dhis2';
+        const connType =
+          (externalConfiguration.type as string) ||
+          (externalConnection?.type as string) ||
+          'dhis2';
         // Determine type based on configuration properties
-        const configType = config?.dataSet ? 'dataset' : 'program';
+        const configType = config?.dataSet
+          ? 'dataset'
+          : config?.schema
+            ? connType === 'mysql'
+              ? 'mysql'
+              : 'postgres'
+            : 'program';
 
         setExternalConfig({
           connectionId: (externalConnection?.id as string) || '',
@@ -474,10 +499,38 @@ export default function EditWorkflowForm({
     }
   };
 
+  const handleDeleteField = async (fieldId: string) => {
+    if (!isUUID(fieldId)) {
+      // For new fields (non-UUID), just remove from state
+      if (isExternalMode) {
+        setAiFields((prev) => prev.filter((f) => f.id !== fieldId));
+      } else {
+        setManualFields((prev) => prev.filter((f) => f.id !== fieldId));
+      }
+      return;
+    }
+
+    try {
+      await deleteFieldMutation.mutateAsync({
+        path: { fieldId },
+      });
+
+      // Remove from state after successful deletion
+      if (isExternalMode) {
+        setAiFields((prev) => prev.filter((f) => f.id !== fieldId));
+      } else {
+        setManualFields((prev) => prev.filter((f) => f.id !== fieldId));
+      }
+    } catch (error) {
+      console.error('Failed to delete field:', error);
+    }
+  };
+
   const isLoading =
     updateBasicInfoMutation.isPending ||
     upsertFieldsMutation.isPending ||
-    upsertConfigurationsMutation.isPending;
+    upsertConfigurationsMutation.isPending ||
+    deleteFieldMutation.isPending;
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -532,6 +585,7 @@ export default function EditWorkflowForm({
                   table: externalConfig.table || '',
                 }}
                 onChange={handleExternalConfigChange}
+                isEditMode={true}
               />
             ) : (
               <DHIS2ConfigurationStep
@@ -548,6 +602,7 @@ export default function EditWorkflowForm({
               setFields={setAiFields}
               externalConfig={externalConfig}
               isEditMode={true}
+              onDeleteField={handleDeleteField}
             />
           )}
 
@@ -570,6 +625,7 @@ export default function EditWorkflowForm({
               onSubmit={handleSubmit}
               isLoading={isLoading}
               isEditMode={true}
+              onDeleteField={handleDeleteField}
             />
           )}
         </div>

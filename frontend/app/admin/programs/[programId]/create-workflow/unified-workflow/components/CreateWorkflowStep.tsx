@@ -141,7 +141,8 @@ export default function CreateWorkflowStep({
                 {externalConfig.connectionType || 'Not selected'}
               </p>
             </div>
-            {externalConfig.connectionType === 'postgres' ? (
+            {externalConfig.connectionType === 'postgres' ||
+            externalConfig.connectionType === 'mysql' ? (
               <>
                 <div>
                   <span className="text-sm font-medium text-gray-500">
