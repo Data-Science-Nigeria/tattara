@@ -7,7 +7,7 @@ WORKDIR /app
 
 # Install dependencies based on the preferred package manager
 COPY package.json yarn.lock* .yarnrc.yml ./
-RUN npm install -g yarn && yarn --frozen-lockfile
+RUN yarn --frozen-lockfile
 
 # Rebuild the source code only when needed
 FROM base AS builder
@@ -20,7 +20,7 @@ ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-RUN npm install -g yarn && yarn build
+RUN yarn build
 
 # Production image, copy all the files and run next
 FROM base AS runner
