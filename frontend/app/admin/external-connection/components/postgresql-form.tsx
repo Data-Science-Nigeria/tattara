@@ -61,7 +61,7 @@ export default function PostgreSQLForm({
           onChange={(e) => setClient(e.target.value)}
           className="w-full rounded-lg border border-[#D2DDF5] bg-white px-3 py-2 focus:border-[#008647] focus:ring-2 focus:ring-green-500 focus:outline-none"
         >
-          <option value="pg">PostgreSQL (pg)</option>
+          <option value="pg">PostgreSQL</option>
           <option value="mysql">MySQL</option>
         </select>
       </div>
