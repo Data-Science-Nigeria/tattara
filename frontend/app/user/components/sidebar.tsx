@@ -35,20 +35,20 @@ const Sidebar = ({ isOpen = false, onToggle = () => {} }: SidebarProps) => {
       )}
 
       <aside
-        className={`fixed top-0 left-0 z-40 flex h-screen flex-col overflow-y-auto border-r border-gray-100 bg-white transition-all duration-300 ease-in-out ${
+        className={`fixed top-0 left-0 z-40 flex h-screen flex-col border-r border-gray-100 bg-white transition-all duration-300 ease-in-out ${
           isOpen
             ? 'xs:w-64 w-full sm:w-72 md:w-[280px] lg:w-[280px]'
             : 'w-16 lg:w-[280px]'
         } `}
       >
-        <div className="flex flex-col items-start px-4 pt-6 md:px-6">
+        <div className="flex flex-col items-start px-3 pt-4 md:px-4">
           <div
             className={`flex w-full items-center ${
               isOpen ? 'justify-between' : 'justify-center lg:justify-between'
             }`}
           >
             <div className={`${isOpen ? 'block' : 'hidden lg:block'}`}>
-              <Logo className="h-12 w-auto md:h-16" />
+              <Logo className="h-10 w-auto md:h-12" />
             </div>
             <button
               onClick={(e) => {
@@ -67,21 +67,22 @@ const Sidebar = ({ isOpen = false, onToggle = () => {} }: SidebarProps) => {
           </div>
 
           <div
-            className={`mt-6 md:mt-10 ${isOpen ? 'block' : 'hidden lg:block'}`}
+            className={`mt-4 md:mt-6 ${isOpen ? 'block' : 'hidden lg:block'}`}
           >
-            <div className="mb-2 flex items-center gap-3">
+            <div className="mb-1 flex items-center gap-2">
               <Avatar name={surname} size="md" />
-              <h2 className="text-lg font-semibold">{surname}</h2>
+              <h2 className="text-base font-semibold">{surname}</h2>
             </div>
           </div>
         </div>
 
         <div
-          className={`mt-6 flex-1 space-y-3 md:mt-6 ${
+          className={`scrollbar-none mt-4 flex-1 space-y-1 overflow-y-auto md:mt-4 ${
             isOpen
-              ? 'px-4 md:px-0'
-              : 'flex flex-col items-center px-2 lg:block lg:space-y-3 lg:px-4'
+              ? 'px-3 md:px-0'
+              : 'flex flex-col items-center px-2 lg:block lg:space-y-1 lg:px-3'
           }`}
+          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
         >
           {sidebarItems.map((item) => (
             <div key={item.href} onClick={handleItemSelect}>
@@ -93,8 +94,8 @@ const Sidebar = ({ isOpen = false, onToggle = () => {} }: SidebarProps) => {
                 />
               </div>
               <div className={isOpen ? 'hidden' : 'block lg:hidden'}>
-                <button className="rounded-md p-3 text-gray-500 hover:bg-gray-100">
-                  <item.icon size={20} />
+                <button className="rounded-md p-2 text-gray-500 hover:bg-gray-100">
+                  <item.icon size={18} />
                 </button>
               </div>
             </div>
@@ -102,25 +103,25 @@ const Sidebar = ({ isOpen = false, onToggle = () => {} }: SidebarProps) => {
         </div>
 
         <div
-          className={`p-4 pb-16 md:p-6 ${
+          className={`p-3 pb-12 md:p-4 ${
             !isOpen ? 'flex justify-center lg:block' : ''
           }`}
         >
           <div className={isOpen ? 'block' : 'hidden lg:block'}>
             <button
               onClick={handleLogout}
-              className="flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-medium text-red-500 hover:bg-red-50"
+              className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-red-500 hover:bg-red-50"
             >
-              <LogOut size={18} />
+              <LogOut size={16} />
               <span>Log Out</span>
             </button>
           </div>
           <div className={isOpen ? 'hidden' : 'block lg:hidden'}>
             <button
               onClick={handleLogout}
-              className="rounded-md p-3 text-red-500 hover:bg-red-50"
+              className="rounded-md p-2 text-red-500 hover:bg-red-50"
             >
-              <LogOut size={18} />
+              <LogOut size={16} />
             </button>
           </div>
         </div>
