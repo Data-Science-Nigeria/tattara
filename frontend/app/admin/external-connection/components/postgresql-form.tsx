@@ -24,6 +24,7 @@ interface PostgreSQLFormProps {
   connectionTested: boolean;
   testError?: string;
   name: string;
+  isEditMode?: boolean;
 }
 
 export default function PostgreSQLForm({
@@ -46,6 +47,7 @@ export default function PostgreSQLForm({
   connectionTested,
   testError,
   name,
+  isEditMode = false,
 }: PostgreSQLFormProps) {
   const [showPassword, setShowPassword] = useState(false);
 
@@ -59,7 +61,10 @@ export default function PostgreSQLForm({
         <select
           value={client}
           onChange={(e) => setClient(e.target.value)}
-          className="w-full rounded-lg border border-[#D2DDF5] bg-white px-3 py-2 focus:border-[#008647] focus:ring-2 focus:ring-green-500 focus:outline-none"
+          disabled={isEditMode}
+          className={`w-full rounded-lg border border-[#D2DDF5] bg-white px-3 py-2 focus:border-[#008647] focus:ring-2 focus:ring-green-500 focus:outline-none ${
+            isEditMode ? 'cursor-not-allowed bg-gray-100' : ''
+          }`}
         >
           <option value="pg">PostgreSQL</option>
           <option value="mysql">MySQL</option>

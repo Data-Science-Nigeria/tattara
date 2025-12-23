@@ -12,6 +12,12 @@ import {
 import { useQuery } from '@tanstack/react-query';
 import { integrationControllerFetchSchemasOptions } from '@/client/@tanstack/react-query.gen';
 import { _Object } from '@/client/types.gen';
+import {
+  validateCSV,
+  generateErrorReport,
+  CSVValidationError,
+} from '@/lib/csv-validation';
+import { toast } from 'sonner';
 
 interface DataElement {
   id: string;
@@ -354,36 +360,31 @@ export default function AIFieldMappingStep({
 
   const downloadCSV = () => {
     const headers = [
-      'fieldName',
+      'name',
       'label',
-      'fieldType',
-      'isRequired',
+      'type',
+      'required',
       'options',
       'aiPrompt',
-    ];
-    const fieldTypes = [
-      'text',
-      'number',
-      'date',
-      'datetime',
-      'boolean',
-      'email',
-      'phone',
-      'url',
-      'textarea',
-      'select',
-      'multiselect',
     ];
     const exampleRow = [
       'patient_name',
       'Patient Name',
-      fieldTypes.join(' or '),
-      'TRUE OR FALSE, pick 1',
-      'Option1, OPTION2, option3',
+      'text',
+      'true',
+      '',
       'Extract patient name from the input',
     ];
+    const selectExampleRow = [
+      'gender',
+      'Gender',
+      'select',
+      'true',
+      'Male,Female,Other',
+      'Extract gender from the provided options',
+    ];
 
-    const csvContent = [headers, exampleRow]
+    const csvContent = [headers, exampleRow, selectExampleRow]
       .map((row) => row.map((field) => `"${field}"`).join(','))
       .join('\n');
 
@@ -403,60 +404,78 @@ export default function AIFieldMappingStep({
     const reader = new FileReader();
     reader.onload = (e) => {
       const csv = e.target?.result as string;
-      const lines = csv.split('\n').filter((line) => line.trim());
-      if (lines.length < 2) return;
 
-      const newFields: AIField[] = [];
+      // Validate CSV
+      const validation = validateCSV(csv);
 
-      for (let i = 1; i < lines.length; i++) {
-        const line = lines[i];
-        const values: string[] = [];
-        let current = '';
-        let inQuotes = false;
+      if (!validation.isValid) {
+        const errorCount = validation.errors.filter(
+          (e) => e.severity === 'error'
+        ).length;
+        const warningCount = validation.errors.filter(
+          (e) => e.severity === 'warning'
+        ).length;
 
-        for (let j = 0; j < line.length; j++) {
-          const char = line[j];
-          if (char === '"') {
-            inQuotes = !inQuotes;
-          } else if (char === ',' && !inQuotes) {
-            values.push(current.trim());
-            current = '';
-          } else {
-            current += char;
+        toast.error(
+          `CSV validation failed: ${errorCount} errors, ${warningCount} warnings`,
+          {
+            description: 'Click to download detailed error report',
+            action: {
+              label: 'Download Report',
+              onClick: () => downloadErrorReport(validation.errors),
+            },
           }
-        }
-        values.push(current.trim());
-
-        if (values.length >= 6) {
-          const options = values[4]
-            ? values[4]
-                .split(',')
-                .map((o) => o.trim())
-                .filter((o) => o)
-            : [];
-          const fieldName = values[0] || 'field_' + i;
-          const label = values[1] || 'Field ' + i;
-          const fieldType = values[2]?.split(' ')[0] || 'text';
-
-          const field: AIField = {
-            id: Date.now().toString() + i,
-            fieldName,
-            label,
-            fieldType,
-            isRequired:
-              values[3].toLowerCase().includes('true') || values[3] === '1',
-            displayOrder: fields.length + i,
-            aiPrompt:
-              values[5] || getDefaultPrompt(fieldName, inputType, options),
-            externalDataElement: '',
-            options,
-          };
-          newFields.push(field);
-        }
+        );
+        return;
       }
+
+      // Show warnings if any
+      const warnings = validation.errors.filter(
+        (e) => e.severity === 'warning'
+      );
+      if (warnings.length > 0) {
+        toast.warning(`${warnings.length} warnings found in CSV`, {
+          description: 'File uploaded but please review warnings',
+          action: {
+            label: 'Download Report',
+            onClick: () => downloadErrorReport(warnings),
+          },
+        });
+      }
+
+      // Process valid data
+      const newFields: AIField[] = validation.data.map((row, index) => {
+        const options = row.options
+          ? row.options
+              .split(',')
+              .map((o: string) => o.trim())
+              .filter((o: string) => o)
+          : [];
+
+        return {
+          id: Date.now().toString() + index,
+          fieldName: row.name || `field_${index + 1}`,
+          label: row.label || `Field ${index + 1}`,
+          fieldType: row.type || 'text',
+          isRequired: ['true', '1'].includes(row.required?.toLowerCase()),
+          displayOrder: fields.length + index + 1,
+          aiPrompt:
+            row.aiPrompt ||
+            getDefaultPrompt(
+              row.name || `field_${index + 1}`,
+              inputType,
+              options
+            ),
+          externalDataElement: '',
+          options,
+        };
+      });
 
       if (newFields.length > 0) {
         setFields([...fields, ...newFields]);
+        toast.success(
+          `Successfully imported ${newFields.length} fields from CSV`
+        );
       }
     };
     reader.readAsText(file);
@@ -464,6 +483,17 @@ export default function AIFieldMappingStep({
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
+  };
+
+  const downloadErrorReport = (errors: CSVValidationError[]) => {
+    const report = generateErrorReport(errors);
+    const blob = new Blob([report], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'csv-validation-errors.txt';
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   return (

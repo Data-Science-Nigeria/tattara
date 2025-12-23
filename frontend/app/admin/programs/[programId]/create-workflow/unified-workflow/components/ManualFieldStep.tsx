@@ -2,6 +2,12 @@
 
 import { useState, useRef } from 'react';
 import { Plus, Trash2, GripVertical, Download, Upload } from 'lucide-react';
+import {
+  validateCSV,
+  generateErrorReport,
+  CSVValidationError,
+} from '@/lib/csv-validation';
+import { toast } from 'sonner';
 
 interface ManualField {
   id: string;
@@ -118,17 +124,24 @@ export default function ManualFieldStep({
       'options',
       'description',
     ];
-    const typeOptions = fieldTypes.map((t) => t.value).join(' or ');
     const exampleRow = [
       'patient_name',
       'Patient Name',
-      typeOptions,
-      'TRUE OR FALSE, pick 1',
-      'Option1, OPTION2, option3',
+      'text',
+      'true',
       '',
+      'Patient full name',
+    ];
+    const selectExampleRow = [
+      'gender',
+      'Gender',
+      'select',
+      'true',
+      'Male,Female,Other',
+      'Patient gender selection',
     ];
 
-    const csvContent = [headers, exampleRow]
+    const csvContent = [headers, exampleRow, selectExampleRow]
       .map((row) => row.map((field) => `"${field}"`).join(','))
       .join('\n');
 
@@ -150,53 +163,70 @@ export default function ManualFieldStep({
     const reader = new FileReader();
     reader.onload = (e) => {
       const csv = e.target?.result as string;
-      const lines = csv.split('\n').filter((line) => line.trim());
-      if (lines.length < 2) return;
 
-      const newFields: ManualField[] = [];
+      // Validate CSV
+      const validation = validateCSV(csv);
 
-      for (let i = 1; i < lines.length; i++) {
-        // Parse CSV properly handling quoted fields
-        const line = lines[i];
-        const values: string[] = [];
-        let current = '';
-        let inQuotes = false;
+      if (!validation.isValid) {
+        const errorCount = validation.errors.filter(
+          (e) => e.severity === 'error'
+        ).length;
+        const warningCount = validation.errors.filter(
+          (e) => e.severity === 'warning'
+        ).length;
 
-        for (let j = 0; j < line.length; j++) {
-          const char = line[j];
-          if (char === '"') {
-            inQuotes = !inQuotes;
-          } else if (char === ',' && !inQuotes) {
-            values.push(current.trim());
-            current = '';
-          } else {
-            current += char;
+        toast.error(
+          `CSV validation failed: ${errorCount} errors, ${warningCount} warnings`,
+          {
+            description: 'Click to download detailed error report',
+            action: {
+              label: 'Download Report',
+              onClick: () => downloadErrorReport(validation.errors),
+            },
           }
-        }
-        values.push(current.trim());
-
-        if (values.length >= 6) {
-          const field: ManualField = {
-            id: Date.now().toString() + i,
-            name: values[0] || 'field_' + i,
-            label: values[1] || 'Field ' + i,
-            type: values[2]?.split(' ')[0] || 'text',
-            required:
-              values[3].toLowerCase().includes('true') || values[3] === '1',
-            options: values[4]
-              ? values[4]
-                  .split(',')
-                  .map((o) => o.trim())
-                  .filter((o) => o)
-              : [],
-            description: values[5] || '',
-          };
-          newFields.push(field);
-        }
+        );
+        return;
       }
+
+      // Show warnings if any
+      const warnings = validation.errors.filter(
+        (e) => e.severity === 'warning'
+      );
+      if (warnings.length > 0) {
+        toast.warning(`${warnings.length} warnings found in CSV`, {
+          description: 'File uploaded but please review warnings',
+          action: {
+            label: 'Download Report',
+            onClick: () => downloadErrorReport(warnings),
+          },
+        });
+      }
+
+      // Process valid data
+      const newFields: ManualField[] = validation.data.map((row, index) => {
+        const options = row.options
+          ? row.options
+              .split(',')
+              .map((o: string) => o.trim())
+              .filter((o: string) => o)
+          : [];
+
+        return {
+          id: Date.now().toString() + index,
+          name: row.name || `field_${index + 1}`,
+          label: row.label || `Field ${index + 1}`,
+          type: row.type || 'text',
+          required: ['true', '1'].includes(row.required?.toLowerCase()),
+          options,
+          description: row.description || '',
+        };
+      });
 
       if (newFields.length > 0) {
         setFields([...fields, ...newFields]);
+        toast.success(
+          `Successfully imported ${newFields.length} fields from CSV`
+        );
       }
     };
     reader.readAsText(file);
@@ -204,6 +234,17 @@ export default function ManualFieldStep({
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
+  };
+
+  const downloadErrorReport = (errors: CSVValidationError[]) => {
+    const report = generateErrorReport(errors);
+    const blob = new Blob([report], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'csv-validation-errors.txt';
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   return (
