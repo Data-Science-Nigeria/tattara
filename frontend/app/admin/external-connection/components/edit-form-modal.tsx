@@ -129,6 +129,7 @@ export default function EditFormModal({
               connectionTested={connectionTested}
               testError={testError}
               name={name}
+              isEditMode={true}
             />
           )}
         </div>

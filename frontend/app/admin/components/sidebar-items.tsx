@@ -3,7 +3,6 @@ import {
   Lock,
   LogOut,
   PlusSquare,
-  User,
   UserCog,
   Users,
   FileText,
@@ -16,12 +15,6 @@ export const dashboardSidebarItems = [
     href: '/admin/dashboard',
     icon: Computer,
     alt: 'Dashboard icon',
-  },
-  {
-    name: 'Profile',
-    href: `/admin/profile`,
-    icon: User,
-    alt: 'Program Profile icon',
   },
   {
     name: 'Workflows',
