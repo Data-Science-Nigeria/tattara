@@ -1,9 +1,12 @@
-FROM node:25-alpine AS base
+FROM node:20-alpine AS base
 
 # Install dependencies only when needed
 FROM base AS deps
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
+
+# Enable corepack and install correct yarn version
+RUN corepack enable
 
 # Install dependencies based on the preferred package manager
 COPY package.json yarn.lock* .yarnrc.yml ./
@@ -12,6 +15,9 @@ RUN yarn --frozen-lockfile
 # Rebuild the source code only when needed
 FROM base AS builder
 WORKDIR /app
+
+# Enable corepack
+RUN corepack enable
 
 # Add build args for environment variables
 ARG NEXT_PUBLIC_API_URL
