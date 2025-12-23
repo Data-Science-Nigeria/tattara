@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 interface DatabaseFieldMapperProps {
   field: {
@@ -8,9 +8,10 @@ interface DatabaseFieldMapperProps {
     label?: string;
     fieldName?: string;
     fieldType: string;
-    databaseMapping?: {
-      column: string;
-    };
+    fieldMappings?: Array<{
+      targetType: string;
+      target: { column?: string; [key: string]: unknown };
+    }>;
   };
   onMapping: (mapping: { column: string }) => void;
 }
@@ -19,16 +20,26 @@ export default function DatabaseFieldMapper({
   field,
   onMapping,
 }: DatabaseFieldMapperProps) {
+  const currentMapping = field.fieldMappings?.[0]?.target?.column as string;
   const [manualColumn, setManualColumn] = useState(
-    field.databaseMapping?.column || field.fieldName || field.label || ''
+    currentMapping || field.fieldName || field.label || ''
   );
+  const initialMappingDone = useRef(false);
+
+  // Update input when field mapping changes
+  useEffect(() => {
+    if (currentMapping && currentMapping !== manualColumn) {
+      setManualColumn(currentMapping);
+    }
+  }, [currentMapping]);
 
   // Auto-map on mount if not already mapped
   useEffect(() => {
-    if (!field.databaseMapping?.column && manualColumn) {
+    if (!initialMappingDone.current && !currentMapping && manualColumn) {
       onMapping({ column: manualColumn });
+      initialMappingDone.current = true;
     }
-  }, [field.databaseMapping?.column, manualColumn, onMapping]);
+  }, [currentMapping, manualColumn]);
 
   const handleColumnChange = (column: string) => {
     setManualColumn(column);
@@ -63,10 +74,10 @@ export default function DatabaseFieldMapper({
         </div>
 
         {/* Current Mapping Display */}
-        {field.databaseMapping && (
+        {currentMapping && (
           <div className="mt-3 rounded bg-green-50 p-2 text-sm">
             <span className="text-green-700">
-              Mapped to column: {field.databaseMapping.column}
+              Mapped to column: {currentMapping}
             </span>
           </div>
         )}

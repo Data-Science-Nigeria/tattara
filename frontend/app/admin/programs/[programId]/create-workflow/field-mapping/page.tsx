@@ -20,12 +20,12 @@ interface WorkflowField {
   fieldName?: string;
   label?: string;
   fieldType: string;
-  dhis2DataElement?: string;
-  databaseMapping?: {
-    column: string;
-  };
   isRequired?: boolean;
   options?: string[];
+  fieldMappings?: Array<{
+    targetType: 'dhis2' | 'postgres' | 'mysql' | 'sqlite' | 'mssql' | 'oracle';
+    target: { [key: string]: unknown };
+  }>;
 }
 
 interface Connection {
@@ -84,7 +84,17 @@ export default function FieldMapping() {
           setFields((prev) =>
             prev.map((field) => ({
               ...field,
-              dhis2DataElement: mappings[field.id] || field.dhis2DataElement,
+              fieldMappings: mappings[field.id]
+                ? [
+                    {
+                      targetType: connectionType as any,
+                      target:
+                        connectionType === 'dhis2'
+                          ? { dataElement: mappings[field.id] }
+                          : { column: mappings[field.id] },
+                    },
+                  ]
+                : field.fieldMappings,
             }))
           );
         } catch (error) {
@@ -190,11 +200,17 @@ export default function FieldMapping() {
     setFields(updatedFields);
 
     // Save mappings to localStorage
-    if (workflowId && updates.dhis2DataElement !== undefined) {
+    if (workflowId && updates.fieldMappings !== undefined) {
       const mappings = updatedFields.reduce(
         (acc, field) => {
-          if (field.dhis2DataElement) {
-            acc[field.id] = field.dhis2DataElement;
+          const mapping = field.fieldMappings?.find(
+            (m) => m.targetType === connectionType
+          );
+          if (mapping) {
+            acc[field.id] =
+              connectionType === 'dhis2'
+                ? (mapping.target?.dataElement as string)
+                : (mapping.target?.column as string);
           }
           return acc;
         },
@@ -210,11 +226,14 @@ export default function FieldMapping() {
   // Check if all fields are mapped
   const allFieldsMapped =
     fields.length > 0 &&
-    fields.every((field) =>
-      connectionType === 'dhis2'
-        ? field.dhis2DataElement
-        : field.databaseMapping?.column
-    );
+    fields.every((field) => {
+      const mapping = field.fieldMappings?.find(
+        (m) => m.targetType === connectionType
+      );
+      return connectionType === 'dhis2'
+        ? mapping?.target?.dataElement
+        : mapping?.target?.column;
+    });
 
   const [showAiReview, setShowAiReview] = useState(false);
   const [testCompleted, setTestCompleted] = useState(false);
@@ -241,21 +260,24 @@ export default function FieldMapping() {
     }
 
     const mappings = fields
-      .filter((field) =>
-        connectionType === 'dhis2'
-          ? field.dhis2DataElement
-          : field.databaseMapping?.column
-      )
-      .map((field) => ({
-        workflowFieldId: field.id,
-        targetType: connectionType as 'dhis2' | 'postgres' | 'mysql',
-        target:
-          connectionType === 'dhis2'
-            ? { dataElement: field.dhis2DataElement! }
-            : {
-                column: field.databaseMapping!.column,
-              },
-      }));
+      .filter((field) => {
+        const mapping = field.fieldMappings?.find(
+          (m) => m.targetType === connectionType
+        );
+        return connectionType === 'dhis2'
+          ? mapping?.target?.dataElement
+          : mapping?.target?.column;
+      })
+      .map((field) => {
+        const mapping = field.fieldMappings?.find(
+          (m) => m.targetType === connectionType
+        );
+        return {
+          workflowFieldId: field.id,
+          targetType: connectionType as 'dhis2' | 'postgres' | 'mysql',
+          target: mapping!.target,
+        };
+      });
 
     if (mappings.length > 0) {
       try {

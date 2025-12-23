@@ -12,10 +12,10 @@ interface Field {
   label?: string;
   fieldName?: string;
   fieldType: string;
-  dhis2DataElement?: string;
-  databaseMapping?: {
-    column: string;
-  };
+  fieldMappings?: Array<{
+    targetType: 'dhis2' | 'postgres' | 'mysql' | 'sqlite' | 'mssql' | 'oracle';
+    target: { [key: string]: unknown };
+  }>;
 }
 
 interface DataElement {
@@ -87,9 +87,12 @@ export default function FieldMappingStep({
 
   // Export validation for parent components
   const hasValidationErrors = fields.some((field) => {
-    if (!field.dhis2DataElement) return false;
+    const dhis2Mapping = field.fieldMappings?.find(
+      (m) => m.targetType === 'dhis2'
+    );
+    if (!dhis2Mapping?.target?.dataElement) return false;
     const dhis2Element = dhis2DataElements.find(
-      (el) => el.id === field.dhis2DataElement
+      (el) => el.id === dhis2Mapping.target.dataElement
     );
     const workflowFieldName = field.label || field.fieldName || '';
     return (
@@ -121,10 +124,14 @@ export default function FieldMappingStep({
   };
 
   const getFieldValidation = (field: Field) => {
-    if (!field.dhis2DataElement) return { isValid: true, message: '' };
+    const dhis2Mapping = field.fieldMappings?.find(
+      (m) => m.targetType === 'dhis2'
+    );
+    if (!dhis2Mapping?.target?.dataElement)
+      return { isValid: true, message: '' };
 
     const dhis2Element = dhis2DataElements.find(
-      (el) => el.id === field.dhis2DataElement
+      (el) => el.id === dhis2Mapping.target.dataElement
     );
     if (!dhis2Element) return { isValid: true, message: '' };
 
@@ -143,7 +150,11 @@ export default function FieldMappingStep({
 
   // Get list of already selected data elements
   const selectedDataElements = fields
-    .map((field) => field.dhis2DataElement)
+    .map(
+      (field) =>
+        field.fieldMappings?.find((m) => m.targetType === 'dhis2')?.target
+          ?.dataElement
+    )
     .filter(Boolean) as string[];
 
   const {
@@ -228,7 +239,14 @@ export default function FieldMappingStep({
               key={field.id}
               field={field}
               onMapping={(mapping) =>
-                updateField(field.id, { databaseMapping: mapping })
+                updateField(field.id, {
+                  fieldMappings: [
+                    {
+                      targetType: connectionType as any,
+                      target: { column: mapping.column },
+                    },
+                  ],
+                })
               }
             />
           ))}
@@ -322,12 +340,20 @@ export default function FieldMappingStep({
                 >
                   <span
                     className={
-                      field.dhis2DataElement ? 'text-gray-900' : 'text-gray-500'
+                      field.fieldMappings?.find((m) => m.targetType === 'dhis2')
+                        ?.target?.dataElement
+                        ? 'text-gray-900'
+                        : 'text-gray-500'
                     }
                   >
-                    {field.dhis2DataElement
+                    {field.fieldMappings?.find((m) => m.targetType === 'dhis2')
+                      ?.target?.dataElement
                       ? dhis2DataElements.find(
-                          (el) => el.id === field.dhis2DataElement
+                          (el) =>
+                            el.id ===
+                            field.fieldMappings?.find(
+                              (m) => m.targetType === 'dhis2'
+                            )?.target?.dataElement
                         )?.name || 'Select data element...'
                       : 'Select data element...'}
                   </span>
@@ -342,9 +368,12 @@ export default function FieldMappingStep({
                   !isLoading && (
                     <div className="custom-scrollbar absolute bottom-full z-50 mb-1 max-h-48 w-full overflow-y-auto rounded-lg border border-gray-300 bg-white shadow-lg">
                       {dhis2DataElements.map((element) => {
+                        const currentMapping = field.fieldMappings?.find(
+                          (m) => m.targetType === 'dhis2'
+                        )?.target?.dataElement;
                         const isAlreadySelected =
                           selectedDataElements.includes(element.id) &&
-                          field.dhis2DataElement !== element.id;
+                          currentMapping !== element.id;
                         const workflowFieldName =
                           field.label || field.fieldName || '';
                         const isMatching = isFieldNameMatching(
@@ -362,7 +391,12 @@ export default function FieldMappingStep({
                             onClick={() => {
                               if (!isAlreadySelected) {
                                 updateField(field.id, {
-                                  dhis2DataElement: element.id,
+                                  fieldMappings: [
+                                    {
+                                      targetType: 'dhis2',
+                                      target: { dataElement: element.id },
+                                    },
+                                  ],
                                 });
                                 setOpenDropdowns((prev) => ({
                                   ...prev,

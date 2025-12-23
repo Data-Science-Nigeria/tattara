@@ -20,12 +20,12 @@ interface WorkflowField {
   fieldName?: string;
   label?: string;
   fieldType: string;
-  dhis2DataElement?: string;
-  databaseMapping?: {
-    column: string;
-  };
   isRequired?: boolean;
   options?: string[];
+  fieldMappings?: Array<{
+    targetType: 'dhis2' | 'postgres' | 'mysql' | 'sqlite' | 'mssql' | 'oracle';
+    target: { [key: string]: unknown };
+  }>;
 }
 
 interface Connection {
@@ -167,11 +167,14 @@ export default function StandaloneFieldMapping() {
 
   const allFieldsMapped =
     fields.length > 0 &&
-    fields.every((field) =>
-      connectionType === 'dhis2'
-        ? field.dhis2DataElement
-        : field.databaseMapping?.column
-    );
+    fields.every((field) => {
+      const mapping = field.fieldMappings?.find(
+        (m) => m.targetType === connectionType
+      );
+      return connectionType === 'dhis2'
+        ? mapping?.target?.dataElement
+        : mapping?.target?.column;
+    });
 
   const handleSave = async () => {
     if (!workflowId) return;
@@ -186,21 +189,24 @@ export default function StandaloneFieldMapping() {
     }
 
     const mappings = fields
-      .filter((field) =>
-        connectionType === 'dhis2'
-          ? field.dhis2DataElement
-          : field.databaseMapping?.column
-      )
-      .map((field) => ({
-        workflowFieldId: field.id,
-        targetType: connectionType as 'dhis2' | 'postgres' | 'mysql',
-        target:
-          connectionType === 'dhis2'
-            ? { dataElement: field.dhis2DataElement! }
-            : {
-                column: field.databaseMapping!.column,
-              },
-      }));
+      .filter((field) => {
+        const mapping = field.fieldMappings?.find(
+          (m) => m.targetType === connectionType
+        );
+        return connectionType === 'dhis2'
+          ? mapping?.target?.dataElement
+          : mapping?.target?.column;
+      })
+      .map((field) => {
+        const mapping = field.fieldMappings?.find(
+          (m) => m.targetType === connectionType
+        );
+        return {
+          workflowFieldId: field.id,
+          targetType: connectionType as 'dhis2' | 'postgres' | 'mysql',
+          target: mapping!.target,
+        };
+      });
 
     if (mappings.length > 0) {
       try {
